@@ -1,0 +1,23 @@
+{
+  "easy": [
+    {
+      "id": 1,
+      "title": "BPO Industry Overview",
+      "content": "The Philippine Business Process Outsourcing (BPO) industry remains one of the country’s leading economic sectors, generating significant revenue and employing many Filipinos. The industry relies on strong communication skills, particularly English fluency and clarity, which are essential in customer service and voice-based roles."
+    }
+  ],
+  "medium": [
+    {
+      "id": 2,
+      "title": "Communication Challenges",
+      "content": "Many applicants struggle with interview performance due to communication-related challenges such as lack of confidence, poor grammar, ineffective sentence construction, and limited opportunities for structured speaking practice. These issues highlight the need for tools that improve spoken communication through structured practice and automated feedback."
+    }
+  ],
+  "hard": [
+    {
+      "id": 3,
+      "title": "AI-Powered Interview Coaching",
+      "content": "By integrating speech analysis, grammar checking, and progressive paragraph-reading modules, AI-powered interview coaching systems can provide personalized, real-time feedback. Such systems can analyze pronunciation, detect filler words, evaluate pacing and confidence, and provide targeted exercises that improve interview readiness for industry-specific roles like BPO."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+OUTBOUND
+
+Agent: Hello, hello, good morning. My name is (name) calling from Deluxe Credit Card. May I speak with Ms. Anastasia Robinson?
+
+Rec1Customer (Anastasia): Yes, this is her.
+
+Agent: Hi, good morning, Ms. Robinson. I'm calling because Deluxe Credit Card actually has good news for you. Do you have 5 to 7 minutes to talk?
+
+Rec2Customer: Okay, go ahead.
+
+Agent: Thank you. So, we are well aware that you have been a valued customer of Deluxe for 8 years now, and we would like to reward you with a Platinum MasterCard that has amazing benefits and a free annual fee for life. How does that sound to you?
+
+Rec3Customer: Thank you, appreciate it. So, what do I get from that platinum?
+
+Agent: Yes, ma'am. The Platinum MasterCard is a highly prestigious card for highly career-oriented individuals like you. This card has non-expiring rewards points, free travel insurance up to $20,000, purchase protection up to $1,000, free access to the Sky View lounges in different airports locally and abroad, up to five supplementary cardholders with free annual membership fees for life, and as mentioned, your annual fee will automatically be waived as well.
+
+Of course, it also has a higher credit limit than your usual plastic or regular credit cards.
+
+Rec4Customer: Okay, that sounds good.
+
+Agent: Sounds great! Since you are already pre-approved, I just need to confirm your billing address, phone number, and email address.
+
+Rec5Customer: Okay, my billing address is Apartment 152, Emerald Building, Rock Street, Los Angeles, California. Email is AnnaRobinson@aol.com.
+
+And my phone is 213-897-0362.
+
+Agent: Got it. Thank you so much. I'll have this submitted and please expect your card in 10 business days. Don't hesitate to call our toll-free number for any assistance. Welcome, thank you so much, bye.
+
+Rec6Customer: Thank you, bye.

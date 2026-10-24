@@ -1,0 +1,165 @@
+Agent : Hello, hello, good morning. My name is (name) calling from Kwestyon Telecom. The reason for my call today is about the form you filled out on our website for our Fiber plans. Have I caught you at a good time?
+
+Customer (Vanessa): Uh, for now, it's fine, but I might be busy soon. But we can talk about it now.
+
+Agent: Perfect. First, I'd like to quickly confirm your address and see if it's part of our serviceable locations. What we have here is 11345 Cay Spruce Way, San Antonio, Florida, 33576. Is this correct?
+
+Customer: That's correct.
+
+Agent: Perfect. So this address is eligible for a Fiber connection. We can provide you with the service. Would you like to know more about our available plans?
+
+Customer: Uhm, actually, I was just curious if my location's serviceable for Fiber, but I'm not really actively looking to switch right now. I'm kind of happy with my current provider, so...
+
+Agent: I understand. This is just going to be a discovery call to see if there are areas where we might be able to help you out with. If I could ask you real quick, how much is the average speed you're getting from your current provider?
+
+Customer: Uhm, I'm not sure. I haven't really checked.
+
+Agent: And what's your current provider?
+
+Customer: BC&C.
+
+Agent: And what do you usually use your connection for? Browsing, gaming, streaming?
+
+Customer: Uhm, all sorts of things. But mainly just browsing, FaceTime, and streaming, most of all.
+
+Agent: Mm-hmm. And are you totally happy with how the speed performs for each of these activities or do you think it could do better in some aspects?
+
+Customer: Uh... (Sighs.) I wouldn't say totally happy. But mostly, it's acceptable. When watching videos at 4K there's definitely some lagging. Doesn't matter which device, on our phones, on our TV. It would just freeze for a few seconds and then resume. I'm guessing it's the connection because it's definitely not the device. We just bought this 4K TV last month and it's been happening like clockwork every time we watch in 4K. Other than that, it's fine.
+
+Agent: Hmm, you know when streaming 4K videos, you'd normally need 25 megabits per second to effectively load without lagging. Anything lower than 25, it would definitely slow you down one way or another.
+
+Customer: Oh, really? I wasn't exactly aware of that.
+
+Agent: Tell you what, Vanessa, why don't we test your connection and see how much speed you're exactly getting? Because I think you're getting less than 25. Or if you are, chances are, it's not a consistent 25 throughout the day. Are you in front of your computer right now?
+
+Customer: No. But now that you raise that, I'm actually curious since I haven't checked the speed before, huh. All right, let me just go to my computer. What do you want me to do?
+
+Agent: So if you could just open a browser and go to speedtest.net...
+
+Customer: Uh-huh. Speedtest.net... okay.
+
+Agent: And then click Go once you're there.
+
+Customer: Okay. It says... Ooh wow, this thing's moving!
+
+Agent: Yup, that's the meter. The first number should be your download speed.
+
+Customer: Okay, it says 8.19 and there's another wheel coming up. I guess that'll be the upload speed?
+
+Agent: Yup, that'll be the upload speed.
+
+Customer: Ha! So now it says 17.43. So 8.19 and 17.43. So definitely not enough, huh?
+
+Agent: No, definitely not enough to load 4K. You know, when streaming videos, we need to look at your download speed; how much megabits you're downloading from the web per second. Your download speed is 8.19. That's good enough for 1080 but definitely not for 4K.
+
+Agent: Because you see, 4K, technically is four times the size of 1080. So that's like 2 million pixels versus 8 million pixels per second.
+
+Customer: Oh wow, so that explains the lagging, then?
+
+Agent: Oh definitely! There's no doubt about it. And that's what I'm calling you about today, Vanessa. If you want to make the most out of your 4K TV, then, I have something much faster for you with an attractive pricing.
+
+Customer: Okay?
+
+Agent: You could get up to 800 megabits per second which is roughly a hundred times faster than your current download speed. Would you like to know more about the available plans?
+
+Customer: Well that sounds great, but how much is it?
+
+Agent: It depends on the plan, but 800 Mbps starts as low as $50/month plus installation fees.
+
+(Long pause)
+
+Customer: Um... Okay, I don't know, that's kind of too much for me. I don't think we're willing to pay that much. Our Internet's a little slow but it works for us most of the time so... I don't think so.
+
+Agent: Okay, how much do you pay monthly for your current connection?
+
+Customer: About $30, $33? Something like that. That's kind of like my price range. I don't think I want to be paying any higher than that.
+
+Agent: Okay, okay. I get you. Let me check here..okay? Because I might have something more suitable for you.
+
+Customer: Oh, okay.
+
+Agent: What if I tell you you can get 100 Mbps for only $25? With free installation fee.
+
+Customer: $25 for how much, how much speed?
+
+Agent: 100 megabits. Not as fast as 800 but definitely 12 times faster than your current download speed, more than enough to play 4K, and cheaper than $33. How does that sound?
+
+Customer: Hmm, that's getting interesting. Um, but first, I'm going to have to talk to my husband about it. I also have to go to work now. Can you call me later after work this evening?
+
+Agent: Sure, I can call you back at 6:00 or 7:00 this evening. Which do you prefer?
+
+Customer: 7:00 should be fine.
+
+Agent: Alright then, thank you for your time, Vanessa. I'll call you back at 7:00 in the evening today, have a good day!
+
+Customer: You too, Bye.
+
+
+The Callback
+Agent (): Hi, Vanessa. Good evening. This is (name) from Kwestyon Telecom. I'm following up with us as we agreed this morning to boost your internet speed for a 4k loading capability.
+
+Customer (Vanessa): Oh, yes. Hello . How are you?
+
+Agent: I'm doing fantastic! I'm just about to head home. Just doing my last calls for the day. How are you?
+
+Customer: Great, great. I just finished work. And I've talked to my husband about it and we just have a few questions before we jump into it.
+
+Agent: Of course, sure. Go ahead.
+
+Customer: I'm a little unclear about the pricing. You said it's $25 which is a lot cheaper than my current provider and a lot faster too which is what got us interested, you know? Um, but what I'd like to know is, is $25 going to be my regular monthly fee? Or is it only for a couple of months then I'll pay the regular price? Because if that is the case, we're not interested.
+
+Agent: Oh, $25 is actually already our regular pricing for a 100 Mbps Fiber connection.
+
+Customer: Oh. And no additional fee on top of $25 after a few months?
+
+Agent: No additional fee because that's already the regular pricing. And the installation is free as well.
+
+Customer: Oh, okay. Then great. Let's do it!
+
+Agent: Perfect. So to recap real quick, I got you a plan for 100 Mbps for a $25 monthly fee, no installation fee. Placing the order will only take a couple of minutes, I'll send you the link then I'll walk you through the steps to sign up. Are you ready?
+
+Customer: All right.
+
+Agent: I've just sent you the sign up link to your email vanessaroberts@gmail.com.
+
+Customer: Okay, let me check.
+
+(Typing)
+
+Customer: I got it.
+
+Agent: Great! Just click on the link and fill out the required information and you should receive a confirmation email after that.
+
+Customer: Okay, I'm doing it now (typing). Okay, I think I'm done. What's next?
+
+Agent: Now you can choose the plan and payment method and make sure to unclick the box next to the installation fees since you already have a landline installed. And click on "Submit Order"?
+
+Customer: Yes, click on "Submit Order" and that should complete the purchase.
+
+Agent: Okay, I think I'm done.
+
+Agent: Okay, let me check here. One moment.
+
+(Typing)
+
+Agent: Congratulations! I see here that the order is successful. You'll get your router within 3 business days. I'll also send you a link to a video showing the step-by-step instructions on how to activate it.
+
+Customer: Thank you. But my service will continue working until we receive the router, right?
+
+Agent: Oh definitely. Your service will continue working without any interruption.
+
+Customer: Perfect. We are honestly so excited about it. And I hope we won't get disappointed.
+
+Agent: No, you won't be. When you're finally able to make the most out of your 4K TV with no more buffering, why would you be disappointed?
+
+Customer: Well, when you put it like that, it makes sense.
+
+Agent: And if you need help, you can always call our customer service hotline and they'll be there to answer your billing and technical questions.
+
+Customer: All right. Thank you so much. And we'll just wait for the router. You have yourself a great evening.
+
+Agent: You too, Vanessa. You have a great evening!
+
+Customer: Bye.
+
+Agent: Bye!

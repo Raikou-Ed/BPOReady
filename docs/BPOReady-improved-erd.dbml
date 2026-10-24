@@ -1,0 +1,295 @@
+Project BPOReady {
+  database_type: 'PostgreSQL'
+  Note: 'Improved ERD based on bpo (1).pdf. Import into an ERD tool, then map styles and labels in Lucidchart.'
+}
+
+Enum user_role {
+  super_admin
+  admin
+  applicant
+}
+
+Enum user_status {
+  active
+  inactive
+  suspended
+}
+
+Enum difficulty_level {
+  easy
+  medium
+  hard
+}
+
+Enum session_status {
+  in_progress
+  submitted
+  evaluated
+  abandoned
+}
+
+Enum interview_type {
+  initial
+  final
+}
+
+Enum call_type {
+  inbound
+  outbound
+}
+
+Table users {
+  id bigint [pk, increment]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  middle_name varchar(100)
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  role user_role [not null, default: 'applicant']
+  status user_status [not null, default: 'active']
+  assigned_level difficulty_level
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  indexes {
+    role
+    status
+  }
+}
+
+Table paragraphs {
+  id bigint [pk, increment]
+  created_by_user_id bigint
+  title varchar(255)
+  content text [not null]
+  difficulty difficulty_level [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  indexes {
+    difficulty
+    is_active
+  }
+}
+
+Table interview_questions {
+  id bigint [pk, increment]
+  created_by_user_id bigint
+  question_text text [not null]
+  interview_type interview_type [not null]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  indexes {
+    interview_type
+    is_active
+  }
+}
+
+Table scoring_standards {
+  id bigint [pk, increment]
+  managed_by_user_id bigint [not null]
+  level difficulty_level [not null]
+  min_score decimal(5,2) [not null]
+  max_score decimal(5,2) [not null]
+  is_active boolean [not null, default: true]
+  updated_at timestamp [not null]
+  indexes {
+    (level, is_active) [unique]
+  }
+}
+
+Table pre_assessments {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  paragraph_id bigint [not null]
+  recording_path varchar(500)
+  diagnostic_score decimal(5,2)
+  placed_level difficulty_level
+  status session_status [not null, default: 'in_progress']
+  taken_at timestamp [not null]
+  evaluated_at timestamp
+  indexes {
+    applicant_id
+    paragraph_id
+  }
+}
+
+Table paragraph_reading_sessions {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  paragraph_id bigint [not null]
+  recording_path varchar(500)
+  mime_type varchar(100)
+  duration_seconds integer
+  status session_status [not null, default: 'in_progress']
+  started_at timestamp [not null]
+  submitted_at timestamp
+  indexes {
+    applicant_id
+    paragraph_id
+    status
+  }
+}
+
+Table paragraph_feedback {
+  id bigint [pk, increment]
+  reading_session_id bigint [not null, unique]
+  filler_word_count integer [not null, default: 0]
+  filler_words json
+  clarity_score decimal(5,2)
+  confidence_score decimal(5,2)
+  pacing_score decimal(5,2)
+  volume_score decimal(5,2)
+  grammar_score decimal(5,2)
+  feedback_text text
+  suggestions text
+  created_at timestamp [not null]
+}
+
+Table communication_exercises {
+  id bigint [pk, increment]
+  created_by_user_id bigint
+  target_flaw varchar(100) [not null]
+  exercise_type varchar(100) [not null]
+  title varchar(255) [not null]
+  exercise_content text [not null]
+  difficulty difficulty_level
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table exercise_attempts {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  exercise_id bigint [not null]
+  response_text text
+  recording_path varchar(500)
+  score decimal(5,2)
+  status session_status [not null, default: 'in_progress']
+  feedback text
+  taken_at timestamp [not null]
+  indexes {
+    applicant_id
+    exercise_id
+  }
+}
+
+Table mock_interview_sessions {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  interview_type interview_type [not null]
+  overall_score decimal(5,2)
+  status session_status [not null, default: 'in_progress']
+  started_at timestamp [not null]
+  submitted_at timestamp
+}
+
+Table mock_interview_answers {
+  id bigint [pk, increment]
+  mock_session_id bigint [not null]
+  question_id bigint [not null]
+  question_order integer [not null]
+  answer_text text
+  recording_path varchar(500)
+  duration_seconds integer
+  indexes {
+    (mock_session_id, question_order) [unique]
+  }
+}
+
+Table mock_interview_feedback {
+  id bigint [pk, increment]
+  mock_session_id bigint [not null, unique]
+  filler_word_count integer [not null, default: 0]
+  filler_words json
+  clarity_score decimal(5,2)
+  confidence_score decimal(5,2)
+  pacing_score decimal(5,2)
+  volume_score decimal(5,2)
+  grammar_score decimal(5,2)
+  answer_quality_score decimal(5,2)
+  feedback_text text
+  suggestions text
+  created_at timestamp [not null]
+}
+
+Table call_scenarios {
+  id bigint [pk, increment]
+  created_by_user_id bigint
+  call_type call_type [not null]
+  title varchar(255) [not null]
+  scenario_brief text [not null]
+  difficulty difficulty_level
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table scenario_dialogues {
+  id bigint [pk, increment]
+  scenario_id bigint [not null]
+  sequence_order integer [not null]
+  speaker_role varchar(50) [not null]
+  transcript_text text [not null]
+  audio_file_path varchar(500)
+  indexes {
+    (scenario_id, sequence_order) [unique]
+  }
+}
+
+Table call_simulation_sessions {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  scenario_id bigint [not null]
+  overall_score decimal(5,2)
+  status session_status [not null, default: 'in_progress']
+  started_at timestamp [not null]
+  submitted_at timestamp
+}
+
+Table call_simulation_logs {
+  id bigint [pk, increment]
+  session_id bigint [not null]
+  user_audio_path varchar(500)
+  duration_seconds integer
+  empathy_score decimal(5,2)
+  resolution_score decimal(5,2)
+  clarity_score decimal(5,2)
+  ai_feedback text
+  created_at timestamp [not null]
+}
+
+Table performance_reports {
+  id bigint [pk, increment]
+  applicant_id bigint [not null]
+  generated_by_user_id bigint
+  report_type varchar(100) [not null]
+  overall_score decimal(5,2)
+  remarks text
+  generation_type varchar(20) [not null, default: 'automatic']
+  generated_at timestamp [not null]
+}
+
+Ref: users.id < paragraphs.created_by_user_id
+Ref: users.id < interview_questions.created_by_user_id
+Ref: users.id < scoring_standards.managed_by_user_id
+Ref: users.id < pre_assessments.applicant_id
+Ref: paragraphs.id < pre_assessments.paragraph_id
+Ref: users.id < paragraph_reading_sessions.applicant_id
+Ref: paragraphs.id < paragraph_reading_sessions.paragraph_id
+Ref: paragraph_reading_sessions.id - paragraph_feedback.reading_session_id
+Ref: users.id < communication_exercises.created_by_user_id
+Ref: users.id < exercise_attempts.applicant_id
+Ref: communication_exercises.id < exercise_attempts.exercise_id
+Ref: users.id < mock_interview_sessions.applicant_id
+Ref: mock_interview_sessions.id < mock_interview_answers.mock_session_id
+Ref: interview_questions.id < mock_interview_answers.question_id
+Ref: mock_interview_sessions.id - mock_interview_feedback.mock_session_id
+Ref: users.id < call_scenarios.created_by_user_id
+Ref: call_scenarios.id < scenario_dialogues.scenario_id
+Ref: users.id < call_simulation_sessions.applicant_id
+Ref: call_scenarios.id < call_simulation_sessions.scenario_id
+Ref: call_simulation_sessions.id < call_simulation_logs.session_id
+Ref: users.id < performance_reports.applicant_id
+Ref: users.id < performance_reports.generated_by_user_id

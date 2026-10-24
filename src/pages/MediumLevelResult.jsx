@@ -1,92 +1,22 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { formatScore, getAssignedLevel, getScoreTieredFeedback } from "../utils/assessmentScoring";
+import { getUserData } from "../utils/userData";
+import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const MediumLevelResult = () => {
+  const location = useLocation();
+  const result = location.state?.result || getUserData('bpoReadyLastParagraphResult') || getAssignedLevel();
+  const canProceedToHard = Number(result?.score ?? 0) >= 90;
+  const numScore = Number(result?.score ?? 0);
+  const tiered = getScoreTieredFeedback(numScore);
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins">
-      {/* Sidebar */}
-      <div className="w-20 bg-white border-r border-gray-200 shadow-sm flex flex-col items-center py-6 gap-6 fixed h-screen">
-        {/* Logo */}
-        <Link to="/Dashboard" className="flex items-center justify-center">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-        </Link>
-
-        {/* Navigation Icons */}
-        <nav className="flex flex-col gap-4">
-          {/* Dashboard */}
-          <Link to="/Dashboard" title="Dashboard">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M9 5h6" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Paragraph Reading */}
-          <Link to="/ParagraphReading" title="Paragraph Reading">
-            <button className="w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Mock Interview */}
-          <Link to="/MockInterview" title="Mock Interview">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Practice History */}
-          <Link to="/PracticeHistory" title="Practice History">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Performance Summary */}
-          <Link to="/PerformanceSummary" title="Performance Summary">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </button>
-          </Link>
-        </nav>
-
-        {/* Bottom Icons */}
-        <div className="mt-auto flex flex-col gap-4 pt-6 border-t border-gray-200">
-          {/* Profile */}
-          <Link to="/Profile" title="Profile">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Logout */}
-          <Link to="/Login" title="Log Out">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </Link>
-        </div>
-      </div>
+      <ApplicantSidebar activeItem="Paragraph Reading" />
 
       {/* Main Content */}
-      <div className="flex-1 ml-20">
+      <div className="flex-1 ml-64">
         {/* Header */}
         <div className="bg-white shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -105,62 +35,194 @@ const MediumLevelResult = () => {
           <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-8">Speech Analysis Result</h2>
 
-            {/* Speech Analysis Summary */}
-            <div className="mb-10">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Speech Analysis Summary:</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">Filler Words:</span>
-                  <span className="font-semibold text-gray-800">"uh" (2), "like" (2)</span>
-                </div>
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">Total Words:</span>
-                  <span className="font-semibold text-gray-800">125</span>
-                </div>
-                <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">Confidence:</span>
-                  <span className="font-semibold text-gray-800">Good</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Pacing:</span>
-                  <span className="font-semibold text-gray-800">Steady</span>
-                </div>
+            {result?.aiEvaluated && (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-6">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Speech Analysis Complete
               </div>
-            </div>
+            )}
 
-            {/* Divider */}
-            <hr className="my-8" />
+            {result ? (
+              <>
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Reading Result</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-gray-600">Score:</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-bold text-xl ${numScore >= 90 ? 'text-emerald-700' : numScore >= 76 ? 'text-blue-700' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                          {formatScore(result.score)}/100
+                        </span>
+                        {numScore >= 90 ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Hard Unlocked
+                          </span>
+                        ) : numScore >= 76 ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            Benchmark Met
+                          </span>
+                        ) : numScore >= 50 ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            Developing
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            Needs Improvement
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-gray-600">Assigned level:</span>
+                      <span className="font-semibold text-gray-800 capitalize">{result.placedLevel}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Level rule:</span>
+                      <span className="font-semibold text-gray-800">1–75 Easy · 76–89 Medium · 90–100 Hard</span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Suggestions for Improvement */}
-            <div className="mb-10">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Suggestions for Improvement:</h3>
-              <ul className="space-y-3 list-disc list-inside">
-                <li className="text-gray-700">Reduce the use of filler words for smoother delivery</li>
-                <li className="text-gray-700">Continue to maintain your steady pacing</li>
-                <li className="text-gray-700">Emphasize key points with appropriate intonation</li>
-                <li className="text-gray-700">Practice enunciation for complex words</li>
-              </ul>
-            </div>
+                <div className="mb-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                  <div className="grid grid-cols-4 border-b border-gray-200 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <span>Factor</span>
+                    <span>Result</span>
+                    <span>Weight</span>
+                    <span>Contribution</span>
+                  </div>
+                  {result.criteria?.map((criterion) => (
+                    <div key={criterion.name} className="grid grid-cols-4 border-t border-gray-200 px-4 py-3 text-sm text-gray-700">
+                      <span>{criterion.name}</span>
+                      <span className="font-medium">
+                        {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                        {criterion.detail ? <span className="text-xs text-gray-400 font-normal"> ({criterion.detail})</span> : null}
+                      </span>
+                      <span>{criterion.weight ? `${criterion.weight}%` : '-'}</span>
+                      <span className={`font-semibold ${numScore >= 76 ? 'text-emerald-700' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                        {criterion.weight ? Number(criterion.contribution || 0).toFixed(2) : '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
 
-            {/* Feedback Message */}
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-10">
-              <p className="text-gray-800">
-                Excellent work on the medium level! Your delivery shows significant improvement from the easy level. Your confidence is evident, and your pacing is much more controlled. You maintained consistent pronunciation throughout the passage and used appropriate emphasis on important words. While there are still a few filler words, your overall performance demonstrates strong communication skills.
-              </p>
-            </div>
+                {/* Speech Evaluation Feedback */}
+                <div className="bg-blue-50 border-l-4 border-blue-600 p-5 mb-6 rounded-r-xl shadow-xs">
+                  <h4 className="text-sm font-bold text-blue-900 mb-1">Speech Coach Feedback</h4>
+                  <p className="text-gray-800 text-sm leading-relaxed">
+                    {result.feedbackText || tiered.feedbackText}
+                  </p>
+                </div>
 
-            {/* Action Buttons */}
+                {/* Suggestions for Improvement - Call To Action Card */}
+                <div className="mb-8 rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-orange-50/60 to-yellow-50 p-6 shadow-sm">
+                  <h3 className="text-base font-extrabold text-amber-950 mb-1">
+                    Suggestions for Improvement:
+                  </h3>
+                  <p className="text-xs text-amber-800/80 mb-4 font-medium">
+                    Focus on these recommended action steps in your next practice session:
+                  </p>
+
+                  <div className="space-y-2.5">
+                    {(Array.isArray(result.suggestions) && result.suggestions.length > 0
+                      ? result.suggestions
+                      : tiered.suggestions
+                    ).map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3 p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
+                      >
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
+                          {idx + 1}
+                        </span>
+                        <p className="text-sm font-semibold text-gray-800 leading-relaxed">
+                          {suggestion}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-10">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">Speech Analysis Summary:</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-gray-600">Filler Words:</span>
+                      <span className="font-semibold text-gray-800">"uh" (2), "like" (2)</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-gray-600">Total Words:</span>
+                      <span className="font-semibold text-gray-800">125</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                      <span className="text-gray-600">Confidence:</span>
+                      <span className="font-semibold text-gray-800">Good</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Pacing:</span>
+                      <span className="font-semibold text-gray-800">Steady</span>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="my-8" />
+
+                <div className="mb-8 rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-orange-50/60 to-yellow-50 p-6 shadow-sm">
+                  <h3 className="text-base font-extrabold text-amber-950 mb-1">
+                    Suggestions for Improvement:
+                  </h3>
+                  <p className="text-xs text-amber-800/80 mb-4 font-medium">
+                    Focus on these recommended action steps in your next practice session:
+                  </p>
+
+                  <div className="space-y-2.5">
+                    {[
+                      "Reduce the use of filler words for smoother delivery",
+                      "Continue to maintain your steady pacing",
+                      "Emphasize key points with appropriate intonation",
+                      "Practice enunciation for complex words"
+                    ].map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3 p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
+                      >
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
+                          {idx + 1}
+                        </span>
+                        <p className="text-sm font-semibold text-gray-800 leading-relaxed">
+                          {suggestion}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-10">
+                  <p className="text-gray-800">
+                    Excellent work on the medium level! Your delivery shows significant improvement from the easy level. Your confidence is evident, and your pacing is much more controlled. You maintained consistent pronunciation throughout the passage and used appropriate emphasis on important words. While there are still a few filler words, your overall performance demonstrates strong communication skills.
+                  </p>
+                </div>
+              </>
+            )}
+
             <div className="flex gap-4 justify-center">
               <Link to="/medium-level-paragraph-reading">
                 <button className="px-8 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors shadow-md">
                   Retry Medium Level
                 </button>
               </Link>
-              <Link to="/hard-level-paragraph-reading">
-                <button className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-md">
+              {canProceedToHard ? (
+                <Link to="/hard-level-paragraph-reading">
+                  <button className="px-8 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-md">
+                    Proceed to Hard Level
+                  </button>
+                </Link>
+              ) : (
+                <button disabled className="cursor-not-allowed px-8 py-3 bg-gray-300 text-gray-600 font-semibold rounded-lg shadow-md" title="Minimum score to unlock hard is 90/100">
                   Proceed to Hard Level
                 </button>
-              </Link>
+              )}
             </div>
           </div>
         </div>

@@ -1,78 +1,98 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginAdmin, saveAuthenticatedUser } from "../api/authApi";
 
 const AdminLogin = () => {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const data = await loginAdmin(form);
+      saveAuthenticatedUser(data);
+      navigate('/AdminDashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins py-12">
       <div className="w-full max-w-md mx-4">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold text-gray-800">BPQReady</span>
+            <span className="text-2xl font-bold text-gray-800">BPOReady</span>
           </div>
+          <p className="text-xs font-semibold tracking-wider uppercase text-blue-600">Administrator Portal</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           <h2 className="text-center text-2xl font-bold text-gray-800 mb-2">
-         <span className="text-blue-600">BPQReady</span>
+            Admin <span className="text-blue-600">Sign In</span>
           </h2>
-          <p className="text-center text-gray-500 mb-8">
-            Admin Login
+          <p className="text-center text-sm text-gray-500 mb-6">
+            Authorized personnel only. Enter your administrative credentials.
           </p>
 
-          {/* Email Input */}
-          <div className="mb-6">
-            <input
-              type="email"
-              placeholder="Email Address"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
+          {error && (
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600 flex items-center gap-2">
+              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
 
-          {/* Password Input */}
-          <div className="mb-6">
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
-          </div>
-
-          {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between mb-6">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email Input */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Admin Email Address</label>
               <input
-                type="checkbox"
-                className="w-4 h-4 border border-gray-300 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+                required
+                placeholder="admin@bpoready.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
-              <span className="text-sm text-gray-600">Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Forgot Password?
-            </Link>
-          </div>
+            </div>
 
-          {/* Login Button */}
-          <Link to="/AdminDashboard" className="block">
-            <button className="w-full py-3 rounded-lg font-semibold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-md">
-              Log In
+            {/* Password Input */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm(prev => ({ ...prev, password: e.target.value }))}
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              />
+            </div>
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-semibold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-60 text-sm mt-2"
+            >
+              {loading ? 'Authenticating...' : 'Sign In as Administrator'}
             </button>
-          </Link>
-
-          {/* Sign Up Link */}
-          <p className="text-center text-gray-600 mt-6">
-            Don't have an account?{' '}
-            <Link to="/Register" className="text-blue-600 hover:text-blue-700 font-semibold">
-              Sign Up
-            </Link>
-          </p>
+          </form>
         </div>
       </div>
     </div>

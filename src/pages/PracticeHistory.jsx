@@ -1,122 +1,151 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getUserActivity, getCurrentUser } from "../utils/userData";
+import { getApplicantHistory } from "../api/adminApi";
+import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const PracticeHistory = () => {
+  const [activities, setActivities] = useState([]);
+  const [filterType, setFilterType] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
+
+  useEffect(() => {
+    async function loadHistory() {
+      const local = getUserActivity();
+      try {
+        const remote = await getApplicantHistory(currentUser.id || 19);
+        if (Array.isArray(remote) && remote.length > 0) {
+          const remoteList = remote.map((r) => ({
+            id: r.id,
+            activity: r.activity_type || r.activity || "Practice Drill",
+            level: r.level || "Standard",
+            result: r.result || (r.score ? `${r.score}/100` : "Completed"),
+            date: r.date || r.created_at || new Date().toISOString(),
+            type: r.type || "practice"
+          }));
+
+          // Merge any local-only activities (e.g. recent pre-assessment) if not in remote
+          const remoteTypes = new Set(remoteList.map(r => r.type));
+          const localPreAssess = (local || []).filter(l => l.activity === 'Pre-Assessment' && !remoteTypes.has('pre_assessment'));
+          const combined = [...remoteList, ...localPreAssess];
+          combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          setActivities(combined);
+          return;
+        }
+      } catch (err) {
+        console.warn("Using local practice history:", err);
+      } finally {
+        setLoading(false);
+      }
+      setActivities(local || []);
+    }
+    loadHistory();
+  }, [currentUser.id]);
+
+  const filtered = activities.filter((item) => {
+    if (filterType === "all") return true;
+    const act = (item.activity || "").toLowerCase();
+    const typ = (item.type || "").toLowerCase();
+    if (filterType === "interview") return act.includes("interview") || typ.includes("interview");
+    if (filterType === "exercise") return act.includes("exercise") || act.includes("filler") || act.includes("pacing") || act.includes("grammar") || typ.includes("exercise");
+    if (filterType === "simulation") return act.includes("simulation") || act.includes("call") || typ.includes("simulation");
+    if (filterType === "reading") return act.includes("paragraph") || act.includes("reading") || act.includes("pre-assessment");
+    return true;
+  });
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins">
-      {/* Sidebar */}
-      <div className="w-20 bg-white border-r border-gray-200 shadow-sm flex flex-col items-center py-6 gap-6 fixed h-screen">
-        {/* Logo */}
-        <Link to="/Dashboard" className="flex items-center justify-center">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-        </Link>
-
-        {/* Navigation Icons */}
-        <nav className="flex flex-col gap-4">
-          {/* Dashboard */}
-          <Link to="/Dashboard" title="Dashboard">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9M9 5h6" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Paragraph Reading */}
-          <Link to="/ParagraphReading" title="Paragraph Reading">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Mock Interview */}
-          <Link to="/MockInterview" title="Mock Interview">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Practice History - Active */}
-          <Link to="/PracticeHistory" title="Practice History">
-            <button className="w-10 h-10 flex items-center justify-center text-blue-600 bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Performance Summary */}
-          <Link to="/PerformanceSummary" title="Performance Summary">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </button>
-          </Link>
-        </nav>
-
-        {/* Bottom Icons */}
-        <div className="mt-auto flex flex-col gap-4 pt-6 border-t border-gray-200">
-          {/* Profile */}
-          <Link to="/Profile" title="Profile">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Logout */}
-          <Link to="/Login" title="Log Out">
-            <button className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </Link>
-        </div>
-      </div>
+      <ApplicantSidebar activeItem="Practice History" />
 
       {/* Main Content */}
-      <div className="flex-1 ml-20 flex items-center justify-center min-h-screen">
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-4xl mx-4">
-          {/* Title */}
-          <h4 className="text-xl font-bold text-gray-800 mb-2">Practice History</h4>
-          <p className="text-sm text-gray-400 mb-8">Track your previous paragraph reading and mock interview sessions.</p>
+      <div className="flex-1 ml-64 p-10">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                Session Logs & Audits
+              </span>
+              <h1 className="text-2xl font-bold text-gray-900 mt-1">Practice History</h1>
+              <p className="text-xs text-gray-500 mt-1">
+                Full chronological record of your speech recordings, mock interviews, and communication drills.
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-gray-400 font-semibold uppercase">Total Sessions</span>
+              <p className="text-2xl font-bold text-blue-600">{activities.length}</p>
+            </div>
+          </div>
 
-          {/* Table */}
-          <div>
-            <table className="w-full border border-gray-300">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border p-4">Activity</th>
-                  <th className="border p-4">Level/Type</th>
-                  <th className="border p-4">Date</th>
-                  <th className="border p-4">Result</th>
+          {/* Filter Tabs */}
+          <div className="flex gap-2">
+            {[
+              { key: "all", label: "All Activities" },
+              { key: "interview", label: "Mock Interviews" },
+              { key: "exercise", label: "Communication Drills" },
+              { key: "simulation", label: "Call Simulations" },
+              { key: "reading", label: "Reading & Pre-Assessment" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilterType(tab.key)}
+                className={`px-4 py-2 text-xs font-semibold rounded-xl transition ${
+                  filterType === tab.key
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* History Table */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-6 py-3.5">Activity Name</th>
+                  <th className="px-6 py-3.5">Module / Level</th>
+                  <th className="px-6 py-3.5">Date & Time</th>
+                  <th className="px-6 py-3.5">Score / Result</th>
+                  <th className="px-6 py-3.5 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td className="border p-4 px-10">Paragraph Reading</td>
-                  <td className="border p-4 px-10">Easy</td>
-                  <td className="border p-4 px-10">2023-10-15</td>
-                  <td className="border p-4 px-10">Pass</td>
-                </tr>
-                <tr>
-                  <td className="border p-4 px-10">Paragraph Reading</td>
-                  <td className="border p-4 px-10">Easy</td>
-                  <td className="border p-4 px-10">2023-10-15</td>
-                  <td className="border p-4 px-10">Needs Improvement</td>
-                </tr>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.length > 0 ? (
+                  filtered.map((item, idx) => (
+                    <tr key={item.id || idx} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4 font-semibold text-gray-900 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                        {item.activity}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 capitalize">
+                        {item.level || "Standard"}
+                      </td>
+                      <td className="px-6 py-4 text-gray-500">
+                        {new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-blue-600">
+                        {item.result}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold text-[10px] uppercase">
+                          Completed
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
+                      No matching practice sessions found. Choose another filter or start a new practice drill!
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

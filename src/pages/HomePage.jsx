@@ -1,58 +1,9 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 
 const HomePage = () => {
-  const [showModal, setShowModal] = useState(false);
-  const navigate = useNavigate();
-
   return (
     <div className="w-full font-poppins">
-
-      {/* Role Selection Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm mx-4">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Login As</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-500 mb-6 text-center">Please select how you want to log in.</p>
-
-            {/* Role Buttons */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => { setShowModal(false); navigate("/Login"); }}
-                className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Login as User
-              </button>
-
-              <button
-                onClick={() => { setShowModal(false); navigate("/AdminLogin"); }}
-                className="w-full py-3 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-900 transition-colors shadow-sm flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Login as Admin
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Navigation Header */}
       <nav className="bg-white shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -63,7 +14,7 @@ const HomePage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-gray-800">BPQReady</span>
+            <span className="text-xl font-bold text-gray-800">BPOReady</span>
           </div>
 
           {/* Nav Links */}
@@ -77,12 +28,12 @@ const HomePage = () => {
 
           {/* Buttons */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
+            <Link
+              to="/Login"
               className="px-6 py-2 text-blue-600 font-semibold hover:text-blue-700"
             >
               Log In
-            </button>
+            </Link>
             <Link to="/Register">
               <button className="px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700">
                 Sign Up
@@ -96,7 +47,7 @@ const HomePage = () => {
       <section className="bg-gray-50 py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
-            Prepare for BPQ Interviews with Confidence
+            Prepare for BPO Interviews with Confidence
           </h1>
           <p className="text-lg text-gray-600 mb-10 max-w-3xl mx-auto">
             Practice paragraph reading, improve your speech, and train for mock interviews with AI-powered feedback.
@@ -115,7 +66,7 @@ const HomePage = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Key Features</h2>
             <p className="text-lg text-gray-600">
-              Discover the core tools of BPQReady designed to help BPQ applicants improve their communication skills, build confidence, and prepare effectively for job interviews.
+              Discover the core tools of BPOReady designed to help BPO applicants improve their communication skills, build confidence, and prepare effectively for job interviews.
             </p>
           </div>
 
@@ -171,7 +122,7 @@ const HomePage = () => {
               How It <span className="text-blue-600">Works?</span>
             </h2>
             <p className="text-lg text-gray-600">
-              BPQReady guides BPQ applicants through a simple step-by-step process to improve communication skills and prepare for interviews effectively.
+              BPOReady guides BPO applicants through a simple step-by-step process to improve communication skills and prepare for interviews effectively.
             </p>
           </div>
 
@@ -211,10 +162,10 @@ const HomePage = () => {
             <div className="md:w-1/2">
               <h2 className="text-4xl font-bold text-gray-800 mb-6">About Us</h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                BPQReady is a web-based interview coaching system that helps BPQ applicants improve their communication skills through speech analysis, practice modules, and automated feedback.
+                BPOReady is a web-based interview coaching system that helps BPO applicants improve their communication skills through speech analysis, practice modules, and automated feedback.
               </p>
               <p className="text-lg text-gray-600 leading-relaxed">
-                Our platform combines the latest in AI-driven speech analysis with intuitive practice tools to help you prepare confidently for your BPQ interviews.
+                Our platform combines the latest in AI-driven speech analysis with intuitive practice tools to help you prepare confidently for your BPO interviews.
               </p>
             </div>
           </div>
@@ -231,7 +182,7 @@ const HomePage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-800">BPQReady</span>
+              <span className="text-xl font-bold text-gray-800">BPOReady</span>
             </div>
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="flex items-center gap-2">
@@ -250,7 +201,7 @@ const HomePage = () => {
             </div>
           </div>
           <div className="border-t border-gray-300 pt-6 text-center text-gray-600">
-            <p>© 2025 BPQReady. All rights reserved.</p>
+            <p>© 2026 BPOReady. All rights reserved.</p>
           </div>
         </div>
       </footer>

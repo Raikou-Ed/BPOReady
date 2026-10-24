@@ -1,0 +1,90 @@
+Technical Support Mock Calls Script - Call Center Training.
+Situation: A customer is calling because they cannot connect to the internet and can't access their email 
+Customer Profile: Irritate Customer
+Goal: Pacify the irate caller, resolve the customer's issue, and establish rapport.
+
+Agent: Thank you for calling, cnx support. My name is [Agent Name]. How can I help you today?
+
+
+RecC1: I'm sorry, can you please repeat yourself?
+
+
+Agent: I'm sorry, can you hear me OK now? My name is [Name]. How can I help you today? Can I ask for your name and account number?
+
+
+RecC2: Well, before I give you my account information, I just wanna let you know that I'm really pissed. I can't access my email for almost a week now. I'm paying you guys lots of money, and you can't even provide a decent service. What's wrong with you people? YOUR SERVICE SUCKS!!!
+
+
+Agent: I'm really sorry for the inconvenience; I would probably feel the same way if I'm in your situation. But, don't worry, I promise you that we'll get your issue resolved. Let me get first your account number so we can check your account, would that be ok?!
+
+
+RecC3: Sure, my account number is 860-995-1234
+
+
+Agent: Got it, may I please verify the name on the account?
+
+
+Rec4Customer: It's Sarah Sky, I am the account holder.
+
+
+Agent: Can we call you back at the same number, or do you have a better call back number?
+
+
+Rec5Customer: I'm sorry, I'm having a hard time hearing, can you please repeat your question?
+
+
+Agent: Sure, I was just asking you, if we can call you at the same number you gave me, or if you have a better call back number?
+
+
+Rec6Customer: Yes, that's a good call back number.
+
+
+Agent: Ok, based on our test results, it shows here that you are not getting a DSL signal, that's why you can't get online or check your email. We can actually fix this problem over the phone, but, I will need to walk you through on some steps, would that be ok?
+
+
+Rec7Customer: I've gone through the steps, believe me, I've checked everything before calling you!
+
+
+Agent: Oh, that's good then, but, can you at least, check for me which lights are lit up on your modem.
+
+
+Rec8Customer: Fine! I have Power and Ethernet lights green on my modem. But, the 3rd light is flashing red, which is the DSL light. Are you happy now?
+
+
+Agent: Thank you for your patience! As you could notice, the DSL light is flashing red on your modem. That means that you are not getting any dsl signal. The good thing is, based on our initial test results here, we do not have network problems or outages in your area. That means, we might be able to fix the problem over the phone!
+
+
+Rec9Customer: Well, that's good then, I'll be a happy camper!
+
+
+Agent: You might have already checked on it. But, since we have the DSL light flashing red on your modem, it's telling you right away that there could be something wrong on the DSL line. It's the gray phone cord at the back part of the modem.
+
+
+Rec10Customer: It's right behind my desk, do you want me to crawl down the floor again?
+
+
+Agent: Well, If I send someone out, and they find out that there's just a loose phone cord, then, you will get charge for the dispatch. So, we want to resolve the problem over the phone, so we could avoid dispatch charges. It will also save your time, that's all we need to check.
+
+
+Rec11Customer: Ok, but, this is the last step that I'll do. Don't hang up.
+
+
+Agent: Don't worry, I won't hang up on you.
+
+
+Rec12Customer: Oh my goodness, the gray phone cord was just loose, let me plug that in... Oh my, there's now a steady green light on the DSL light of the modem, let me just try now the Internet!
+
+
+Agent: Wow, that's good to know. Let's just see if you can now get online, before we hang up. Can you try one or two more websites?
+
+
+ Rec13Customer: you are a miracle worker! Thank you so much! It got me now on my homepage and email!
+
+
+ Agent: No, you did a great job, I was just giving you the steps! You did great today! But, do you have anymore questions or other concerns?
+
+
+ Rec14Customer: I feel so stupid for calling you about this. But, I surely appreciate your time and patience!
+
+
+ Agent: You are welcome. We are open 24 by 7 just in case that you'll need our help again. And, again, my name is (name), we do value your business and thank you for choosing Rocket Speed Internet. Have a blessed day!

@@ -1,0 +1,28 @@
+CALL CENTER MOCK CALLS SCRIPT SAMPLE - CUSTOMER SERVICE
+Situation: A customer is calling about her account balance.
+Customer's Profile: Female, Age is 25-30yrs old, calm.
+Goal: Answer customer's inquiry in a timely manner.
+
+
+Agent: It's a good day today at Bank of Wealth, my name is (name), How can I help you?
+
+Rec1Customer: I would like to know my remaining money in my account.
+
+Agent: I'll be glad to help you. May I please get your Bank Account number and the Name on the Account?
+
+Rec2Customer: Sure, it's Claudin D., account number is 805-7845-3895-061
+
+Agent: Thank you, let me just check on it. Ok, can you please, verify the last four numbers of your social 
+security ID?
+
+Rec3Customer: It is 1234.
+
+Agent: You still have 84 thousand and 65 cents. Is there anything else that I could assist you with?
+
+Rec4Customer: Yes, If I transfer it to my bank account in Lloyds of London, how long will it take?
+
+Agent: If we do the transaction over the phone or online, our team will still contact you for verification prior sending your money to a different bank. The whole process usually just takes 2-3 days.
+
+Rec5Customer: Oh, I see, never mind, I'll just do it after the holidays. Thanks for your help.!
+
+Agent: You are very much welcome, Ms. Claudin! You have a great day and Thank you for calling Bank of Wealth. Good Bye!

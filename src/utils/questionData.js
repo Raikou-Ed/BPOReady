@@ -1,16 +1,32 @@
-const defaultParagraphQuestions = {
-  easy: [
-    { id: 1, question: "Tell me about yourself." },
-    { id: 2, question: "Why do you want to work in the BPO industry?" },
-  ],
-  medium: [
-    { id: 3, question: "How do you handle difficult customers?" },
-    { id: 4, question: "How do you manage stress in a fast-paced environment?" },
-  ],
-  hard: [
-    { id: 5, question: "Describe a situation where you had to resolve a conflict at work." },
-  ],
-};
+import paragraphsData from '../data/paragraphs.json';
+
+// Build default paragraph entries from paragraphs.json if available
+const defaultParagraphQuestions = (() => {
+  try {
+    const easy = (paragraphsData.easy || []).map(p => ({ id: p.id || Date.now() + Math.random(), question: p.content || p.title || '' }));
+    const medium = (paragraphsData.medium || []).map(p => ({ id: p.id || Date.now() + Math.random(), question: p.content || p.title || '' }));
+    const hard = (paragraphsData.hard || []).map(p => ({ id: p.id || Date.now() + Math.random(), question: p.content || p.title || '' }));
+    if (easy.length || medium.length || hard.length) {
+      return { easy, medium, hard };
+    }
+  } catch (err) {
+    // fall back to hardcoded defaults below
+  }
+
+  return {
+    easy: [
+      { id: 1, question: "Tell me about yourself." },
+      { id: 2, question: "Why do you want to work in the BPO industry?" },
+    ],
+    medium: [
+      { id: 3, question: "How do you handle difficult customers?" },
+      { id: 4, question: "How do you manage stress in a fast-paced environment?" },
+    ],
+    hard: [
+      { id: 5, question: "Describe a situation where you had to resolve a conflict at work." },
+    ],
+  };
+})();
 
 const defaultMockInterviewQuestions = {
   initial: [
