@@ -1,4 +1,4 @@
-FROM php:8.3-cli-alpine
+FROM php:8.4-cli-alpine
 
 # Install PostgreSQL development libraries and required system dependencies
 RUN apk add --no-cache postgresql-dev bash libpng-dev libzip-dev zip unzip icu-dev
@@ -14,7 +14,7 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
-# Install production dependencies with platform flexibility
+# Install production dependencies matching PHP 8.4
 RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 # Ensure writable directories for logs and cache
