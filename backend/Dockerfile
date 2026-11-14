@@ -20,6 +20,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-pl
 # Ensure writable directories for logs and cache
 RUN chmod -R 777 storage bootstrap/cache
 
+ENV APP_KEY=base64:LKX4BL3qMgo1NG3VrUaY5zyrBQTxmQX9OXiRaWN3PDw=
+ENV APP_DEBUG=true
+
 EXPOSE 8080
 
 CMD sh -c "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"
