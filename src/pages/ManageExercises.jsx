@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import { getCurrentUser } from "../utils/userData";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const defaultExercises = [
   {
@@ -115,7 +115,7 @@ const ManageExercises = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const approval_status = isSuperAdmin ? "approved" : "pending";
+    const approval_status = "approved"; // Published live immediately per adviser directive
     const payload = {
       ...formData,
       approval_status,
@@ -131,8 +131,8 @@ const ManageExercises = () => {
         });
         if (res.ok) {
           const updated = await res.json();
-          setExercises(exercises.map((ex) => (ex.id === editingId ? { ...(updated.exercise || updated), prompt_text: formData.prompt_text, approval_status: ex.approval_status } : ex)));
-          setMessage("Exercise drill updated successfully.");
+          setExercises(exercises.map((ex) => (ex.id === editingId ? { ...(updated.exercise || updated), prompt_text: formData.prompt_text, approval_status: "approved" } : ex)));
+          setMessage("Exercise drill updated and published live! Monitored in Super Admin audit trail.");
         } else {
           setExercises(exercises.map((ex) => (ex.id === editingId ? { ...ex, ...payload } : ex)));
           setMessage("Exercise drill updated locally.");
@@ -148,14 +148,10 @@ const ManageExercises = () => {
           const newObj = {
             ...(created.exercise || created),
             prompt_text: formData.prompt_text,
-            approval_status,
+            approval_status: "approved",
           };
           setExercises([...exercises, newObj]);
-          setMessage(
-            isSuperAdmin
-              ? "New exercise drill created and published."
-              : "New drill submitted! Pending Super Admin review before going live."
-          );
+          setMessage("New exercise drill created and published live! Monitored in Super Admin audit trail.");
         } else {
           const newEx = { id: Date.now(), ...payload };
           setExercises([...exercises, newEx]);
@@ -204,47 +200,54 @@ const ManageExercises = () => {
                 <span className="text-xs text-gray-400">Speech Drills</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                {isSuperAdmin ? "Communication Exercises Repository" : "Propose Communication Drills"}
+                {isSuperAdmin ? "Speech Drills Repository" : "Manage Speech Drills"}
               </h1>
               <p className="text-xs text-gray-500 mt-1">
                 {isSuperAdmin
-                  ? "Read-only quality audit of all speech flaw drills. Drills are authored by BPO Company Admins; approvals are managed in the Approvals Center."
-                  : "Submit company-specific speech drills to train candidates on flaw reduction. Submissions require Super Admin approval."}
+                  ? "View-only audit of all speech and communication flaw drills. Authored and managed directly by BPO Company Admins."
+                  : "Create and update speech drills to help candidates minimize filler words, improve pacing, and master grammar. Changes are published immediately."}
               </p>
             </div>
 
-            {/* ONLY Company Admin can author/propose content */}
-            {!isSuperAdmin ? (
-              <button
-                onClick={handleOpenAdd}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
-              >
-                + Propose Exercise Drill
-              </button>
-            ) : (
-              <a
-                href="/AdminApprovals"
-                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
-              >
-                <span>⚖️ Go to Approvals Center</span>
-              </a>
-            )}
+            {/* Actions: View Only for Super Admin, Add for Company Admin */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {isSuperAdmin ? (
+                <>
+                  <span className="px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 font-semibold rounded-xl text-xs flex items-center gap-1.5">
+                    👁️ View Only Mode
+                  </span>
+                  <a
+                    href="/AdminApprovals"
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>📋 Content Updates &amp; Audit</span>
+                  </a>
+                </>
+              ) : (
+                <button
+                  onClick={handleOpenAdd}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
+                >
+                  + Add Speech Drill
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Super Admin Notice Banner */}
+          {/* Super Admin View-Only Notice Banner */}
           {isSuperAdmin && (
             <div className="p-3.5 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl text-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-purple-700 text-sm">ℹ️</span>
+                <span className="font-bold text-purple-700 text-sm">👁️</span>
                 <span>
-                  <strong>Quality Control Policy:</strong> Super Admins do not author communication drills. Coaching prompts are authored by BPO Company Admins and approved by Super Admin.
+                  <strong>View-Only Oversight:</strong> Super Admins can monitor and view all speech flaw drills. Drill authoring, editing, and deleting are reserved for BPO Company Admins.
                 </span>
               </div>
               <a
                 href="/AdminApprovals"
                 className="text-xs font-bold text-purple-700 underline shrink-0 hover:text-purple-900"
               >
-                Review Pending Submissions →
+                View Updates &amp; Audit Center →
               </a>
             </div>
           )}
@@ -301,20 +304,13 @@ const ManageExercises = () => {
                         {ex.target_flaw?.replace("_", " ")}
                       </span>
 
-                      {/* Approval Status Badge */}
-                      {status === "approved" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Approved
-                        </span>
-                      )}
-                      {status === "pending" && (
+                      {/* Status & Change Badges */}
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Active
+                      </span>
+                      {ex.is_updated && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pending Approval
-                        </span>
-                      )}
-                      {status === "rejected" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Rejected
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> ⚡ Recently Updated
                         </span>
                       )}
 
@@ -323,20 +319,22 @@ const ManageExercises = () => {
                         ({ex.difficulty} tier)
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(ex)}
-                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(ex.id)}
-                        className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {!isSuperAdmin && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(ex)}
+                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(ex.id)}
+                          className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {ex.reviewer_notes && (

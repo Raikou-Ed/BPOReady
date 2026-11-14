@@ -127,6 +127,7 @@ export default function AudioRecorder({
   const rafRef = useRef(null);
   const audioCtxRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const detectedHesitationsRef = useRef(new Set());
 
   useEffect(() => {
     return () => {
@@ -211,6 +212,7 @@ export default function AudioRecorder({
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       transcriptRef.current = '';
+      detectedHesitationsRef.current = new Set();
       setLiveTranscript('');
       setElapsedSeconds(0);
       mediaStoppedRef.current = false;
@@ -266,7 +268,17 @@ export default function AudioRecorder({
           recognition.lang = 'en-US';
           recognitionEndedRef.current = false;
 
+          const fillerScanRegex = /\b(um+|uh+|uhm+|ah+|ahh+|er+|erm+|hmm+|mhm|like|you\s+know|actually|basically)\b/gi;
+
           recognition.addEventListener('result', (event) => {
+            for (let i = 0; i < event.results.length; i += 1) {
+              const resTranscript = event.results[i][0]?.transcript || '';
+              const matches = resTranscript.match(fillerScanRegex);
+              if (matches) {
+                matches.forEach((m) => detectedHesitationsRef.current.add(m.toLowerCase()));
+              }
+            }
+
             const nextTranscript = Array.from(event.results)
               .map(result => result[0]?.transcript ?? '')
               .join(' ')
@@ -307,13 +319,25 @@ export default function AudioRecorder({
       mediaRecorder.addEventListener('stop', async () => {
         const webmBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
+        const liveFillers = Array.from(detectedHesitationsRef.current);
         try {
           const wavBlob = await wavFromBlob(webmBlob);
           const audioMetrics = await analyzeRecording(wavBlob);
-          recordingDataRef.current = { blob: wavBlob, durationSeconds, audioMetrics: audioMetrics || { signal: 0, consistency: 0 } };
+          recordingDataRef.current = {
+            blob: wavBlob,
+            durationSeconds,
+            audioMetrics: {
+              ...(audioMetrics || { signal: 0, consistency: 0 }),
+              detectedFillers: liveFillers,
+            },
+          };
         } catch (error) {
           console.warn('WAV conversion failed, falling back to original recorded blob', error);
-          recordingDataRef.current = { blob: webmBlob, durationSeconds, audioMetrics: { signal: 0, consistency: 0 } };
+          recordingDataRef.current = {
+            blob: webmBlob,
+            durationSeconds,
+            audioMetrics: { signal: 0, consistency: 0, detectedFillers: liveFillers },
+          };
         }
         mediaStoppedRef.current = true;
         finishRecordingIfReady();

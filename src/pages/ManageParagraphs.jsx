@@ -2,35 +2,35 @@ import React, { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import { getCurrentUser } from "../utils/userData";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const defaultParagraphs = [
   {
     id: 1,
-    title: "BPO Industry Overview",
+    title: "The Value of Daily Speaking Practice",
     difficulty: "easy",
-    category: "BPO Industry",
-    word_count: 45,
+    category: "Communication Foundations",
+    word_count: 48,
     approval_status: "approved",
-    content: "The Philippine Business Process Outsourcing (BPO) industry remains one of the country’s leading economic sectors, generating significant revenue and employing many Filipinos. The industry relies on strong communication skills, particularly English fluency and clarity, which are essential in customer service and voice-based roles."
+    content: "Speaking English clearly takes time, patience, and regular practice. When you read aloud every day, you improve your voice, rhythm, and confidence. Using simple words helps everyone understand your message right away. Staying calm and breathing properly allows you to speak smoothly and share your thoughts with ease."
   },
   {
     id: 2,
-    title: "Communication Challenges",
+    title: "Effective Communication in the Workplace",
     difficulty: "medium",
-    category: "Communication Skills",
-    word_count: 50,
+    category: "Workplace Communication",
+    word_count: 60,
     approval_status: "approved",
-    content: "Many applicants struggle with interview performance due to communication-related challenges such as lack of confidence, poor grammar, ineffective sentence construction, and limited opportunities for structured speaking practice. These issues highlight the need for tools that improve spoken communication through structured practice and automated feedback."
+    content: "Effective communication is an essential skill in every modern workplace. When people share their ideas clearly and listen with respect, teams solve problems faster and achieve better results. Practicing structured speech techniques helps individuals build vocal confidence, control their speaking pace, and adapt comfortably to different professional conversations. Over time, consistent practice transforms everyday spoken interactions into meaningful professional relationships."
   },
   {
     id: 3,
-    title: "AI-Powered Interview Coaching",
+    title: "Mastering Advanced Verbal Precision",
     difficulty: "hard",
-    category: "Speech AI",
-    word_count: 55,
+    category: "Advanced Speech Mastery",
+    word_count: 61,
     approval_status: "approved",
-    content: "By integrating speech analysis, grammar checking, and progressive paragraph-reading modules, AI-powered interview coaching systems can provide personalized, real-time feedback. Such systems can analyze pronunciation, detect filler words, evaluate pacing and confidence, and provide targeted exercises that improve interview readiness for industry-specific roles like BPO."
+    content: "Mastering advanced verbal communication requires cognitive adaptability, precise phonetic articulation, and disciplined breath management. Professionals who articulate intricate concepts clearly can navigate high-pressure discussions with authority and composure. Developing these capabilities demands sustained linguistic awareness, critical self-evaluation, and continuous refinement across demanding professional environments. Ultimately, achieving vocal excellence empowers individuals to deliver persuasive arguments, project executive presence, and influence organizational outcomes."
   }
 ];
 
@@ -114,7 +114,7 @@ const ManageParagraphs = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const word_count = formData.content.trim().split(/\s+/).length;
-    const approval_status = isSuperAdmin ? "approved" : "pending";
+    const approval_status = "approved"; // Published live immediately per adviser directive
     const payload = {
       ...formData,
       word_count,
@@ -131,11 +131,11 @@ const ManageParagraphs = () => {
         });
         if (res.ok) {
           const updated = await res.json();
-          setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...(updated.paragraph || updated), approval_status: p.approval_status } : p)));
-          setMessage("Paragraph updated successfully.");
+          setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...(updated.paragraph || updated), approval_status: "approved" } : p)));
+          setMessage("Reading passage updated and published live! Monitored in Super Admin audit trail.");
         } else {
           setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...p, ...payload } : p)));
-          setMessage("Paragraph updated locally.");
+          setMessage("Reading passage updated locally.");
         }
       } else {
         const res = await fetch(`${API_BASE}/api/paragraphs`, {
@@ -146,19 +146,11 @@ const ManageParagraphs = () => {
         if (res.ok) {
           const created = await res.json();
           setParagraphs([...paragraphs, created.paragraph || created]);
-          setMessage(
-            isSuperAdmin
-              ? "New reading passage created and published."
-              : "New passage submitted! Pending Super Admin review before going live."
-          );
+          setMessage("New reading passage created and published live! Monitored in Super Admin audit trail.");
         } else {
           const newP = { id: Date.now(), ...payload };
           setParagraphs([...paragraphs, newP]);
-          setMessage(
-            isSuperAdmin
-              ? "New reading passage saved locally."
-              : "Passage saved! Pending Super Admin review."
-          );
+          setMessage("New reading passage saved locally.");
         }
       }
     } catch {
@@ -203,47 +195,54 @@ const ManageParagraphs = () => {
                 <span className="text-xs text-gray-400">Content Repository</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                {isSuperAdmin ? "Reading Passages Repository" : "Propose Reading Passages"}
+                {isSuperAdmin ? "Reading Passages Repository" : "Manage Reading Passages"}
               </h1>
               <p className="text-xs text-gray-500 mt-1">
                 {isSuperAdmin
-                  ? "Read-only quality audit of all reading scripts. Content authoring is reserved for BPO Company Admins; approvals are managed in the Approvals Center."
-                  : "Submit company-tailored customer care scripts. Submissions require Super Admin approval before going live to candidates."}
+                  ? "View-only audit of all reading passages. Content is authored and managed directly by BPO Company Admins."
+                  : "Create and update reading passages for candidate assessments. Changes are published immediately."}
               </p>
             </div>
 
-            {/* ONLY Company Admin can author/propose content */}
-            {!isSuperAdmin ? (
-              <button
-                onClick={handleOpenAdd}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
-              >
-                + Propose Reading Passage
-              </button>
-            ) : (
-              <a
-                href="/AdminApprovals"
-                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
-              >
-                <span>⚖️ Go to Approvals Center</span>
-              </a>
-            )}
+            {/* Actions: View Only for Super Admin, Add for Company Admin */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {isSuperAdmin ? (
+                <>
+                  <span className="px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 font-semibold rounded-xl text-xs flex items-center gap-1.5">
+                    👁️ View Only Mode
+                  </span>
+                  <a
+                    href="/AdminApprovals"
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>📋 Content Updates &amp; Audit</span>
+                  </a>
+                </>
+              ) : (
+                <button
+                  onClick={handleOpenAdd}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
+                >
+                  + Add Reading Passage
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Super Admin Notice Banner */}
+          {/* Super Admin View-Only Notice Banner */}
           {isSuperAdmin && (
             <div className="p-3.5 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl text-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-purple-700 text-sm">ℹ️</span>
+                <span className="font-bold text-purple-700 text-sm">👁️</span>
                 <span>
-                  <strong>Quality Control Policy:</strong> Super Admins do not author training passages. Materials are authored by industry experts (BPO Company Admin) and approved by Super Admin.
+                  <strong>View-Only Oversight:</strong> Super Admins can monitor and view all reading passages. Content authoring, editing, and deleting are reserved for BPO Company Admins.
                 </span>
               </div>
               <a
                 href="/AdminApprovals"
                 className="text-xs font-bold text-purple-700 underline shrink-0 hover:text-purple-900"
               >
-                Review Pending Submissions →
+                View Updates &amp; Audit Center →
               </a>
             </div>
           )}
@@ -295,20 +294,13 @@ const ManageParagraphs = () => {
                         {p.difficulty} Level
                       </span>
 
-                      {/* Approval Status Badge */}
-                      {status === "approved" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Approved
-                        </span>
-                      )}
-                      {status === "pending" && (
+                      {/* Status & Change Badges */}
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Active
+                      </span>
+                      {p.is_updated && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pending Approval
-                        </span>
-                      )}
-                      {status === "rejected" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Rejected
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> ⚡ Recently Updated
                         </span>
                       )}
 
@@ -318,20 +310,22 @@ const ManageParagraphs = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(p)}
-                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {!isSuperAdmin && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(p)}
+                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {p.reviewer_notes && (

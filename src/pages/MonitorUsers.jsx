@@ -4,6 +4,8 @@ import { getRegisteredUsers } from "../api/adminApi";
 import { getCurrentUser } from "../utils/userData";
 
 const defaultTrainees = [
+  { id: 1, name: "System SuperAdmin", email: "superadmin@bpoready.com", role: "super_admin", status: "Active", level: "N/A", score: null },
+  { id: 2, name: "Company Admin", email: "admin@bpoready.com", role: "admin", status: "Active", level: "N/A", score: null },
   { id: 19, name: "Juan Santos Dela Cruz", email: "applicant@bpoready.com", role: "applicant", status: "Active", level: "Easy", score: 61 },
   { id: 20, name: "Maria Santos", email: "maria@email.com", role: "applicant", status: "Active", level: "Hard", score: 94 },
   { id: 21, name: "Claudin Reyes", email: "claudin@email.com", role: "applicant", status: "Active", level: "Easy", score: 68 },
@@ -36,8 +38,8 @@ const MonitorUsers = () => {
             email: u.email,
             role: u.role || "applicant",
             status: u.status || "Active",
-            level: u.assigned_level || u.level || "Easy",
-            score: u.diagnostic_score != null ? u.diagnostic_score : (u.score || (u.assigned_level === "hard" ? 92 : u.assigned_level === "easy" ? 61 : 82)),
+            level: u.assigned_level || u.level || "Pending",
+            score: u.diagnostic_score != null ? u.diagnostic_score : (u.score != null ? u.score : null),
           }));
           setUsers(formatted);
         }
@@ -112,9 +114,11 @@ const MonitorUsers = () => {
             </div>
             <div className="text-right">
               <span className="text-xs text-gray-400 font-semibold uppercase">
-                {isSuperAdmin ? "Total Accounts" : "Active Trainees"}
+                {isSuperAdmin ? "Total Registered Accounts" : "Active Trainees"}
               </span>
-              <p className="text-2xl font-bold text-blue-600">{visibleUsers.length}</p>
+              <p className={`text-2xl font-bold ${isSuperAdmin ? "text-purple-600" : "text-blue-600"}`}>
+                {visibleUsers.length}
+              </p>
             </div>
           </div>
 
@@ -144,8 +148,9 @@ const MonitorUsers = () => {
                 // Super Admin tabs: Role filtering
                 [
                   { id: "all", label: "All Accounts" },
-                  { id: "applicant", label: "Trainees" },
+                  { id: "applicant", label: "Candidates" },
                   { id: "admin", label: "Company Admins" },
+                  { id: "super_admin", label: "Super Admins" },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -188,11 +193,19 @@ const MonitorUsers = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3.5">Candidate Name</th>
+                  <th className="px-6 py-3.5">{isSuperAdmin ? "Account Holder" : "Candidate Name"}</th>
                   <th className="px-6 py-3.5">Email Address</th>
-                  {isSuperAdmin && <th className="px-6 py-3.5">Account Role</th>}
-                  <th className="px-6 py-3.5">{isSuperAdmin ? "Role Type / Track" : "Assessed Tier"}</th>
-                  <th className="px-6 py-3.5">Diagnostic Score</th>
+                  {isSuperAdmin ? (
+                    <>
+                      <th className="px-6 py-3.5">System Role</th>
+                      <th className="px-6 py-3.5">Platform Access Scope</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-6 py-3.5">Assessed Tier</th>
+                      <th className="px-6 py-3.5">Diagnostic Score</th>
+                    </>
+                  )}
                   <th className="px-6 py-3.5">Status</th>
                   <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
@@ -200,25 +213,52 @@ const MonitorUsers = () => {
               <tbody className="divide-y divide-gray-100">
                 {visibleUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={isSuperAdmin ? 7 : 6} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       No matching records found.
                     </td>
                   </tr>
                 ) : (
                   visibleUsers.map((u) => {
                     const isCandidate = u.role === "applicant";
+                    const roleLabel =
+                      u.role === "super_admin"
+                        ? "Super Admin"
+                        : u.role === "admin"
+                        ? "Company Admin"
+                        : "Candidate";
+
+                    const roleBadge =
+                      u.role === "super_admin"
+                        ? "bg-purple-100 text-purple-700 border-purple-200"
+                        : u.role === "admin"
+                        ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                        : "bg-gray-100 text-gray-700 border-gray-200";
+
+                    const scopeLabel =
+                      u.role === "super_admin"
+                        ? "Platform Administration & Oversight"
+                        : u.role === "admin"
+                        ? "BPO Training & Content Management"
+                        : "Learner / Speech Practice Access";
+
                     const tierBadge =
                       u.level?.toLowerCase() === "hard"
                         ? "bg-purple-100 text-purple-700"
+                        : u.level?.toLowerCase() === "medium"
+                        ? "bg-blue-100 text-blue-700"
                         : u.level?.toLowerCase() === "easy"
                         ? "bg-amber-100 text-amber-700"
-                        : "bg-blue-100 text-blue-700";
+                        : "bg-gray-100 text-gray-700";
 
                     return (
                       <tr key={u.id} className="hover:bg-gray-50 transition">
                         <td className="px-6 py-4 font-semibold text-gray-900 flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                            u.role === "admin" ? "bg-indigo-100 text-indigo-700" : "bg-blue-100 text-blue-700"
+                            u.role === "super_admin"
+                              ? "bg-purple-100 text-purple-700"
+                              : u.role === "admin"
+                              ? "bg-indigo-100 text-indigo-700"
+                              : "bg-blue-100 text-blue-700"
                           }`}>
                             {u.name?.charAt(0) || "U"}
                           </div>
@@ -226,33 +266,31 @@ const MonitorUsers = () => {
                         </td>
                         <td className="px-6 py-4 text-gray-600">{u.email}</td>
 
-                        {isSuperAdmin && (
-                          <td className="px-6 py-4">
-                            <span className="capitalize px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-[10px] font-semibold border border-gray-200">
-                              {u.role === "admin" ? "Company Admin" : "Candidate"}
-                            </span>
-                          </td>
+                        {isSuperAdmin ? (
+                          <>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${roleBadge}`}>
+                                {roleLabel}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-gray-500 font-medium">
+                              {scopeLabel}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${tierBadge}`}>
+                                {u.level || "Easy"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-gray-800">
+                              <span className={u.score >= 76 ? "text-emerald-600" : "text-amber-600"}>
+                                {u.score != null ? `${u.score}/100` : "Pending"}
+                              </span>
+                            </td>
+                          </>
                         )}
-
-                        <td className="px-6 py-4">
-                          {isCandidate ? (
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${tierBadge}`}>
-                              {u.level || "Easy"}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-medium">BPO Partner Staff</span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 font-semibold text-gray-800">
-                          {isCandidate ? (
-                            <span className={u.score >= 76 ? "text-emerald-600" : "text-amber-600"}>
-                              {u.score != null ? `${u.score}/100` : "Pending"}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 font-normal">N/A</span>
-                          )}
-                        </td>
 
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-1.5 text-emerald-600 font-medium text-[11px]">
@@ -266,7 +304,7 @@ const MonitorUsers = () => {
                             onClick={() => setSelectedUser(u)}
                             className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition"
                           >
-                            View Details
+                            {isSuperAdmin ? "View Account" : "View Details"}
                           </button>
                         </td>
                       </tr>
@@ -283,7 +321,13 @@ const MonitorUsers = () => {
               <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-200">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                      selectedUser.role === "super_admin"
+                        ? "bg-purple-600"
+                        : selectedUser.role === "admin"
+                        ? "bg-indigo-600"
+                        : "bg-blue-600"
+                    }`}>
                       {selectedUser.name?.charAt(0)}
                     </div>
                     <div>
@@ -299,28 +343,75 @@ const MonitorUsers = () => {
                   </button>
                 </div>
 
-                {/* Score Summary */}
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Placement Tier</p>
-                    <p className="text-base font-extrabold text-blue-600 mt-0.5 capitalize">{selectedUser.level || "Easy"}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Diagnostic Score</p>
-                    <p className="text-base font-extrabold text-emerald-600 mt-0.5">{selectedUser.score || 61}%</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Target Pacing</p>
-                    <p className="text-base font-extrabold text-purple-600 mt-0.5">135 WPM</p>
-                  </div>
-                </div>
+                {isSuperAdmin ? (
+                  <>
+                    {/* Super Admin: Clean Account Governance Details (NO trainee scores) */}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Account Role</p>
+                        <p className="text-xs font-extrabold text-purple-600 mt-1 capitalize">
+                          {selectedUser.role === "super_admin"
+                            ? "Super Admin"
+                            : selectedUser.role === "admin"
+                            ? "Company Admin"
+                            : "Candidate"}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Account Status</p>
+                        <p className="text-xs font-extrabold text-emerald-600 mt-1">
+                          {selectedUser.status || "Active"}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Access Level</p>
+                        <p className="text-xs font-extrabold text-gray-700 mt-1">
+                          {selectedUser.role === "super_admin"
+                            ? "Tier 1 (Owner)"
+                            : selectedUser.role === "admin"
+                            ? "Tier 2 (Admin)"
+                            : "Tier 3 (User)"}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="space-y-2 text-xs">
-                  <h4 className="font-bold text-gray-800">Diagnostics &amp; Speech Summary:</h4>
-                  <p className="text-gray-600 leading-relaxed bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">
-                    Candidate completed pre-assessment evaluation. Articulation and speech pacing are recorded. Continued practice in tiered paragraph passages is recommended to reduce hesitation and filler disfluencies.
-                  </p>
-                </div>
+                    <div className="space-y-2 text-xs">
+                      <h4 className="font-bold text-gray-800">Platform Permissions &amp; Access Scope:</h4>
+                      <p className="text-gray-600 leading-relaxed bg-purple-50/50 p-3.5 rounded-xl border border-purple-100">
+                        {selectedUser.role === "super_admin"
+                          ? "Authorized for platform governance, view-only repository audit oversight, and system security monitoring."
+                          : selectedUser.role === "admin"
+                          ? "Authorized for institutional BPO training management, authoring learning materials, and monitoring company trainees."
+                          : "Standard candidate account authorized for diagnostic pre-assessment, speech practice modules, and mock interview simulations."}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Company Admin: Trainee Speech Diagnostics & Evaluation */}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Placement Tier</p>
+                        <p className="text-base font-extrabold text-blue-600 mt-0.5 capitalize">{selectedUser.level || "Easy"}</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Diagnostic Score</p>
+                        <p className="text-base font-extrabold text-emerald-600 mt-0.5">{selectedUser.score || 61}%</p>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">Target Pacing</p>
+                        <p className="text-base font-extrabold text-purple-600 mt-0.5">135 WPM</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <h4 className="font-bold text-gray-800">Diagnostics &amp; Speech Summary:</h4>
+                      <p className="text-gray-600 leading-relaxed bg-blue-50/50 p-3.5 rounded-xl border border-blue-100">
+                        Candidate completed pre-assessment evaluation. Articulation and speech pacing are recorded. Continued practice in tiered paragraph passages is recommended to reduce hesitation and filler disfluencies.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="flex justify-end pt-3 border-t border-gray-100">
                   <button

@@ -32,15 +32,14 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins">
       <div className="w-full max-w-md mx-4">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-gray-800">BPOReady</span>
-          </div>
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-block group">
+            <img
+              src="/logo.png"
+              alt="BPOReady - Practice Today. Perform Tomorrow."
+              className="h-28 w-auto mx-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
+          </Link>
         </div>
 
         {/* Card */}

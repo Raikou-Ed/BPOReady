@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { loginAdmin, saveAuthenticatedUser } from "../api/authApi";
 
 const AdminLogin = () => {
@@ -27,16 +27,15 @@ const AdminLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins py-12">
       <div className="w-full max-w-md mx-4">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-gray-800">BPOReady</span>
-          </div>
-          <p className="text-xs font-semibold tracking-wider uppercase text-blue-600">Administrator Portal</p>
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-block group">
+            <img
+              src="/logo.png"
+              alt="BPOReady - Practice Today. Perform Tomorrow."
+              className="h-24 w-auto mx-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
+          </Link>
+          <p className="text-xs font-bold tracking-wider uppercase text-blue-600 mt-2">Administrator Portal</p>
         </div>
 
         {/* Card */}

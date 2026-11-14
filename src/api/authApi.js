@@ -59,12 +59,18 @@ export function saveAuthenticatedUser(data) {
   const nextIdentity = nextUser.id || nextUser.email;
 
   // Always remove unscoped keys to prevent guest or prior session leakage
-  ['bpoReadyAssessment', 'bpoReadyActivity'].forEach((key) => {
+  ['bpoReadyAssessment', 'bpoReadyActivity', 'bpoReadyLastParagraphResult'].forEach((key) => {
     localStorage.removeItem(key);
     if (previousIdentity && previousIdentity !== nextIdentity) {
       localStorage.removeItem(`${key}:${previousIdentity}`);
     }
   });
+
+  // If newly authenticated user has no assigned_level, purge any stale local pre-assessment cache
+  if (!nextUser.assigned_level || nextUser.assigned_level === 'Pending') {
+    localStorage.removeItem(`bpoReadyAssessment:${nextIdentity}`);
+    localStorage.removeItem(`bpoReadyLastParagraphResult:${nextIdentity}`);
+  }
 
   localStorage.setItem('user', JSON.stringify(nextUser));
   localStorage.setItem('token', data.token);

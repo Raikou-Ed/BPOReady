@@ -23,7 +23,7 @@ const AdminDashboard = () => {
     common_speech_flaw: "Filler Words (um, ah)",
   });
 
-  const [pendingCount, setPendingCount] = useState(0);
+  const [auditStats, setAuditStats] = useState({ total: 0, updated: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,19 +45,22 @@ const AdminDashboard = () => {
       }
     }
 
-    async function loadApprovals() {
+    async function loadAuditData() {
       try {
-        const appRes = await getApprovals("pending");
+        const appRes = await getApprovals("all");
         if (appRes && appRes.counts) {
-          setPendingCount(appRes.counts.pending || 0);
+          setAuditStats({
+            total: appRes.counts.total || 0,
+            updated: appRes.counts.updated || 0,
+          });
         }
       } catch (err) {
-        console.warn("Failed to load approvals count:", err);
+        console.warn("Failed to load audit stats:", err);
       }
     }
 
     loadStats();
-    loadApprovals();
+    loadAuditData();
   }, []);
 
   const isSuperAdmin = currentUser?.role === "super_admin";
@@ -106,33 +109,36 @@ const AdminDashboard = () => {
           {/* =============================================================== */}
           {isSuperAdmin ? (
             <>
-              {/* Approvals Alert Banner */}
-              {pendingCount > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-base shrink-0">
-                      ⏳
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-amber-950 flex items-center gap-2">
-                        <span>{pendingCount} Training Material{pendingCount > 1 ? "s" : ""} Pending Super Admin Approval</span>
-                        <span className="text-[10px] bg-amber-200 text-amber-900 font-extrabold px-2 py-0.5 rounded-full">
-                          Action Required
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-amber-800 mt-0.5">
-                        The BPO Company Admin submitted new training materials that require verification before going live.
-                      </p>
-                    </div>
+              {/* Content Governance & Live Audit Banner */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base shrink-0">
+                    📋
                   </div>
-                  <Link
-                    to="/AdminApprovals"
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold transition shrink-0 text-center shadow-sm"
-                  >
-                    Open Approvals Center →
-                  </Link>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 flex items-center gap-2">
+                      <span>Content Updates &amp; Live Audit Oversight</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full">
+                        Direct Publishing Active
+                      </span>
+                      {auditStats.updated > 0 && (
+                        <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full">
+                          ⚡ {auditStats.updated} Recently Updated
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-gray-600 mt-0.5">
+                      BPO Partner Companies update training content directly. Super Admins maintain complete oversight and audit histories of all revisions.
+                    </p>
+                  </div>
                 </div>
-              )}
+                <Link
+                  to="/AdminApprovals"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition shrink-0 text-center shadow-sm"
+                >
+                  Open Audit Center →
+                </Link>
+              </div>
 
               {/* Platform Content Stat Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -167,34 +173,32 @@ const AdminDashboard = () => {
               {/* Content Management Cards */}
               <div>
                 <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                  Platform Repositories &amp; Approvals
+                  Platform Repositories &amp; Content Audit
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-                  {/* Approvals Center */}
-                  <div className="bg-white border border-amber-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full pointer-events-none" />
+                  {/* Content Updates & Audit Center */}
+                  <div className="bg-white border border-blue-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full pointer-events-none" />
                     <div>
-                      <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg mb-3 font-bold">
-                        ⚖️
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-3 font-bold">
+                        📋
                       </div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-gray-900">Approvals Center</h3>
-                        {pendingCount > 0 && (
-                          <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                            {pendingCount} new
-                          </span>
-                        )}
+                        <h3 className="text-base font-bold text-gray-900">Updates &amp; Audit</h3>
+                        <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                          Live Feed
+                        </span>
                       </div>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        Review, approve, or reject proposed training materials submitted by BPO Company Admins.
+                        Track all reading passages, speech drills, and interview questions added or updated by BPO Company Admins.
                       </p>
                     </div>
                     <div className="mt-5 pt-4 border-t border-gray-100">
                       <Link
                         to="/AdminApprovals"
-                        className="w-full inline-flex justify-center items-center py-2 px-4 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition shadow-sm"
+                        className="w-full inline-flex justify-center items-center py-2 px-4 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm"
                       >
-                        Open Approvals ({pendingCount}) →
+                        Open Audit Center →
                       </Link>
                     </div>
                   </div>
@@ -207,7 +211,7 @@ const AdminDashboard = () => {
                       </div>
                       <h3 className="text-base font-bold text-gray-900">Reading Passages</h3>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        Curate BPO customer support scenarios across Easy, Medium, and Hard difficulty levels.
+                        Inspect and audit customer support reading scripts across Easy, Medium, and Hard difficulty levels.
                       </p>
                     </div>
                     <div className="mt-5 pt-4 border-t border-gray-100">
@@ -215,7 +219,7 @@ const AdminDashboard = () => {
                         to="/ManageParagraphs"
                         className="w-full inline-flex justify-center items-center py-2 px-4 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm"
                       >
-                        Manage Paragraphs →
+                        View Passages Repository →
                       </Link>
                     </div>
                   </div>
@@ -228,7 +232,7 @@ const AdminDashboard = () => {
                       </div>
                       <h3 className="text-base font-bold text-gray-900">Speech Drills</h3>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        Add and configure targeted drills for speech disfluencies: filler words, grammar, and cadence pacing.
+                        Inspect and audit flaw reduction drills configured by BPO companies: filler words, grammar, and pacing.
                       </p>
                     </div>
                     <div className="mt-5 pt-4 border-t border-gray-100">
@@ -236,7 +240,7 @@ const AdminDashboard = () => {
                         to="/ManageExercises"
                         className="w-full inline-flex justify-center items-center py-2 px-4 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-sm"
                       >
-                        Manage Speech Drills →
+                        View Speech Drills →
                       </Link>
                     </div>
                   </div>
@@ -249,7 +253,7 @@ const AdminDashboard = () => {
                       </div>
                       <h3 className="text-base font-bold text-gray-900">Interview Question Bank</h3>
                       <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        Manage standardized HR Initial and Operations Final interview questions and scoring keywords.
+                        Inspect and audit standardized HR Initial and Operations Final interview question prompts.
                       </p>
                     </div>
                     <div className="mt-5 pt-4 border-t border-gray-100">
@@ -257,7 +261,7 @@ const AdminDashboard = () => {
                         to="/ManageInterviewQuestions"
                         className="w-full inline-flex justify-center items-center py-2 px-4 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition shadow-sm"
                       >
-                        Manage Question Bank →
+                        View Question Bank →
                       </Link>
                     </div>
                   </div>
@@ -399,10 +403,10 @@ const AdminDashboard = () => {
                         className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl flex items-center justify-between transition block"
                       >
                         <div>
-                          <p className="text-xs font-bold text-gray-900">Propose Reading Passages</p>
-                          <p className="text-[11px] text-gray-500">Submit company-specific scenarios for Super Admin approval</p>
+                          <p className="text-xs font-bold text-gray-900">Manage Reading Passages</p>
+                          <p className="text-[11px] text-gray-500">Create and update customer support reading scripts</p>
                         </div>
-                        <span className="text-xs text-blue-600 font-semibold">Propose →</span>
+                        <span className="text-xs text-blue-600 font-semibold">Manage →</span>
                       </Link>
 
                       <Link
@@ -410,10 +414,10 @@ const AdminDashboard = () => {
                         className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl flex items-center justify-between transition block"
                       >
                         <div>
-                          <p className="text-xs font-bold text-gray-900">Propose Communication Drills</p>
-                          <p className="text-[11px] text-gray-500">Submit flaw reduction drills (filler words, pacing, grammar)</p>
+                          <p className="text-xs font-bold text-gray-900">Manage Speech Drills</p>
+                          <p className="text-[11px] text-gray-500">Create and update flaw reduction drills (filler words, pacing, grammar)</p>
                         </div>
-                        <span className="text-xs text-blue-600 font-semibold">Propose →</span>
+                        <span className="text-xs text-blue-600 font-semibold">Manage →</span>
                       </Link>
 
                       <Link
@@ -421,10 +425,10 @@ const AdminDashboard = () => {
                         className="p-3 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl flex items-center justify-between transition block"
                       >
                         <div>
-                          <p className="text-xs font-bold text-gray-900">Propose Interview Questions</p>
-                          <p className="text-[11px] text-gray-500">Submit account-specific interview prompts for approval</p>
+                          <p className="text-xs font-bold text-gray-900">Manage Interview Questions</p>
+                          <p className="text-[11px] text-gray-500">Create and update Initial HR and Final Operations interview prompts</p>
                         </div>
-                        <span className="text-xs text-blue-600 font-semibold">Propose →</span>
+                        <span className="text-xs text-blue-600 font-semibold">Manage →</span>
                       </Link>
 
                       <Link

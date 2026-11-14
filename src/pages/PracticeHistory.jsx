@@ -69,7 +69,12 @@ const PracticeHistory = () => {
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
                 Session Logs & Audits
               </span>
-              <h1 className="text-2xl font-bold text-gray-900 mt-1">Practice History</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mt-1 flex items-center gap-2">
+                <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Practice History</span>
+              </h1>
               <p className="text-xs text-gray-500 mt-1">
                 Full chronological record of your speech recordings, mock interviews, and communication drills.
               </p>
@@ -142,7 +147,12 @@ const PracticeHistory = () => {
                 ) : (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center text-gray-400">
-                      No matching practice sessions found. Choose another filter or start a new practice drill!
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>No matching practice sessions found. Choose another filter or start a new practice drill!</span>
+                      </div>
                     </td>
                   </tr>
                 )}

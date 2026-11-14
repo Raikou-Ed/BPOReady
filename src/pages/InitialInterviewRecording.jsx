@@ -36,10 +36,11 @@ const InitialInterviewRecording = () => {
   const currentQ = questions[currentIndex] || defaultQuestions[0];
 
   const handleRecorded = (blob, durationSeconds, transcript, audioMetrics) => {
+    const cleanTranscript = (transcript || "").trim();
     setCurrentRecording({
       blob,
       durationSeconds: Math.max(1, durationSeconds),
-      transcript: transcript || "Spoken response recorded successfully.",
+      transcript: cleanTranscript,
       audioMetrics,
     });
     setError("");
@@ -51,11 +52,13 @@ const InitialInterviewRecording = () => {
       return;
     }
 
+    const cleanAnswer = (currentRecording.transcript || "").trim();
+
     const currentAnswerObj = {
       question_id: currentQ.id,
       question_order: currentIndex + 1,
       question_text: currentQ.question_text,
-      answer_text: currentRecording.transcript,
+      answer_text: cleanAnswer || "[No verbal response recorded / Silence]",
       duration_seconds: currentRecording.durationSeconds,
     };
 
@@ -84,7 +87,7 @@ const InitialInterviewRecording = () => {
         addUserActivity({
           activity: "Initial Mock Interview",
           level: "Initial Interview",
-          result: `${result.overall_score || 85}/100`,
+          result: `${result.overall_score ?? 0}/100`,
           type: "mock_interview",
         });
 
@@ -103,6 +106,9 @@ const InitialInterviewRecording = () => {
         const fillerMap = {};
         updatedAnswers.forEach((ans) => {
           const text = (ans.answer_text || '').toLowerCase();
+          if (text.includes('[no verbal response') || text.trim() === '') {
+            return;
+          }
           const words = text.match(/[a-z']+/g) || [];
           totalWords += words.length;
           totalDuration += (ans.duration_seconds || 0);
@@ -113,35 +119,54 @@ const InitialInterviewRecording = () => {
           });
         });
 
-        const avgWords = updatedAnswers.length > 0 ? (totalWords / updatedAnswers.length) : 0;
-        const wpm = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : 120;
-        const pacingScore = Math.max(20, Math.min(100, Math.round(100 - Math.abs(wpm - 135) * 1.5)));
-        const fillerCleanliness = Math.max(10, Math.min(100, Math.round(100 - (fillerCount * 8))));
-        const depthScore = Math.min(100, Math.max(15, Math.round((avgWords / 35) * 85)));
-        const clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
-        const confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
-        const grammarScore = Math.max(20, Math.min(95, Math.round(85 - (fillerCount * 3))));
-        const answerQuality = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
-
-        const overallScore = Math.round(
-          (clarityScore * 0.25) +
-          (confidenceScore * 0.20) +
-          (pacingScore * 0.20) +
-          (fillerCleanliness * 0.15) +
-          (answerQuality * 0.20)
-        );
-
+        let overallScore = 0;
+        let clarityScore = 0;
+        let confidenceScore = 0;
+        let pacingScore = 0;
+        let grammarScore = 0;
+        let answerQuality = 0;
         let feedbackText = "";
         let suggestions = "";
-        if (overallScore < 50) {
-          feedbackText = "The responses provided in this initial interview were very brief, hesitant, or lacked sufficient substance for a professional BPO evaluation. Multiple disfluencies or incomplete answers were detected. Practice delivering structured 3 to 4 sentence answers per question.";
-          suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n• Structure answers using the STAR method (Situation, Task, Action, Result).\n• Pause silently for 2 seconds to formulate your thoughts instead of using filler sounds like 'um' or 'like'.";
-        } else if (overallScore < 75) {
-          feedbackText = "Foundational attempt at the initial mock interview. You addressed the questions, but your responses need greater depth, more professional customer-centric terminology, and reduced hesitation words.";
-          suggestions = "• Expand on concrete examples from your past experience or customer service scenarios.\n• Practice replacing filler words with short silent pauses.\n• Project greater vocal confidence and enthusiasm for the BPO role.";
+        let wpm = 0;
+
+        if (totalWords < 5) {
+          overallScore = 0;
+          clarityScore = 0;
+          confidenceScore = 0;
+          pacingScore = 0;
+          grammarScore = 0;
+          answerQuality = 0;
+          feedbackText = "No audible speech or verbal responses were detected across your recorded answers for this initial interview (Recording was silent or under the required speaking duration). To receive a valid BPO interview score, please check your microphone settings, ensure you grant audio permissions, and speak your answers clearly.";
+          suggestions = "• Test your microphone settings and verify permissions in your browser.\n• Speak clearly and directly into your headset or microphone for at least 30 to 45 seconds per question.\n• Deliver complete, structured answers addressing each interview question directly.";
         } else {
-          feedbackText = "Well-structured initial interview responses. You communicated clearly and addressed the situational demands well.";
-          suggestions = "• Practice keeping answers concise under 90 seconds\n• Reduce filler words by pausing briefly\n• Emphasize your customer service mindset";
+          const avgWords = updatedAnswers.length > 0 ? (totalWords / updatedAnswers.length) : 0;
+          wpm = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : 120;
+          pacingScore = Math.max(20, Math.min(100, Math.round(100 - Math.abs(wpm - 135) * 1.5)));
+          const fillerCleanliness = Math.max(10, Math.min(100, Math.round(100 - (fillerCount * 8))));
+          const depthScore = Math.min(100, Math.max(15, Math.round((avgWords / 35) * 85)));
+          clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
+          confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
+          grammarScore = Math.max(20, min(95, Math.round(85 - (fillerCount * 3))));
+          answerQuality = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
+
+          overallScore = Math.round(
+            (clarityScore * 0.25) +
+            (confidenceScore * 0.20) +
+            (pacingScore * 0.20) +
+            (fillerCleanliness * 0.15) +
+            (answerQuality * 0.20)
+          );
+
+          if (overallScore < 50) {
+            feedbackText = "The responses provided in this initial interview were very brief, hesitant, or lacked sufficient substance for a professional BPO evaluation. Multiple disfluencies or incomplete answers were detected. Practice delivering structured 3 to 4 sentence answers per question.";
+            suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n• Structure answers using the STAR method (Situation, Task, Action, Result).\n• Pause silently for 2 seconds to formulate your thoughts instead of using filler sounds like 'um' or 'like'.";
+          } else if (overallScore < 75) {
+            feedbackText = "Foundational attempt at the initial mock interview. You addressed the questions, but your responses need greater depth, more professional customer-centric terminology, and reduced hesitation words.";
+            suggestions = "• Expand on concrete examples from your past experience or customer service scenarios.\n• Practice replacing filler words with short silent pauses.\n• Project greater vocal confidence and enthusiasm for the BPO role.";
+          } else {
+            feedbackText = "Well-structured initial interview responses. You communicated clearly and addressed the situational demands well.";
+            suggestions = "• Practice keeping answers concise under 90 seconds\n• Reduce filler words by pausing briefly\n• Emphasize your customer service mindset";
+          }
         }
 
         const fallbackResult = {

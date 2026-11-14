@@ -32,11 +32,11 @@ const AdminSidebar = () => {
       ),
     },
     {
-      name: "Content Approvals",
+      name: "Content Updates & Audit",
       path: "/AdminApprovals",
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       ),
     },
@@ -87,7 +87,7 @@ const AdminSidebar = () => {
     },
   ];
 
-  // Company Admin manages institutional standards and proposes training content (Scoring, Paragraphs, Drills, Questions, Trainees)
+  // Company Admin manages institutional standards and training content directly (Scoring, Paragraphs, Drills, Questions, Trainees)
   const companyAdminLinks = [
     {
       name: "Dashboard",
@@ -108,7 +108,7 @@ const AdminSidebar = () => {
       ),
     },
     {
-      name: "Propose Reading Passages",
+      name: "Manage Reading Passages",
       path: "/ManageParagraphs",
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@ const AdminSidebar = () => {
       ),
     },
     {
-      name: "Propose Speech Drills",
+      name: "Manage Speech Drills",
       path: "/ManageExercises",
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@ const AdminSidebar = () => {
       ),
     },
     {
-      name: "Propose Interview Questions",
+      name: "Manage Interview Questions",
       path: "/ManageInterviewQuestions",
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,17 +166,21 @@ const AdminSidebar = () => {
     <div className="w-64 bg-white border-r border-gray-200 shadow-sm flex flex-col py-6 fixed h-screen z-10 font-poppins select-none">
       {/* Brand Header */}
       <div className="px-6 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            B
-          </div>
+        <Link to="/AdminDashboard" className="flex items-center gap-3 mb-3 group">
+          <img
+            src="/logo-icon.png"
+            alt="BPOReady Admin"
+            className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+          />
           <div>
-            <span className="text-lg font-bold text-gray-900 block leading-none">BPOReady</span>
+            <span className="text-lg font-extrabold text-gray-900 block leading-none tracking-tight">
+              BPO<span className="text-blue-600">Ready</span>
+            </span>
             <span className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">
               {isSuperAdmin ? "Super Admin" : "Company Admin"}
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Clean Role Badge */}
         <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-200">

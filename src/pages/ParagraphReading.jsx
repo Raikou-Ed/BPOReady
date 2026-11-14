@@ -1,26 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAssignedLevel } from "../utils/assessmentScoring";
+import { getAssignedLevel, clearAssessmentResult } from "../utils/assessmentScoring";
 import { getUserPreAssessment } from "../api/preAssessmentApi";
 import { getCurrentUser } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const ParagraphReading = () => {
   const [assessment, setAssessment] = useState(() => getAssignedLevel());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cur = getCurrentUser();
     if (cur?.id) {
-      getUserPreAssessment(cur.id).then(data => {
-        if (data && data.hasAssessment) {
-          const lvl = String(data.placedLevel || cur.assigned_level || 'easy').toLowerCase();
-          const defaultScore = lvl === 'hard' ? 92 : (lvl === 'medium' ? 81 : 65);
-          setAssessment({
-            score: data.score ?? defaultScore,
-            placedLevel: data.placedLevel || cur.assigned_level || 'easy',
-          });
-        }
-      });
+      getUserPreAssessment(cur.id)
+        .then(data => {
+          if (data && data.hasAssessment) {
+            const lvl = String(data.placedLevel || 'easy').toLowerCase();
+            setAssessment({
+              score: data.score,
+              placedLevel: lvl,
+            });
+          } else {
+            const localAssigned = getAssignedLevel();
+            if (localAssigned && Number(localAssigned.score) > 0) {
+              setAssessment(localAssigned);
+            } else {
+              setAssessment(null);
+            }
+          }
+        })
+        .catch(err => {
+          console.warn("Failed to fetch pre-assessment status:", err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -43,8 +59,17 @@ const ParagraphReading = () => {
           </div>
 
           <div className="mx-auto max-w-2xl rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-md">
-            {assessment ? (
+            {loading ? (
+              <div className="py-8 text-gray-400 text-sm font-medium animate-pulse">
+                Checking assessment status...
+              </div>
+            ) : assessment ? (
               <>
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-5 shadow-sm">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
                 <span className="inline-block px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100">
                   Assigned Difficulty Tier
                 </span>
@@ -57,13 +82,19 @@ const ParagraphReading = () => {
                 </p>
                 <Link
                   to={assignedPath}
-                  className="mt-8 inline-block rounded-xl bg-blue-600 px-8 py-3.5 font-semibold text-white hover:bg-blue-700 shadow-md transition-all text-sm"
+                  className="mt-8 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 font-semibold text-white hover:bg-blue-700 shadow-md transition-all text-sm"
                 >
-                  Start Assigned Practice →
+                  <span>Start Assigned Practice</span>
+                  <span>→</span>
                 </Link>
               </>
             ) : (
               <>
+                <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-5 shadow-sm">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                  </svg>
+                </div>
                 <span className="inline-block px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
                   Initial Step Required
                 </span>
@@ -73,9 +104,10 @@ const ParagraphReading = () => {
                 </p>
                 <Link
                   to="/pre-assessment"
-                  className="mt-8 inline-block rounded-xl bg-blue-600 px-8 py-3.5 font-semibold text-white hover:bg-blue-700 shadow-md transition-all text-sm"
+                  className="mt-8 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 font-semibold text-white hover:bg-blue-700 shadow-md transition-all text-sm"
                 >
-                  Start Pre-Assessment →
+                  <span>Start Pre-Assessment</span>
+                  <span>→</span>
                 </Link>
               </>
             )}

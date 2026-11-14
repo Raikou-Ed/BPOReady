@@ -464,16 +464,8 @@ export function getAssignedLevel() {
   const data = getUserData('bpoReadyAssessment');
   if (data && data.score != null) {
     let num = Number(data.score);
+    data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
     const lvl = String(data.placedLevel || 'easy').toLowerCase();
-    if (lvl === 'medium' && num < 76) {
-      num = 81;
-      data.score = num;
-    } else if (lvl === 'hard' && num < 90) {
-      num = 92;
-      data.score = num;
-    } else {
-      data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
-    }
 
     // Check if criteria is missing, invalid, or corrupted by paragraph practice
     // (e.g. details say "words matched" or contribution sum mismatches data.score by > 3)
@@ -488,23 +480,6 @@ export function getAssignedLevel() {
     }
 
     return data;
-  }
-
-  // Fallback to logged-in user profile if available in local session
-  const user = getCurrentUser();
-  if (user?.assigned_level) {
-    const lvl = String(user.assigned_level).toLowerCase();
-    const defaultScore = lvl === 'hard' ? 92 : (lvl === 'medium' ? 81 : 65);
-    const defaultWpm = lvl === 'hard' ? 145 : (lvl === 'medium' ? 135 : 115);
-    const fallback = {
-      score: defaultScore,
-      placedLevel: user.assigned_level || 'easy',
-      wordsPerMinute: defaultWpm,
-      criteria: generatePreAssessmentCriteria(defaultScore, user.assigned_level, defaultWpm),
-      isFromProfile: true,
-    };
-    saveUserData('bpoReadyAssessment', fallback);
-    return fallback;
   }
 
   return null;
@@ -571,6 +546,13 @@ export function saveAssessmentResult(result) {
 
 export function clearAssessmentResult() {
   clearUserData('bpoReadyAssessment');
+  clearUserData('bpoReadyLastParagraphResult');
+  const user = getCurrentUser();
+  if (user && (user.assigned_level || user.assignedLevel)) {
+    delete user.assigned_level;
+    delete user.assignedLevel;
+    saveUserData('user', user);
+  }
 }
 
 export function getScoreTieredFeedback(score) {

@@ -184,7 +184,12 @@ const PerformanceSummary = () => {
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
                 Skill Diagnostics & Analytics
               </span>
-              <h1 className="text-3xl font-bold text-gray-900 mt-1">Performance Summary</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mt-1 flex items-center gap-2">
+                <svg className="w-7 h-7 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Performance Summary</span>
+              </h1>
               <p className="text-sm text-gray-500 mt-1">
                 Comprehensive evaluation of your verbal clarity, speech pacing, disfluencies, and BPO call handling.
               </p>
@@ -201,48 +206,84 @@ const PerformanceSummary = () => {
 
           {/* 1. Metric Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-              <span className="text-xs text-gray-500 font-medium">Overall Average</span>
-              <p className="text-3xl font-bold text-blue-600 mt-1">
-                {summary?.hasData ? `${summary.average_score}%` : "0%"}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-1">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500 font-medium">Overall Average</span>
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-blue-600 mt-1">
+                  {summary?.hasData ? `${summary.average_score}%` : "0%"}
+                </p>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
                 {summary?.hasData ? `Across ${summary.total_sessions} completed drill${summary.total_sessions === 1 ? '' : 's'}` : "Across 0 completed drills"}
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-              <span className="text-xs text-gray-500 font-medium">Speech Clarity</span>
-              <p className="text-3xl font-bold text-purple-600 mt-1">
-                {summary?.hasData ? `${summary.clarity_score}%` : "0%"}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-1">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500 font-medium">Speech Clarity</span>
+                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-purple-600 mt-1">
+                  {summary?.hasData ? `${summary.clarity_score}%` : "0%"}
+                </p>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
                 {summary?.hasData ? "Pronunciation & articulation" : "Awaiting diagnostic speech data"}
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-              <span className="text-xs text-gray-500 font-medium">Average Pacing</span>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">
-                {summary?.hasData && summary.pacing_wpm > 0 ? (
-                  <>
-                    {summary.pacing_wpm} <span className="text-sm font-normal text-gray-400">WPM</span>
-                  </>
-                ) : (
-                  <span className="text-gray-400">0 <span className="text-sm font-normal text-gray-400">WPM</span></span>
-                )}
-              </p>
-              <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500 font-medium">Average Pacing</span>
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-emerald-600 mt-1">
+                  {summary?.hasData && summary.pacing_wpm > 0 ? (
+                    <>
+                      {summary.pacing_wpm} <span className="text-sm font-normal text-gray-400">WPM</span>
+                    </>
+                  ) : (
+                    <span className="text-gray-400">0 <span className="text-sm font-normal text-gray-400">WPM</span></span>
+                  )}
+                </p>
+              </div>
+              <p className="text-[11px] text-emerald-600 mt-2 font-medium">
                 {summary?.hasData && summary.pacing_wpm > 0 ? "✓ Optimal 130–145 WPM sweet spot" : "Target: 130–145 WPM sweet spot"}
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
-              <span className="text-xs text-gray-500 font-medium">Filler Word Control</span>
-              <p className="text-3xl font-bold text-amber-600 mt-1">
-                {summary?.hasData ? `${summary.filler_control}%` : "0%"}
-              </p>
-              <p className="text-[11px] text-gray-400 mt-1">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-500 font-medium">Filler Word Control</span>
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-amber-600 mt-1">
+                  {summary?.hasData ? `${summary.filler_control}%` : "0%"}
+                </p>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
                 {summary?.hasData ? 'Minimal disfluencies ("um", "ah")' : "Disfluency analysis pending"}
               </p>
             </div>

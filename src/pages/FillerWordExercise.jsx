@@ -6,9 +6,45 @@ import { addUserActivity, getCurrentUser } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const prompts = [
-  "Good day! I have thoroughly reviewed your account records. The promotional discount of twenty dollars has now been applied to your monthly invoice, and your updated balance will be visible on your portal within the hour.",
-  "I completely understand how critical your internet connectivity is for your daily remote work. Please rest assured that our technical support team is already working to restore the neighborhood node as quickly as possible.",
-  "Thank you for your patience while I was confirming your flight itinerary with our partner airlines. Your seat reservation and meal preference have been successfully locked in for tomorrow morning's flight.",
+  {
+    title: "Billing Dispute: Unexpected Late Fee",
+    customer: "Frustrated Subscriber",
+    situation: "A customer calls furiously demanding to know why their monthly internet invoice has an unexpected $25 fee when they always pay on time.",
+    objectives: [
+      "Acknowledge and empathize with their frustration immediately.",
+      "Explain calmly that you verified their records and confirmed their on-time payment.",
+      "Reassure them that the $25 fee is being waived and credited immediately.",
+      "Confirm their updated balance and ask if there is anything else they need.",
+    ],
+    hint: "Avoid 'um' or 'ah' when checking records. Take a 1-second silent pause instead.",
+    promptText: "Customer dispute regarding unexpected $25 fee. Agent must empathize, verify on-time payment, waive fee, and confirm updated balance.",
+  },
+  {
+    title: "Service Outage: Urgent Remote Work",
+    customer: "Panicked Remote Worker",
+    situation: "A customer calls in a panic because their home fiber internet suddenly disconnected 15 minutes before an executive video presentation.",
+    objectives: [
+      "Acknowledge how critical an uninterrupted connection is for their remote work.",
+      "Explain that a neighborhood cable was severed and technicians are on-site repairing it.",
+      "Provide an estimated restoration time of 2 hours.",
+      "Offer to provision complimentary emergency cellular hotspot data as a backup.",
+    ],
+    hint: "Don't use crutch words like 'actually' or 'basically'. Maintain a steady, reassuring tone.",
+    promptText: "Customer fiber internet outage before important meeting. Agent must validate urgency, explain technical repair, provide 2-hour ETA, and offer backup hotspot data.",
+  },
+  {
+    title: "Travel Disruption: Flight Delay & Meal Voucher",
+    customer: "Stranded Airport Passenger",
+    situation: "A passenger at the terminal is visibly anxious because their connecting flight was delayed by 3 hours due to severe weather along the flight corridor.",
+    objectives: [
+      "Warmly apologize for the delay and validate their travel inconvenience.",
+      "Explain that extreme thunderstorms along the flight path require a temporary safety hold.",
+      "Provide their updated boarding time and departure gate number.",
+      "Issue a complimentary $25 airport food & beverage digital voucher to their phone.",
+    ],
+    hint: "Take a deep breath before stating departure details. Never use 'like' or 'you know'.",
+    promptText: "Passenger connecting flight delayed 3 hours due to weather. Agent must apologize, explain flight safety, provide new boarding time and gate, and issue $25 meal voucher.",
+  },
 ];
 
 const FILLER_LIST = [
@@ -40,18 +76,23 @@ const FillerWordExercise = () => {
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
   const currentPrompt = prompts[promptIndex];
 
-  const handleRecorded = async (blob, durationSeconds, transcript) => {
+  const handleRecorded = async (blob, durationSeconds, transcript, audioMetrics) => {
     const text = (transcript || "").trim();
+    const liveFillers = audioMetrics?.detectedFillers || [];
     const localMatches = text.match(fillerRegex) || [];
-    const localCount = localMatches.length;
-    const initialScore = text ? Math.max(40, Math.min(100, 100 - (localCount * 15))) : 0;
+    const combinedFillers = Array.from(new Set([
+      ...localMatches.map((w) => w.toLowerCase()),
+      ...liveFillers.map((w) => w.toLowerCase()),
+    ]));
+    const localCount = Math.max(localMatches.length, liveFillers.length);
+    const initialScore = text ? Math.max(35, Math.min(100, 100 - (localCount * 15))) : 0;
 
     const initialRecording = {
       blob,
       durationSeconds,
       transcript: text,
       fillerCount: localCount,
-      fillerWords: localMatches.map((w) => w.toLowerCase()),
+      fillerWords: combinedFillers,
       score: initialScore,
       aiEvaluated: false,
     };
@@ -62,23 +103,36 @@ const FillerWordExercise = () => {
     try {
       const evalData = await evaluateFillerExercise({
         audio: blob,
-        prompt_text: currentPrompt,
+        prompt_text: currentPrompt.promptText || currentPrompt.situation,
         transcript: text,
         duration_seconds: durationSeconds,
+        client_fillers: combinedFillers,
       });
 
       if (evalData && evalData.success) {
         setRecording((prev) => {
           if (!prev) return null;
           const mergedFillers = Array.from(
-            new Set([...(prev.fillerWords || []), ...(evalData.fillerWords || []).map((f) => f.toLowerCase())])
+            new Set([
+              ...(prev.fillerWords || []),
+              ...(evalData.fillerWords || []).map((f) => f.toLowerCase()),
+            ])
           );
+          const finalCount = Math.max(
+            evalData.fillerCount ?? 0,
+            mergedFillers.length,
+            localCount
+          );
+          const finalScore = evalData.score != null
+            ? Math.min(evalData.score, prev.score)
+            : Math.max(30, 100 - (finalCount * 15));
+
           return {
             ...prev,
             transcript: evalData.transcript || prev.transcript,
-            fillerCount: Math.max(evalData.fillerCount ?? 0, localCount),
+            fillerCount: finalCount,
             fillerWords: mergedFillers,
-            score: evalData.score ?? prev.score,
+            score: finalScore,
             aiFeedback: evalData.feedback,
             aiEvaluated: evalData.aiEvaluated ?? true,
           };
@@ -168,31 +222,60 @@ const FillerWordExercise = () => {
       {/* Main Content */}
       <div className="flex-1 ml-64 p-8 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 w-full max-w-2xl">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">
-              Disfluency Reduction Drill
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+              Impromptu BPO Scenario Drill
             </span>
-            <span className="text-xs text-gray-500 font-medium">Prompt {promptIndex + 1} of {prompts.length}</span>
+            <span className="text-xs text-gray-500 font-medium">Scenario {promptIndex + 1} of {prompts.length}</span>
           </div>
 
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Practice Reading Without Fillers</h2>
-          <p className="text-xs text-gray-600 mb-6">
-            Read the script below out loud. Aim for 0 filler words. If you need a moment to think, use a silent pause.
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{currentPrompt.title}</h2>
+          <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+            Respond spontaneously to the caller in your own words. Because you must formulate your response on the spot, train your brain to <strong>use a 1-second silent pause</strong> when thinking instead of saying <em>"um"</em>, <em>"ah"</em>, or <em>"like"</em>.
           </p>
 
-          <div className="bg-orange-50/70 border border-orange-200 rounded-xl p-6 text-gray-800 text-sm leading-relaxed mb-6 font-medium">
-            "{currentPrompt}"
+          {/* Scenario Situation Card */}
+          <div className="bg-gradient-to-br from-amber-50/90 to-orange-50/70 border border-orange-200 rounded-2xl p-5 mb-5 shadow-xs">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-orange-200/70">
+              <span className="text-xs font-bold text-orange-950 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📞</span> Customer Situation
+              </span>
+              <span className="text-[11px] font-semibold bg-white/80 border border-orange-200 px-2.5 py-0.5 rounded-full text-orange-800">
+                {currentPrompt.customer}
+              </span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 leading-relaxed mb-3">
+              "{currentPrompt.situation}"
+            </p>
+
+            <div className="bg-white/80 rounded-xl p-3.5 border border-orange-200/60">
+              <span className="text-[11px] font-bold text-orange-900 uppercase tracking-wider block mb-1.5">
+                🎯 Key Points to Cover (Speak Naturally):
+              </span>
+              <ul className="text-xs text-gray-700 space-y-1 pl-4 list-disc font-medium">
+                {currentPrompt.objectives.map((obj, i) => (
+                  <li key={i}>{obj}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-amber-800 font-medium bg-amber-100/60 px-3 py-1.5 rounded-lg border border-amber-200/50">
+              <span>💡</span>
+              <span><strong>Coach Tip:</strong> {currentPrompt.hint}</span>
+            </div>
           </div>
 
           <div className="flex flex-col items-center justify-center gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <AudioRecorder
-              expectedText={currentPrompt}
+              expectedText={currentPrompt.promptText}
               onStateChange={setIsRecording}
               onRecorded={handleRecorded}
             />
             {isRecording && (
-              <span className="text-xs text-red-600 font-medium animate-pulse">
-                Recording your reading... Avoid "um", "ah", "like", and "actually".
+              <span className="text-xs text-red-600 font-semibold animate-pulse flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                Recording your spontaneous response... Take silent pauses when thinking!
               </span>
             )}
           </div>

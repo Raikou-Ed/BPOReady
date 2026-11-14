@@ -161,7 +161,7 @@ export async function submitExerciseAttempt(payload) {
   return res.json();
 }
 
-export async function evaluateFillerExercise({ audio, prompt_text, transcript, duration_seconds }) {
+export async function evaluateFillerExercise({ audio, prompt_text, transcript, duration_seconds, client_fillers = [] }) {
   const formData = new FormData();
   if (audio) {
     formData.append('audio', audio, 'recording.wav');
@@ -170,6 +170,9 @@ export async function evaluateFillerExercise({ audio, prompt_text, transcript, d
   formData.append('transcript', transcript || '');
   if (duration_seconds != null) {
     formData.append('duration_seconds', String(duration_seconds));
+  }
+  if (Array.isArray(client_fillers) && client_fillers.length > 0) {
+    client_fillers.forEach((f) => formData.append('client_fillers[]', f));
   }
 
   const res = await fetch(`${API_BASE}/api/exercises/evaluate-filler`, {

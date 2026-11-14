@@ -27,3 +27,16 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Thesis docs & scratch artifacts
+*.docx
+scratch_*
+screenshots_update/
+extracted_old_images/
+__pycache__/
+test*.png
+backend/analyze_db.php
+backend/dd_17_rows.json
+backend/pg_schema.json
+backend/add_approval_cols.php
+

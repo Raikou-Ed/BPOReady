@@ -42,23 +42,26 @@ const MockInterviewFeedback = () => {
   };
 
   const getFillerTier = (count) => {
+    if (overallScore === 0) return { color: "text-gray-500 bg-gray-100 border-gray-200", label: "No Speech" };
     if (count === 0) return { color: "text-emerald-600 bg-emerald-50 border-emerald-200", label: "Zero Fillers" };
     if (count <= 3) return { color: "text-blue-600 bg-blue-50 border-blue-200", label: "Controlled" };
     if (count <= 6) return { color: "text-amber-600 bg-amber-50 border-amber-200", label: "Frequent" };
     return { color: "text-rose-600 bg-rose-50 border-rose-200", label: "Excessive" };
   };
 
-  const clarityTier = clarity >= 75 ? { color: "text-emerald-600", label: "Articulate" } : (clarity >= 50 ? { color: "text-amber-600", label: "Fair Clarity" } : { color: "text-rose-600", label: "Needs Clarity" });
-  const confidenceTier = confidence >= 75 ? { color: "text-blue-600", label: "Composed" } : (confidence >= 50 ? { color: "text-amber-600", label: "Hesitant" } : { color: "text-rose-600", label: "Low Confidence" });
-  const pacingTier = pacing >= 75 ? { color: "text-purple-600", label: "Steady" } : (pacing >= 50 ? { color: "text-amber-600", label: "Uneven Pace" } : { color: "text-rose-600", label: "Erratic Pace" });
-  const qualityTier = answerQuality >= 75 ? { color: "text-indigo-600", label: "BPO Aligned" } : (answerQuality >= 50 ? { color: "text-amber-600", label: "Basic Answers" } : { color: "text-rose-600", label: "Needs Substance" });
+  const clarityTier = overallScore === 0 ? { color: "text-gray-400", label: "Silent / Inaudible" } : (clarity >= 75 ? { color: "text-emerald-600", label: "Articulate" } : (clarity >= 50 ? { color: "text-amber-600", label: "Fair Clarity" } : { color: "text-rose-600", label: "Needs Clarity" }));
+  const confidenceTier = overallScore === 0 ? { color: "text-gray-400", label: "Silent / Inaudible" } : (confidence >= 75 ? { color: "text-blue-600", label: "Composed" } : (confidence >= 50 ? { color: "text-amber-600", label: "Hesitant" } : { color: "text-rose-600", label: "Low Confidence" }));
+  const pacingTier = overallScore === 0 ? { color: "text-gray-400", label: "No Tempo" } : (pacing >= 75 ? { color: "text-purple-600", label: "Steady" } : (pacing >= 50 ? { color: "text-amber-600", label: "Uneven Pace" } : { color: "text-rose-600", label: "Erratic Pace" }));
+  const qualityTier = overallScore === 0 ? { color: "text-gray-400", label: "No Answer Given" } : (answerQuality >= 75 ? { color: "text-indigo-600", label: "BPO Aligned" } : (answerQuality >= 50 ? { color: "text-amber-600", label: "Basic Answers" } : { color: "text-rose-600", label: "Needs Substance" }));
   const fillerTier = getFillerTier(fillerCount);
 
   const readinessTier = overallScore >= 75
     ? { box: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", label: "BPO Benchmark Met" }
     : (overallScore >= 50
       ? { box: "bg-amber-50 border-amber-200", text: "text-amber-700", label: "Developmental Needed" }
-      : { box: "bg-rose-50 border-rose-200", text: "text-rose-700", label: "Remedial Coaching Required" });
+      : (overallScore === 0
+        ? { box: "bg-rose-50 border-rose-200", text: "text-rose-700", label: "No Speech Detected" }
+        : { box: "bg-rose-50 border-rose-200", text: "text-rose-700", label: "Remedial Coaching Required" }));
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins">

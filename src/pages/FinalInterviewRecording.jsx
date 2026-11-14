@@ -36,10 +36,11 @@ const FinalInterviewRecording = () => {
   const currentQ = questions[currentIndex] || defaultFinalQuestions[0];
 
   const handleRecorded = (blob, durationSeconds, transcript, audioMetrics) => {
+    const cleanTranscript = (transcript || "").trim();
     setCurrentRecording({
       blob,
       durationSeconds: Math.max(1, durationSeconds),
-      transcript: transcript || "Spoken response recorded successfully.",
+      transcript: cleanTranscript,
       audioMetrics,
     });
     setError("");
@@ -51,11 +52,13 @@ const FinalInterviewRecording = () => {
       return;
     }
 
+    const cleanAnswer = (currentRecording.transcript || "").trim();
+
     const currentAnswerObj = {
       question_id: currentQ.id,
       question_order: currentIndex + 1,
       question_text: currentQ.question_text,
-      answer_text: currentRecording.transcript,
+      answer_text: cleanAnswer || "[No verbal response recorded / Silence]",
       duration_seconds: currentRecording.durationSeconds,
     };
 
@@ -81,7 +84,7 @@ const FinalInterviewRecording = () => {
         addUserActivity({
           activity: "Final Mock Interview",
           level: "Final Interview",
-          result: `${result.overall_score || 88}/100`,
+          result: `${result.overall_score ?? 0}/100`,
           type: "mock_interview",
         });
 
@@ -100,6 +103,9 @@ const FinalInterviewRecording = () => {
         const fillerMap = {};
         updatedAnswers.forEach((ans) => {
           const text = (ans.answer_text || '').toLowerCase();
+          if (text.includes('[no verbal response') || text.trim() === '') {
+            return;
+          }
           const words = text.match(/[a-z']+/g) || [];
           totalWords += words.length;
           totalDuration += (ans.duration_seconds || 0);
@@ -110,35 +116,54 @@ const FinalInterviewRecording = () => {
           });
         });
 
-        const avgWords = updatedAnswers.length > 0 ? (totalWords / updatedAnswers.length) : 0;
-        const wpm = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : 120;
-        const pacingScore = Math.max(20, Math.min(100, Math.round(100 - Math.abs(wpm - 135) * 1.5)));
-        const fillerCleanliness = Math.max(10, Math.min(100, Math.round(100 - (fillerCount * 8))));
-        const depthScore = Math.min(100, Math.max(15, Math.round((avgWords / 35) * 85)));
-        const clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
-        const confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
-        const grammarScore = Math.max(20, Math.min(95, Math.round(85 - (fillerCount * 3))));
-        const answerQuality = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
-
-        const overallScore = Math.round(
-          (clarityScore * 0.25) +
-          (confidenceScore * 0.20) +
-          (pacingScore * 0.20) +
-          (fillerCleanliness * 0.15) +
-          (answerQuality * 0.20)
-        );
-
+        let overallScore = 0;
+        let clarityScore = 0;
+        let confidenceScore = 0;
+        let pacingScore = 0;
+        let grammarScore = 0;
+        let answerQuality = 0;
         let feedbackText = "";
         let suggestions = "";
-        if (overallScore < 50) {
-          feedbackText = "The responses provided in this final interview lacked the required depth, de-escalation strategies, and professional composure expected in advanced BPO scenarios. Practice articulating complete solutions with empathy.";
-          suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n• Use the STAR method to demonstrate empathy and customer problem-solving.\n• Eliminate conversational filler sounds by taking brief silent pauses.";
-        } else if (overallScore < 75) {
-          feedbackText = "Foundational attempt at the final mock interview. You addressed situational questions, but need greater depth in customer de-escalation and fewer hesitation sounds.";
-          suggestions = "• Structure answers with clearer problem-solving milestones.\n• Practice maintaining an empathetic customer-first tone.\n• Reduce hesitation words through focused mock practice.";
+        let wpm = 0;
+
+        if (totalWords < 5) {
+          overallScore = 0;
+          clarityScore = 0;
+          confidenceScore = 0;
+          pacingScore = 0;
+          grammarScore = 0;
+          answerQuality = 0;
+          feedbackText = "No audible speech or verbal responses were detected across your recorded answers for this final interview (Recording was silent or under the required speaking duration). To receive a valid BPO interview score, please check your microphone settings, ensure you grant audio permissions, and speak your answers clearly.";
+          suggestions = "• Test your microphone settings and verify permissions in your browser.\n• Speak clearly and directly into your headset or microphone for at least 30 to 45 seconds per question.\n• Deliver complete, structured answers addressing each interview question directly.";
         } else {
-          feedbackText = "Strong situational handling. You demonstrated great empathy and calm problem resolution in your scenarios.";
-          suggestions = "• Keep customer satisfaction focal points clear\n• Pause smoothly between key points\n• Reaffirm resolution commitments explicitly";
+          const avgWords = updatedAnswers.length > 0 ? (totalWords / updatedAnswers.length) : 0;
+          wpm = totalDuration > 0 ? Math.round((totalWords / totalDuration) * 60) : 120;
+          pacingScore = Math.max(20, Math.min(100, Math.round(100 - Math.abs(wpm - 135) * 1.5)));
+          const fillerCleanliness = Math.max(10, Math.min(100, Math.round(100 - (fillerCount * 8))));
+          const depthScore = Math.min(100, Math.max(15, Math.round((avgWords / 35) * 85)));
+          clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
+          confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
+          grammarScore = Math.max(20, Math.min(95, Math.round(85 - (fillerCount * 3))));
+          answerQuality = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
+
+          overallScore = Math.round(
+            (clarityScore * 0.25) +
+            (confidenceScore * 0.20) +
+            (pacingScore * 0.20) +
+            (fillerCleanliness * 0.15) +
+            (answerQuality * 0.20)
+          );
+
+          if (overallScore < 50) {
+            feedbackText = "The responses provided in this final interview lacked the required depth, de-escalation strategies, and professional composure expected in advanced BPO scenarios. Practice articulating complete solutions with empathy.";
+            suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n• Use the STAR method to demonstrate empathy and customer problem-solving.\n• Eliminate conversational filler sounds by taking brief silent pauses.";
+          } else if (overallScore < 75) {
+            feedbackText = "Foundational attempt at the final mock interview. You addressed situational questions, but need greater depth in customer de-escalation and fewer hesitation sounds.";
+            suggestions = "• Structure answers with clearer problem-solving milestones.\n• Practice maintaining an empathetic customer-first tone.\n• Reduce hesitation words through focused mock practice.";
+          } else {
+            feedbackText = "Strong situational handling. You demonstrated great empathy and calm problem resolution in your scenarios.";
+            suggestions = "• Keep customer satisfaction focal points clear\n• Pause smoothly between key points\n• Reaffirm resolution commitments explicitly";
+          }
         }
 
         const fallbackResult = {

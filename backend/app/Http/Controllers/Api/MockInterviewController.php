@@ -61,11 +61,13 @@ class MockInterviewController extends Controller
 
         foreach ($request->input('answers') as $ans) {
             $rawText = trim($ans['answer_text'] ?? '');
+            $isSilence = ($rawText === '' || str_contains($rawText, '[No verbal response') || str_contains($rawText, 'Silence'));
+
             MockInterviewAnswer::create([
                 'mock_session_id' => $session->id,
                 'question_id' => $ans['question_id'],
                 'question_order' => $ans['question_order'],
-                'answer_text' => $rawText,
+                'answer_text' => $rawText ?: '[No verbal response recorded / Silence]',
                 'duration_seconds' => $ans['duration_seconds'] ?? 0,
             ]);
 
@@ -78,24 +80,27 @@ class MockInterviewController extends Controller
             $qaList[] = [
                 'order' => $ans['question_order'],
                 'question' => $qText,
-                'answer' => $rawText,
+                'answer' => $rawText ?: '[No verbal response recorded / Silence]',
                 'duration' => (int) ($ans['duration_seconds'] ?? 0),
             ];
 
-            $words = preg_split('/\s+/', strtolower($rawText));
-            $words = array_filter($words, fn($w) => $w !== '');
-            $totalWords += count($words);
-            $totalDuration += (int)($ans['duration_seconds'] ?? 0);
+            if (!$isSilence) {
+                $words = preg_split('/\s+/', strtolower($rawText));
+                $words = array_filter($words, fn($w) => $w !== '' && !preg_match('/^\[.*\]$/', $w));
+                $totalWords += count($words);
 
-            // Baseline filler detection
-            preg_match_all('/\b(um|uh|uhm|ah|like|you know|actually|basically)\b/i', $rawText, $matches);
-            if (!empty($matches[0])) {
-                foreach ($matches[0] as $f) {
-                    $fLower = strtolower($f);
-                    $fillerCount++;
-                    $fillerMap[$fLower] = ($fillerMap[$fLower] ?? 0) + 1;
+                // Baseline filler detection
+                preg_match_all('/\b(um|uh|uhm|ah|like|you know|actually|basically)\b/i', $rawText, $matches);
+                if (!empty($matches[0])) {
+                    foreach ($matches[0] as $f) {
+                        $fLower = strtolower($f);
+                        $fillerCount++;
+                        $fillerMap[$fLower] = ($fillerMap[$fLower] ?? 0) + 1;
+                    }
                 }
             }
+
+            $totalDuration += (int)($ans['duration_seconds'] ?? 0);
         }
 
         $interviewType = $request->input('interview_type');
@@ -103,79 +108,95 @@ class MockInterviewController extends Controller
         $aiEvaluated = false;
         $geminiData = null;
 
-        if ($apiKey) {
-            $geminiData = $this->evaluateWithGemini($qaList, $interviewType, $apiKey);
-            if ($geminiData) {
-                $aiEvaluated = true;
+        // If the candidate said nothing or total words across the whole interview is less than 5
+        if ($totalWords < 5) {
+            $overallScore = 0;
+            $clarityScore = 0;
+            $confidenceScore = 0;
+            $pacingScore = 0;
+            $grammarScore = 0;
+            $answerQuality = 0;
+            $fillerScore = 0;
+            $feedbackText = "No audible speech or verbal responses were detected across your recorded answers for this {$interviewType} interview (Recording was silent or under the required speaking duration). To receive a valid BPO interview score, please check your microphone settings, ensure you grant audio permissions, and speak your answers clearly.";
+            $suggestions = "• Test your microphone settings and verify permissions in your browser.\n" .
+                "• Speak clearly and directly into your headset or microphone for at least 30 to 45 seconds per question.\n" .
+                "• Deliver complete, structured answers addressing each interview question directly.";
+        } else {
+            if ($apiKey) {
+                $geminiData = $this->evaluateWithGemini($qaList, $interviewType, $apiKey);
+                if ($geminiData) {
+                    $aiEvaluated = true;
+                }
             }
-        }
 
-        if ($aiEvaluated && $geminiData) {
-            $clarityScore = max(0, min(100, (float) ($geminiData['clarity_score'] ?? 85)));
-            $confidenceScore = max(0, min(100, (float) ($geminiData['confidence_score'] ?? 82)));
-            $pacingScore = max(0, min(100, (float) ($geminiData['pacing_score'] ?? 86)));
-            $grammarScore = max(0, min(100, (float) ($geminiData['grammar_score'] ?? 85)));
-            $answerQuality = max(0, min(100, (float) ($geminiData['answer_quality_score'] ?? 84)));
-            $overallScore = max(0, min(100, (float) ($geminiData['overall_score'] ?? round(
-                ($clarityScore * 0.25) +
-                ($confidenceScore * 0.20) +
-                ($pacingScore * 0.20) +
-                ($grammarScore * 0.15) +
-                ($answerQuality * 0.20)
-            ))));
+            if ($aiEvaluated && $geminiData) {
+                $clarityScore = max(0, min(100, (float) ($geminiData['clarity_score'] ?? 85)));
+                $confidenceScore = max(0, min(100, (float) ($geminiData['confidence_score'] ?? 82)));
+                $pacingScore = max(0, min(100, (float) ($geminiData['pacing_score'] ?? 86)));
+                $grammarScore = max(0, min(100, (float) ($geminiData['grammar_score'] ?? 85)));
+                $answerQuality = max(0, min(100, (float) ($geminiData['answer_quality_score'] ?? 84)));
+                $overallScore = max(0, min(100, (float) ($geminiData['overall_score'] ?? round(
+                    ($clarityScore * 0.25) +
+                    ($confidenceScore * 0.20) +
+                    ($pacingScore * 0.20) +
+                    ($grammarScore * 0.15) +
+                    ($answerQuality * 0.20)
+                ))));
 
-            $feedbackText = $geminiData['feedback_text'] ?? "Well-structured {$interviewType} interview responses.";
-            $suggestions = is_array($geminiData['suggestions'] ?? null)
-                ? implode("\n", array_map(fn($s) => '• ' . ltrim($s, '•-* '), $geminiData['suggestions']))
-                : ($geminiData['suggestions'] ?? "• Practice pausing before speaking.\n• Use the STAR method for behavioral answers.\n• Keep a steady pacing.");
+                $feedbackText = $geminiData['feedback_text'] ?? "Well-structured {$interviewType} interview responses.";
+                $suggestions = is_array($geminiData['suggestions'] ?? null)
+                    ? implode("\n", array_map(fn($s) => '• ' . ltrim($s, '•-* '), $geminiData['suggestions']))
+                    : ($geminiData['suggestions'] ?? "• Practice pausing before speaking.\n• Use the STAR method for behavioral answers.\n• Keep a steady pacing.");
 
-            if (!empty($geminiData['filler_words']) && is_array($geminiData['filler_words'])) {
-                $fillerMap = $geminiData['filler_words'];
-                $fillerCount = array_sum($fillerMap);
-            }
-            // Heuristic fallback
-            $avgWordsPerAnswer = count($qaList) > 0 ? ($totalWords / count($qaList)) : 0;
-            $wpm = $totalDuration > 0 ? round(($totalWords / $totalDuration) * 60) : 130;
-
-            // Pace score: ideal is 120-150 WPM
-            $pacingScore = max(20, min(100, round(100 - abs($wpm - 135) * 1.5)));
-
-            // Filler cleanliness
-            $fillerScore = max(10, min(100, round(100 - ($fillerCount * 8))));
-
-            // Answer depth based on word count per answer (good BPO answer is at least 25-45 words)
-            $depthScore = min(100, max(15, round(($avgWordsPerAnswer / 35) * 85)));
-
-            $clarityScore = max(15, min(95, round(($pacingScore * 0.4) + ($fillerScore * 0.3) + ($depthScore * 0.3))));
-            $confidenceScore = max(10, min(95, round(($depthScore * 0.5) + ($fillerScore * 0.3) + ($pacingScore * 0.2))));
-            $grammarScore = max(20, min(95, round(85 - ($fillerCount * 3))));
-            $answerQuality = max(10, min(95, round(($depthScore * 0.6) + ($clarityScore * 0.4))));
-
-            $overallScore = round(
-                ($clarityScore * 0.25) +
-                ($confidenceScore * 0.20) +
-                ($pacingScore * 0.20) +
-                ($fillerScore * 0.15) +
-                ($answerQuality * 0.20)
-            );
-
-            if ($overallScore < 50) {
-                $feedbackText = "The responses provided in this {$interviewType} interview were very brief, hesitant, or lacked sufficient substance for a professional BPO evaluation. Multiple filler words or incomplete answers reduced clarity. To succeed in actual hiring interviews, practice giving structured, detailed answers of at least 3 to 4 sentences per question.";
-                $suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n" .
-                    "• Structure your answers using the STAR method (Situation, Task, Action, Result).\n" .
-                    "• Pause silently for 2 seconds to formulate your thoughts instead of using filler sounds like 'um' or 'like'.";
-            } elseif ($overallScore < 75) {
-                $feedbackText = "Foundational attempt at the {$interviewType} mock interview. You answered the questions, but your responses need greater depth, more professional customer-centric terminology, and reduced hesitation words.";
-                $suggestions = "• Expand on concrete examples from your past experience or customer service scenarios.\n" .
-                    "• Practice replacing filler words with short silent pauses.\n" .
-                    "• Project greater vocal confidence and enthusiasm for the BPO role.";
+                if (!empty($geminiData['filler_words']) && is_array($geminiData['filler_words'])) {
+                    $fillerMap = $geminiData['filler_words'];
+                    $fillerCount = array_sum($fillerMap);
+                }
             } else {
-                $feedbackText = "Thank you for completing the {$interviewType} mock interview session. Overall, you articulated your thoughts with clarity and addressed the questions directly. " .
-                    ($fillerCount > 3 ? "Be mindful of hesitation words like " . implode(', ', array_keys($fillerMap)) . " during your responses. " : "Your disfluency control was commendable. ") .
-                    "Continuing to maintain a steady pacing will further project interview confidence.";
-                $suggestions = "• Practice replacing filler words with short silent pauses to gather your thoughts.\n" .
-                    "• Structure your answers using the STAR method (Situation, Task, Action, Result) for behavioral scenarios.\n" .
-                    "• Maintain a calm, friendly tone suited for professional BPO communication.";
+                // Heuristic evaluation for when Gemini AI is not active or returns empty
+                $avgWordsPerAnswer = count($qaList) > 0 ? ($totalWords / count($qaList)) : 0;
+                $wpm = $totalDuration > 0 ? round(($totalWords / $totalDuration) * 60) : 130;
+
+                // Pace score: ideal is 120-150 WPM
+                $pacingScore = max(20, min(100, round(100 - abs($wpm - 135) * 1.5)));
+
+                // Filler cleanliness
+                $fillerScore = max(10, min(100, round(100 - ($fillerCount * 8))));
+
+                // Answer depth based on word count per answer (good BPO answer is at least 25-45 words)
+                $depthScore = min(100, max(15, round(($avgWordsPerAnswer / 35) * 85)));
+
+                $clarityScore = max(15, min(95, round(($pacingScore * 0.4) + ($fillerScore * 0.3) + ($depthScore * 0.3))));
+                $confidenceScore = max(10, min(95, round(($depthScore * 0.5) + ($fillerScore * 0.3) + ($pacingScore * 0.2))));
+                $grammarScore = max(20, min(95, round(85 - ($fillerCount * 3))));
+                $answerQuality = max(10, min(95, round(($depthScore * 0.6) + ($clarityScore * 0.4))));
+
+                $overallScore = round(
+                    ($clarityScore * 0.25) +
+                    ($confidenceScore * 0.20) +
+                    ($pacingScore * 0.20) +
+                    ($fillerScore * 0.15) +
+                    ($answerQuality * 0.20)
+                );
+
+                if ($overallScore < 50) {
+                    $feedbackText = "The responses provided in this {$interviewType} interview were very brief, hesitant, or lacked sufficient substance for a professional BPO evaluation. Multiple filler words or incomplete answers reduced clarity. To succeed in actual hiring interviews, practice giving structured, detailed answers of at least 3 to 4 sentences per question.";
+                    $suggestions = "• Provide complete, detailed explanations instead of single-phrase or dismissive answers.\n" .
+                        "• Structure your answers using the STAR method (Situation, Task, Action, Result).\n" .
+                        "• Pause silently for 2 seconds to formulate your thoughts instead of using filler sounds like 'um' or 'like'.";
+                } elseif ($overallScore < 75) {
+                    $feedbackText = "Foundational attempt at the {$interviewType} mock interview. You answered the questions, but your responses need greater depth, more professional customer-centric terminology, and reduced hesitation words.";
+                    $suggestions = "• Expand on concrete examples from your past experience or customer service scenarios.\n" .
+                        "• Practice replacing filler words with short silent pauses.\n" .
+                        "• Project greater vocal confidence and enthusiasm for the BPO role.";
+                } else {
+                    $feedbackText = "Thank you for completing the {$interviewType} mock interview session. Overall, you articulated your thoughts with clarity and addressed the questions directly. " .
+                        ($fillerCount > 3 ? "Be mindful of hesitation words like " . implode(', ', array_keys($fillerMap)) . " during your responses. " : "Your disfluency control was commendable. ") .
+                        "Continuing to maintain a steady pacing will further project interview confidence.";
+                    $suggestions = "• Practice replacing filler words with short silent pauses to gather your thoughts.\n" .
+                        "• Structure your answers using the STAR method (Situation, Task, Action, Result) for behavioral scenarios.\n" .
+                        "• Maintain a calm, friendly tone suited for professional BPO communication.";
+                }
             }
         }
 
@@ -187,7 +208,7 @@ class MockInterviewController extends Controller
             'clarity_score' => $clarityScore,
             'confidence_score' => $confidenceScore,
             'pacing_score' => $pacingScore,
-            'volume_score' => 88.0,
+            'volume_score' => $totalWords > 0 ? 88.0 : 0.0,
             'grammar_score' => $grammarScore,
             'answer_quality_score' => $answerQuality,
             'feedback_text' => $feedbackText,
@@ -200,7 +221,7 @@ class MockInterviewController extends Controller
             'status' => 'evaluated',
         ]);
 
-        $wpm = $totalDuration > 0 ? round(($totalWords / $totalDuration) * 60) : 130;
+        $wpm = $totalDuration > 0 ? round(($totalWords / $totalDuration) * 60) : 0;
 
         return response()->json([
             'success' => true,
@@ -215,10 +236,10 @@ class MockInterviewController extends Controller
                 'filler_count' => $fillerCount,
                 'filler_map' => $fillerMap,
             ],
-            'tokenUsage' => isset($evalResult['usageMetadata']) ? [
-                'promptTokens' => $evalResult['usageMetadata']['promptTokenCount'] ?? 0,
-                'candidatesTokens' => $evalResult['usageMetadata']['candidatesTokenCount'] ?? 0,
-                'totalTokens' => $evalResult['usageMetadata']['totalTokenCount'] ?? 0,
+            'tokenUsage' => isset($geminiData['usageMetadata']) ? [
+                'promptTokens' => $geminiData['usageMetadata']['promptTokenCount'] ?? 0,
+                'candidatesTokens' => $geminiData['usageMetadata']['candidatesTokenCount'] ?? 0,
+                'totalTokens' => $geminiData['usageMetadata']['totalTokenCount'] ?? 0,
             ] : null,
         ], 201);
     }

@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import { getApprovals, approveContent, rejectContent } from "../api/adminApi";
+import { Link } from "react-router-dom";
 
 const AdminApprovals = () => {
   const [items, setItems] = useState([]);
-  const [counts, setCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [counts, setCounts] = useState({ total: 0, updated: 0, active: 0, company_admin: 0 });
+  const [filterType, setFilterType] = useState("all"); // 'all', 'updated', 'paragraph', 'question', 'exercise'
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState("");
-  const [rejectingItem, setRejectingItem] = useState(null);
-  const [rejectionNotes, setRejectionNotes] = useState("");
   const [processingId, setProcessingId] = useState(null);
 
-  const loadData = async (status = statusFilter) => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await getApprovals(status);
+      const data = await getApprovals("all");
       if (data) {
         setItems(data.items || []);
         if (data.counts) {
@@ -23,48 +23,80 @@ const AdminApprovals = () => {
         }
       }
     } catch (err) {
-      console.warn("Failed to load approvals:", err);
+      console.warn("Failed to load audit items:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData(statusFilter);
-  }, [statusFilter]);
+    loadData();
+  }, []);
 
-  const handleApprove = async (item) => {
+  const handleDeactivate = async (item) => {
+    if (!window.confirm(`Deactivate "${item.title || "this item"}" from applicant practice?`)) return;
     setProcessingId(item.id);
     try {
-      await approveContent(item.content_type, item.id);
-      setToastMessage(`✓ ${item.title || "Item"} has been approved and is now active for applicants.`);
-      loadData(statusFilter);
+      await rejectContent(item.content_type, item.id, "Deactivated by Super Admin during content audit.");
+      setToastMessage(`✓ ${item.title || "Item"} has been archived and hidden from applicants.`);
+      loadData();
     } catch {
-      setToastMessage("Content approved successfully.");
-      loadData(statusFilter);
+      setToastMessage("Content deactivated.");
+      loadData();
     } finally {
       setProcessingId(null);
       setTimeout(() => setToastMessage(""), 4000);
     }
   };
 
-  const handleRejectSubmit = async (e) => {
-    e.preventDefault();
-    if (!rejectingItem) return;
-    setProcessingId(rejectingItem.id);
+  const handleReactivate = async (item) => {
+    setProcessingId(item.id);
     try {
-      await rejectContent(rejectingItem.content_type, rejectingItem.id, rejectionNotes);
-      setToastMessage(`Item rejected with feedback: "${rejectionNotes}"`);
-      setRejectingItem(null);
-      setRejectionNotes("");
-      loadData(statusFilter);
+      await approveContent(item.content_type, item.id);
+      setToastMessage(`✓ ${item.title || "Item"} has been reactivated for applicants.`);
+      loadData();
     } catch {
-      setToastMessage("Feedback recorded.");
-      setRejectingItem(null);
-      loadData(statusFilter);
+      setToastMessage("Content reactivated.");
+      loadData();
     } finally {
       setProcessingId(null);
       setTimeout(() => setToastMessage(""), 4000);
+    }
+  };
+
+  // Filter items based on active tab and search query
+  const filteredItems = items.filter((item) => {
+    // Type filter
+    if (filterType === "updated" && !item.is_updated) return false;
+    if (filterType === "paragraph" && item.content_type !== "paragraph") return false;
+    if (filterType === "question" && item.content_type !== "question") return false;
+    if (filterType === "exercise" && item.content_type !== "exercise") return false;
+
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = (item.title || "").toLowerCase().includes(q);
+      const matchContent = (item.content || "").toLowerCase().includes(q);
+      const matchAuthor = (item.submitted_by || "").toLowerCase().includes(q);
+      return matchTitle || matchContent || matchAuthor;
+    }
+
+    return true;
+  });
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Just now";
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateStr;
     }
   };
 
@@ -74,7 +106,7 @@ const AdminApprovals = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 ml-64 p-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
 
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-gray-200 gap-4">
@@ -83,85 +115,159 @@ const AdminApprovals = () => {
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200">
                   👑 Super Admin
                 </span>
-                <span className="text-xs text-gray-400">Content Governance</span>
+                <span className="text-xs text-gray-400">Content Governance &amp; Audit Trail</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                Content Approvals Center
+                Content Updates &amp; Audit Center
               </h1>
-              <p className="text-xs text-gray-500 mt-1">
-                Review and approve training materials proposed by BPO Company Admins before they become active for applicants.
+              <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                BPO Partner Companies and Admins update training passages directly without approval delays. Super Admins retain 100% oversight and visibility into all additions, modifications, and change histories.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 shadow-sm">
-                ⏳ {counts.pending} Awaiting Review
+              <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-sm flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                Direct Publishing Enabled
               </span>
             </div>
           </div>
 
           {/* Toast Notification */}
           {toastMessage && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2">
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center gap-2 animate-fadeIn">
               <span className="text-emerald-600 font-bold">✓</span>
               <span>{toastMessage}</span>
             </div>
           )}
 
           {/* Summary Metric Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <button
-              onClick={() => setStatusFilter("pending")}
+              onClick={() => setFilterType("all")}
               className={`p-5 rounded-2xl border text-left transition shadow-sm ${
-                statusFilter === "pending"
+                filterType === "all"
+                  ? "bg-blue-50 border-blue-300 ring-2 ring-blue-400/30"
+                  : "bg-white border-gray-200 hover:border-blue-200"
+              }`}
+            >
+              <p className="text-xs font-semibold text-gray-500 uppercase">Total Monitored Items</p>
+              <p className="text-3xl font-extrabold text-blue-600 mt-1">{counts.total || items.length}</p>
+              <p className="text-[11px] text-gray-500 mt-1">Passages, questions &amp; drills</p>
+            </button>
+
+            <button
+              onClick={() => setFilterType("updated")}
+              className={`p-5 rounded-2xl border text-left transition shadow-sm ${
+                filterType === "updated"
                   ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/30"
                   : "bg-white border-gray-200 hover:border-amber-200"
               }`}
             >
-              <p className="text-xs font-semibold text-gray-500 uppercase">Pending Review</p>
-              <p className="text-3xl font-extrabold text-amber-600 mt-1">{counts.pending}</p>
-              <p className="text-[11px] text-gray-500 mt-1">Requires Super Admin decision</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase">⚡ Recently Updated</p>
+              <p className="text-3xl font-extrabold text-amber-600 mt-1">{counts.updated || items.filter(i => i.is_updated).length}</p>
+              <p className="text-[11px] text-gray-500 mt-1">Modified content changes</p>
             </button>
 
             <button
-              onClick={() => setStatusFilter("approved")}
+              onClick={() => setFilterType("paragraph")}
               className={`p-5 rounded-2xl border text-left transition shadow-sm ${
-                statusFilter === "approved"
+                filterType === "paragraph"
                   ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30"
                   : "bg-white border-gray-200 hover:border-emerald-200"
               }`}
             >
-              <p className="text-xs font-semibold text-gray-500 uppercase">Approved &amp; Live</p>
-              <p className="text-3xl font-extrabold text-emerald-600 mt-1">{counts.approved}</p>
-              <p className="text-[11px] text-gray-500 mt-1">Active in applicant practice</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase">Reading Passages</p>
+              <p className="text-3xl font-extrabold text-emerald-600 mt-1">
+                {items.filter((i) => i.content_type === "paragraph").length}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-1">Easy, Medium, Hard tiers</p>
             </button>
 
             <button
-              onClick={() => setStatusFilter("rejected")}
+              onClick={() => setFilterType("question")}
               className={`p-5 rounded-2xl border text-left transition shadow-sm ${
-                statusFilter === "rejected"
-                  ? "bg-red-50 border-red-300 ring-2 ring-red-400/30"
-                  : "bg-white border-gray-200 hover:border-red-200"
+                filterType === "question"
+                  ? "bg-purple-50 border-purple-300 ring-2 ring-purple-400/30"
+                  : "bg-white border-gray-200 hover:border-purple-200"
               }`}
             >
-              <p className="text-xs font-semibold text-gray-500 uppercase">Rejected / Returned</p>
-              <p className="text-3xl font-extrabold text-red-600 mt-1">{counts.rejected}</p>
-              <p className="text-[11px] text-gray-500 mt-1">Returned with review notes</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase">Interview Questions</p>
+              <p className="text-3xl font-extrabold text-purple-600 mt-1">
+                {items.filter((i) => i.content_type === "question").length}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-1">Initial &amp; Final bank</p>
             </button>
           </div>
 
-          {/* Submissions List */}
+          {/* Search & Secondary Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setFilterType("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  filterType === "all" ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All Content ({items.length})
+              </button>
+              <button
+                onClick={() => setFilterType("updated")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  filterType === "updated" ? "bg-amber-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                ⚡ Recently Updated ({items.filter(i => i.is_updated).length})
+              </button>
+              <button
+                onClick={() => setFilterType("paragraph")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  filterType === "paragraph" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                📖 Reading Passages
+              </button>
+              <button
+                onClick={() => setFilterType("question")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  filterType === "question" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                💼 Questions
+              </button>
+              <button
+                onClick={() => setFilterType("exercise")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  filterType === "exercise" ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                🎯 Speech Drills
+              </button>
+            </div>
+
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search title, content, author..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3.5 py-1.5 rounded-xl border border-gray-300 text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+
+          {/* Audit Feed List */}
           <div className="space-y-4">
             {loading ? (
               <div className="p-12 text-center text-gray-400 text-xs bg-white rounded-2xl border border-gray-200">
-                Loading submissions queue...
+                Loading live repository audit feed...
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="p-12 text-center text-gray-400 text-xs bg-white rounded-2xl border border-gray-200">
-                No submissions found with status: <strong className="capitalize">{statusFilter}</strong>
+                No items match the selected filter.
               </div>
             ) : (
-              items.map((item) => {
+              filteredItems.map((item) => {
                 const typeIcon =
                   item.content_type === "paragraph"
                     ? "📖 Reading Passage"
@@ -169,85 +275,124 @@ const AdminApprovals = () => {
                     ? "💼 Interview Question"
                     : "🎯 Communication Drill";
 
-                const statusBadge =
-                  item.approval_status === "approved"
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                    : item.approval_status === "rejected"
-                    ? "bg-red-100 text-red-800 border-red-200"
-                    : "bg-amber-100 text-amber-800 border-amber-200";
+                const isCompanyAdmin = item.submitter_role === "admin";
+                const isDeactivated = item.is_active === false || item.approval_status === "rejected";
 
                 return (
                   <div
                     key={`${item.content_type}-${item.id}`}
-                    className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4"
+                    className={`bg-white rounded-2xl border p-6 shadow-sm space-y-4 transition ${
+                      isDeactivated
+                        ? "border-red-200 bg-red-50/20"
+                        : item.is_updated
+                        ? "border-amber-200 ring-1 ring-amber-400/20"
+                        : "border-gray-200"
+                    }`}
                   >
+                    {/* Header line of card */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5 flex-wrap">
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
                           {typeIcon}
                         </span>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${statusBadge}`}>
-                          {item.approval_status === "approved" ? "Approved & Live" : item.approval_status === "rejected" ? "Rejected" : "Pending Review"}
-                        </span>
+
+                        {/* Change Status Badge */}
+                        {isDeactivated ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Archived / Hidden
+                          </span>
+                        ) : item.is_updated ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> ⚡ Recently Updated
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published &amp; Live
+                          </span>
+                        )}
+
                         <span className="text-xs text-gray-400 capitalize">
                           Tier: {item.difficulty || "Standard"}
                         </span>
                       </div>
-                      <div className="text-[11px] text-gray-500">
-                        Submitted by: <strong className="text-gray-800">{item.submitted_by || "BPO Company Admin"}</strong>
+
+                      <div className="text-[11px] text-gray-500 flex items-center gap-2">
+                        <span>
+                          Maintained by:{" "}
+                          <strong className={isCompanyAdmin ? "text-blue-700 font-bold" : "text-purple-700 font-bold"}>
+                            {item.submitted_by || (isCompanyAdmin ? "BPO Partner Admin" : "System SuperAdmin")}
+                          </strong>
+                          {isCompanyAdmin && (
+                            <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">
+                              Company Admin
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </div>
 
+                    {/* Content Section */}
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900 mb-1">{item.title}</h3>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h3 className="text-sm font-bold text-gray-900">{item.title}</h3>
+                        <span className="text-[11px] text-gray-400">
+                          {item.is_updated ? `Updated ${formatDate(item.updated_at)}` : `Created ${formatDate(item.created_at)}`}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100 italic">
                         "{item.content}"
                       </p>
                     </div>
 
+                    {/* Reviewer / Super Admin Note if any */}
                     {item.reviewer_notes && (
                       <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs">
-                        <strong>Reviewer Note:</strong> {item.reviewer_notes}
+                        <strong>Super Admin Note:</strong> {item.reviewer_notes}
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex justify-end items-center gap-3 pt-2">
-                      {item.approval_status === "pending" && (
-                        <>
+                    {/* Footer Actions */}
+                    <div className="flex justify-between items-center gap-3 pt-2">
+                      <div className="text-[11px] text-gray-400">
+                        Content ID: <span className="font-mono text-gray-600">#{item.id}</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {/* Link to repository */}
+                        <Link
+                          to={
+                            item.content_type === "paragraph"
+                              ? "/ManageParagraphs"
+                              : item.content_type === "question"
+                              ? "/ManageInterviewQuestions"
+                              : "/ManageExercises"
+                          }
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:text-blue-600 bg-gray-100 hover:bg-gray-200 transition"
+                        >
+                          View in Repository &rarr;
+                        </Link>
+
+                        {/* Super Admin Control Actions */}
+                        {isDeactivated ? (
                           <button
-                            onClick={() => setRejectingItem(item)}
+                            onClick={() => handleReactivate(item)}
                             disabled={processingId === item.id}
-                            className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-semibold border border-red-200 transition"
-                          >
-                            Reject &amp; Provide Feedback
-                          </button>
-                          <button
-                            onClick={() => handleApprove(item)}
-                            disabled={processingId === item.id}
-                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+                            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1 cursor-pointer"
                           >
                             <span>✓</span>
-                            <span>Approve &amp; Publish Live</span>
+                            <span>Restore to Active</span>
                           </button>
-                        </>
-                      )}
-
-                      {item.approval_status === "rejected" && (
-                        <button
-                          onClick={() => handleApprove(item)}
-                          disabled={processingId === item.id}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
-                        >
-                          Reconsider &amp; Approve
-                        </button>
-                      )}
-
-                      {item.approval_status === "approved" && (
-                        <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                          <span>✓</span> Live in Applicant Practice
-                        </span>
-                      )}
+                        ) : (
+                          <button
+                            onClick={() => handleDeactivate(item)}
+                            disabled={processingId === item.id}
+                            className="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+                            title="Super Admin can archive improper content"
+                          >
+                            Archive / Deactivate
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -257,61 +402,6 @@ const AdminApprovals = () => {
 
         </div>
       </div>
-
-      {/* Reject Modal */}
-      {rejectingItem && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
-              <h3 className="text-base font-bold text-gray-900">
-                Reject Submission
-              </h3>
-              <button
-                onClick={() => setRejectingItem(null)}
-                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleRejectSubmit} className="space-y-4">
-              <p className="text-xs text-gray-600">
-                Provide a reason or guidance note so the BPO Company Admin knows what revisions are needed:
-              </p>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Feedback / Reason for Rejection
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  value={rejectionNotes}
-                  onChange={(e) => setRejectionNotes(e.target.value)}
-                  placeholder="e.g. Please simplify the vocabulary for the Easy level tier..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500 transition"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setRejectingItem(null)}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-xs transition shadow-sm"
-                >
-                  Confirm Rejection
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

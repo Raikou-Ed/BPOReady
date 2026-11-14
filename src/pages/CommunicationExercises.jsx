@@ -33,8 +33,10 @@ const CommunicationExercises = () => {
             {/* 1. Filler Words */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
-                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xl mb-4">
-                  💬
+                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                  </svg>
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Filler Word Reduction</h3>
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
@@ -48,8 +50,9 @@ const CommunicationExercises = () => {
               </div>
 
               <Link to="/filler-word-exercise">
-                <button className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg text-sm transition-colors shadow">
-                  Start Filler Drill →
+                <button className="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg text-sm transition-colors shadow flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Start Filler Drill</span>
+                  <span>→</span>
                 </button>
               </Link>
             </div>
@@ -57,8 +60,10 @@ const CommunicationExercises = () => {
             {/* 2. Grammar Improvement */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xl mb-4">
-                  ✍️
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Grammar & Phrasing</h3>
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
@@ -72,8 +77,9 @@ const CommunicationExercises = () => {
               </div>
 
               <Link to="/grammar-exercise">
-                <button className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-sm transition-colors shadow">
-                  Start Grammar Drill →
+                <button className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-sm transition-colors shadow flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Start Grammar Drill</span>
+                  <span>→</span>
                 </button>
               </Link>
             </div>
@@ -81,8 +87,10 @@ const CommunicationExercises = () => {
             {/* 3. Speech Pacing */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
-                <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xl mb-4">
-                  ⏱️
+                <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
                 <h3 className="text-lg font-bold text-gray-800 mb-2">Speech Pacing Meter</h3>
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
@@ -96,8 +104,9 @@ const CommunicationExercises = () => {
               </div>
 
               <Link to="/speech-pacing-exercise">
-                <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors shadow">
-                  Start Pacing Drill →
+                <button className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors shadow flex items-center justify-center gap-2 cursor-pointer">
+                  <span>Start Pacing Drill</span>
+                  <span>→</span>
                 </button>
               </Link>
             </div>

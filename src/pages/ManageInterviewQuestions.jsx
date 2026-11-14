@@ -125,7 +125,7 @@ const ManageInterviewQuestions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const approval_status = isSuperAdmin ? "approved" : "pending";
+    const approval_status = "approved"; // Published live immediately per adviser directive
     const payload = {
       ...formData,
       approval_status,
@@ -136,18 +136,14 @@ const ManageInterviewQuestions = () => {
       if (editingId) {
         const updated = await updateInterviewQuestion(editingId, payload);
         setQuestions(
-          questions.map((q) => (q.id === editingId ? { ...(updated.question || updated), approval_status: q.approval_status } : q))
+          questions.map((q) => (q.id === editingId ? { ...(updated.question || updated), approval_status: "approved" } : q))
         );
       } else {
         const created = await createInterviewQuestion(payload);
         setQuestions([...questions, created.question || created]);
       }
       setIsModalOpen(false);
-      setMessage(
-        isSuperAdmin
-          ? "Question saved and published to Question Bank."
-          : "Question submitted! Pending Super Admin review before going live."
-      );
+      setMessage("Interview question saved and active for applicants! Monitored in Super Admin audit trail.");
     } catch {
       if (editingId) {
         setQuestions(
@@ -191,47 +187,54 @@ const ManageInterviewQuestions = () => {
                 <span className="text-xs text-gray-400">Questions</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                {isSuperAdmin ? "Interview Question Bank Repository" : "Propose Interview Questions"}
+                {isSuperAdmin ? "Question Bank Repository" : "Manage Interview Questions"}
               </h1>
               <p className="text-xs text-gray-500 mt-1">
                 {isSuperAdmin
-                  ? "Read-only quality audit of all Initial HR and Final Operations interview prompts. Prompts are authored by BPO Company Admins; approvals are managed in the Approvals Center."
-                  : "Submit customized interview prompts tailored to your account. Questions require Super Admin approval before being activated for candidate interviews."}
+                  ? "View-only audit of all Initial HR and Final Operations interview prompts. Authored and managed directly by BPO Company Admins."
+                  : "Create and update interview prompts tailored to recruitment accounts. Questions are published immediately."}
               </p>
             </div>
 
-            {/* ONLY Company Admin can author/propose content */}
-            {!isSuperAdmin ? (
-              <button
-                onClick={handleOpenAdd}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
-              >
-                + Propose New Question
-              </button>
-            ) : (
-              <a
-                href="/AdminApprovals"
-                className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
-              >
-                <span>⚖️ Go to Approvals Center</span>
-              </a>
-            )}
+            {/* Actions: View Only for Super Admin, Add for Company Admin */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              {isSuperAdmin ? (
+                <>
+                  <span className="px-3 py-2 bg-purple-50 border border-purple-200 text-purple-700 font-semibold rounded-xl text-xs flex items-center gap-1.5">
+                    👁️ View Only Mode
+                  </span>
+                  <a
+                    href="/AdminApprovals"
+                    className="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>📋 Content Updates &amp; Audit</span>
+                  </a>
+                </>
+              ) : (
+                <button
+                  onClick={handleOpenAdd}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
+                >
+                  + Add Interview Question
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Super Admin Notice Banner */}
+          {/* Super Admin View-Only Notice Banner */}
           {isSuperAdmin && (
             <div className="p-3.5 bg-purple-50 border border-purple-200 text-purple-900 rounded-xl text-xs flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-purple-700 text-sm">ℹ️</span>
+                <span className="font-bold text-purple-700 text-sm">👁️</span>
                 <span>
-                  <strong>Quality Control Policy:</strong> Super Admins do not author interview questions. Scenarios are authored by BPO Company Admins and approved by Super Admin.
+                  <strong>View-Only Oversight:</strong> Super Admins can monitor and view all interview prompts. Prompt authoring, editing, and deleting are reserved for BPO Company Admins.
                 </span>
               </div>
               <a
                 href="/AdminApprovals"
                 className="text-xs font-bold text-purple-700 underline shrink-0 hover:text-purple-900"
               >
-                Review Pending Submissions →
+                View Updates &amp; Audit Center →
               </a>
             </div>
           )}
@@ -285,20 +288,13 @@ const ManageInterviewQuestions = () => {
                         {q.question_type} Interview
                       </span>
 
-                      {/* Approval Status Badge */}
-                      {status === "approved" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Approved
-                        </span>
-                      )}
-                      {status === "pending" && (
+                      {/* Status & Change Badges */}
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live / Active
+                      </span>
+                      {q.is_updated && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pending Approval
-                        </span>
-                      )}
-                      {status === "rejected" && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Rejected
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> ⚡ Recently Updated
                         </span>
                       )}
 
@@ -309,20 +305,22 @@ const ManageInterviewQuestions = () => {
                         {q.difficulty} Tier
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEdit(q)}
-                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(q.id)}
-                        className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {!isSuperAdmin && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(q)}
+                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(q.id)}
+                          className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {q.reviewer_notes && (

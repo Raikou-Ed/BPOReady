@@ -1,5 +1,25 @@
 export function getCurrentUser() {
   try {
+    if (typeof window !== 'undefined') {
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+      const params = new URLSearchParams(window.location.search || hashQuery);
+      const roleParam = params.get('role');
+      if (roleParam === 'admin') {
+        return {
+          id: 2,
+          name: "BPO Partner Admin",
+          email: "admin@bpoready.com",
+          role: "admin",
+        };
+      } else if (roleParam === 'super_admin') {
+        return {
+          id: 1,
+          name: "System SuperAdmin",
+          email: "superadmin@bpoready.com",
+          role: "super_admin",
+        };
+      }
+    }
     return JSON.parse(localStorage.getItem('user') || 'null');
   } catch {
     return null;

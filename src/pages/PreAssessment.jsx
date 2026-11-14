@@ -36,30 +36,32 @@ export default function PreAssessment() {
         if (data && data.hasAssessment) {
           const scoreNum = Number(data.score ?? 0);
           if (scoreNum > 0) {
-            const placed = String(data.placedLevel || cur.assigned_level || 'easy').toLowerCase();
-            let finalScore = scoreNum;
-            if (placed === 'medium' && finalScore < 76) finalScore = 81;
-            if (placed === 'hard' && finalScore < 90) finalScore = 92;
+            const placed = String(data.placedLevel || 'easy').toLowerCase();
             const wpm = placed === 'hard' ? 145 : (placed === 'medium' ? 135 : 115);
             const synced = {
-              score: finalScore,
+              score: scoreNum,
               placedLevel: placed,
               wordsPerMinute: wpm,
-              criteria: generatePreAssessmentCriteria(finalScore, placed, wpm),
+              criteria: generatePreAssessmentCriteria(scoreNum, placed, wpm),
               completedAt: data.taken_at,
               isPreAssessment: true,
             };
             setResult(synced);
             saveAssessmentResult(synced);
           }
-        } else if (existingAssessment && Number(existingAssessment.score) > 0) {
-          // If server does not have it yet, auto-sync existing local result to database
-          await savePreAssessmentResult({
-            applicant_id: Number(cur.id),
-            score: Number(existingAssessment.score),
-            placed_level: existingAssessment.placedLevel || 'easy',
-            paragraph_id: preAssessment.id || 1,
-          });
+        } else {
+          const localAssigned = getAssignedLevel();
+          if (localAssigned && Number(localAssigned.score) > 0) {
+            setResult(localAssigned);
+            savePreAssessmentResult({
+              applicant_id: cur.id,
+              score: Number(localAssigned.score),
+              placed_level: localAssigned.placedLevel || 'easy',
+              paragraph_id: 1,
+            }).catch(() => {});
+          } else {
+            setResult(null);
+          }
         }
       });
     }
@@ -273,11 +275,15 @@ export default function PreAssessment() {
     <div className="min-h-screen bg-gray-50 font-poppins">
       <header className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <Link to="/Dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-              B
-            </div>
-            <span className="font-bold text-gray-800 text-lg">BPOReady</span>
+          <Link to="/Dashboard" className="flex items-center gap-2.5 group">
+            <img
+              src="/logo-icon.png"
+              alt="BPOReady Logo"
+              className="w-8 h-8 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <span className="font-extrabold text-gray-900 text-lg tracking-tight">
+              BPO<span className="text-blue-600">Ready</span>
+            </span>
           </Link>
           <Link to="/Dashboard" className="text-xs font-semibold text-blue-600 hover:text-blue-700">
             ← Back to Dashboard

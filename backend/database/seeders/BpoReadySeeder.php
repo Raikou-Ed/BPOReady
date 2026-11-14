@@ -92,8 +92,8 @@ class BpoReadySeeder extends Seeder
             DB::table('paragraphs')->insert([
                 [
                     'created_by_user_id' => $superAdminId,
-                    'title' => 'BPO Industry Overview',
-                    'content' => 'The Philippine Business Process Outsourcing (BPO) industry remains one of the country’s leading economic sectors, generating significant revenue and employing many Filipinos. The industry relies on strong communication skills, particularly English fluency and clarity, which are essential in customer service and voice-based roles.',
+                    'title' => 'The Value of Daily Speaking Practice',
+                    'content' => 'Speaking English clearly takes time, patience, and regular practice. When you read aloud every day, you improve your voice, rhythm, and confidence. Using simple words helps everyone understand your message right away. Staying calm and breathing properly allows you to speak smoothly and share your thoughts with ease.',
                     'difficulty' => 'easy',
                     'is_active' => true,
                     'created_at' => now(),
@@ -101,8 +101,8 @@ class BpoReadySeeder extends Seeder
                 ],
                 [
                     'created_by_user_id' => $superAdminId,
-                    'title' => 'Communication Challenges',
-                    'content' => 'Many applicants struggle with interview performance due to communication-related challenges such as lack of confidence, poor grammar, ineffective sentence construction, and limited opportunities for structured speaking practice. These issues highlight the need for tools that improve spoken communication through structured practice and automated feedback.',
+                    'title' => 'Effective Communication in the Workplace',
+                    'content' => 'Effective communication is an essential skill in every modern workplace. When people share their ideas clearly and listen with respect, teams solve problems faster and achieve better results. Practicing structured speech techniques helps individuals build vocal confidence, control their speaking pace, and adapt comfortably to different professional conversations. Over time, consistent practice transforms everyday spoken interactions into meaningful professional relationships.',
                     'difficulty' => 'medium',
                     'is_active' => true,
                     'created_at' => now(),
@@ -110,8 +110,8 @@ class BpoReadySeeder extends Seeder
                 ],
                 [
                     'created_by_user_id' => $superAdminId,
-                    'title' => 'AI-Powered Interview Coaching',
-                    'content' => 'By integrating speech analysis, grammar checking, and progressive paragraph-reading modules, AI-powered interview coaching systems can provide personalized, real-time feedback. Such systems can analyze pronunciation, detect filler words, evaluate pacing and confidence, and provide targeted exercises that improve interview readiness for industry-specific roles like BPO.',
+                    'title' => 'Mastering Advanced Verbal Precision',
+                    'content' => 'Mastering advanced verbal communication requires cognitive adaptability, precise phonetic articulation, and disciplined breath management. Professionals who articulate intricate concepts clearly can navigate high-pressure discussions with authority and composure. Developing these capabilities demands sustained linguistic awareness, critical self-evaluation, and continuous refinement across demanding professional environments. Ultimately, achieving vocal excellence empowers individuals to deliver persuasive arguments, project executive presence, and influence organizational outcomes.',
                     'difficulty' => 'hard',
                     'is_active' => true,
                     'created_at' => now(),
