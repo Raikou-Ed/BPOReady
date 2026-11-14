@@ -1,7 +1,7 @@
-FROM php:8.2-cli-alpine
+FROM php:8.3-cli-alpine
 
 # Install PostgreSQL development libraries and required system dependencies
-RUN apk add --no-cache postgresql-dev bash libpng-dev libzip-dev zip unzip
+RUN apk add --no-cache postgresql-dev bash libpng-dev libzip-dev zip unzip icu-dev
 
 # Install PHP extensions for Laravel and PostgreSQL
 RUN docker-php-ext-install pdo pdo_pgsql pgsql
@@ -14,13 +14,12 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
-# Install production dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install production dependencies with platform flexibility
+RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
-# Ensure writable directories for SQLite/logs/cache
+# Ensure writable directories for logs and cache
 RUN chmod -R 777 storage bootstrap/cache
 
 EXPOSE 8080
 
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
-
+CMD sh -c "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"
