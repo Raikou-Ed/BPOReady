@@ -525,13 +525,13 @@ const HomePage = () => {
             {/* About Text Content */}
             <div className="w-full lg:w-1/2">
               <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full">
-                About QuodSync & BPOReady
+                About QuadSync & BPOReady
               </span>
               <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-3 mb-6 leading-tight">
                 Empowering Filipino Applicants to Excel in Global BPO Careers
               </h2>
               <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-5">
-                <strong>BPOReady</strong> is an AI-driven speech coaching and interview simulation platform developed by <strong>QuodSync</strong>. It addresses the critical communication hurdles faced by call center applicants, including filler words, speech anxiety, and inconsistent conversational pacing.
+                <strong>BPOReady</strong> is an AI-driven speech coaching and interview simulation platform developed by <strong>QuadSync</strong>. It addresses the critical communication hurdles faced by call center applicants, including filler words, speech anxiety, and inconsistent conversational pacing.
               </p>
               <p className="text-base text-gray-600 leading-relaxed mb-6">
                 By combining automated speech recognition with natural language evaluation and real-world contact center call simulations, BPOReady provides an objective, supportive environment where applicants can practice repeatedly before facing hiring recruiters.
@@ -595,8 +595,8 @@ const HomePage = () => {
                 <div>
                   <h4 className="font-bold text-gray-900 text-base">Direct Email</h4>
                   <p className="text-sm text-gray-500 mt-1">Official Project & Support</p>
-                  <a href="mailto:QuodSync@gmail.com" className="text-sm font-semibold text-blue-600 hover:underline mt-2 inline-block">
-                    QuodSync@gmail.com
+                  <a href="mailto:QuadSync@gmail.com" className="text-sm font-semibold text-blue-600 hover:underline mt-2 inline-block">
+                    QuadSync@gmail.com
                   </a>
                 </div>
               </div>
@@ -611,7 +611,7 @@ const HomePage = () => {
                   <h4 className="font-bold text-gray-900 text-base">Facebook Community</h4>
                   <p className="text-sm text-gray-500 mt-1">Development & Updates</p>
                   <span className="text-sm font-semibold text-gray-800 mt-2 inline-block">
-                    QuodSync Project Team
+                    QuadSync Project Team
                   </span>
                 </div>
               </div>
@@ -786,7 +786,7 @@ const HomePage = () => {
           </div>
 
           <div className="pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500 gap-4">
-            <p>© 2026 BPOReady. All rights reserved. Developed by QuodSync.</p>
+            <p>© 2026 BPOReady. All rights reserved. Developed by QuadSync.</p>
             <p>Designed for BPO Applicant Communication Readiness & Assessment Mastery.</p>
           </div>
         </div>
