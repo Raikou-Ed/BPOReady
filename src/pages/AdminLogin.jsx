@@ -26,16 +26,24 @@ const AdminLogin = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins py-12">
       <div className="w-full max-w-md mx-4">
-        {/* Logo */}
+        {/* Brand Logo Header */}
         <div className="text-center mb-6">
-          <Link to="/" className="inline-block group">
+          <Link to="/" className="inline-flex flex-col items-center group">
             <img
-              src="/logo.png"
-              alt="BPOReady - Practice Today. Perform Tomorrow."
-              className="h-24 w-auto mx-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+              src="/logo-icon.png"
+              alt="BPOReady Logo"
+              className="w-16 h-16 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
             />
+            <span className="text-3xl font-black text-gray-900 tracking-tight mt-2.5">
+              BPO<span className="text-blue-600">Ready</span>
+            </span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wider uppercase mt-1">
+              Practice Today, Perform Tomorrow.
+            </span>
+            <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold tracking-widest uppercase rounded-full border border-blue-200 mt-2.5">
+              Administrator Portal
+            </span>
           </Link>
-          <p className="text-xs font-bold tracking-wider uppercase text-blue-600 mt-2">Administrator Portal</p>
         </div>
 
         {/* Card */}

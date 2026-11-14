@@ -31,14 +31,20 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 font-poppins">
       <div className="w-full max-w-md mx-4">
-        {/* Logo */}
+        {/* Brand Logo Header */}
         <div className="text-center mb-6">
-          <Link to="/" className="inline-block group">
+          <Link to="/" className="inline-flex flex-col items-center group">
             <img
-              src="/logo.png"
-              alt="BPOReady - Practice Today. Perform Tomorrow."
-              className="h-28 w-auto mx-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+              src="/logo-icon.png"
+              alt="BPOReady Logo"
+              className="w-16 h-16 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
             />
+            <span className="text-3xl font-black text-gray-900 tracking-tight mt-2.5">
+              BPO<span className="text-blue-600">Ready</span>
+            </span>
+            <span className="text-xs sm:text-sm font-semibold text-gray-500 tracking-wider uppercase mt-1">
+              Practice Today, Perform Tomorrow.
+            </span>
           </Link>
         </div>
 
