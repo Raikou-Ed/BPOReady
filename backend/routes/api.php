@@ -68,6 +68,7 @@ Route::post('/call-simulations/submit', [CallSimulationController::class, 'submi
 // Admin Monitoring & Analytics
 Route::get('/admin/dashboard-stats', [UserMonitoringController::class, 'getDashboardStats']);
 Route::get('/admin/registered-users', [UserMonitoringController::class, 'getRegisteredUsers']);
+Route::delete('/admin/users/{id}', [UserMonitoringController::class, 'deleteUser']);
 
 // Super Admin Approvals Center
 Route::get('/admin/approvals', [ApprovalController::class, 'index']);

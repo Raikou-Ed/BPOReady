@@ -92,4 +92,76 @@ class UserMonitoringController extends Controller
 
         return response()->json($users);
     }
+
+    public function deleteUser($id)
+    {
+        // Protect core system accounts
+        if (in_array((int)$id, [17, 18, 19])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Default system accounts (SuperAdmin, Admin, Juan Dela Cruz) cannot be deleted.'
+            ], 403);
+        }
+
+        $user = DB::table('users')->where('id', $id)->first();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => "User account with ID {$id} not found."
+            ], 404);
+        }
+
+        try {
+            DB::transaction(function () use ($id) {
+                // 1. Paragraph reading feedback & sessions
+                $readingSessionIds = DB::table('paragraph_reading_sessions')->where('applicant_id', $id)->pluck('id');
+                if ($readingSessionIds->isNotEmpty()) {
+                    DB::table('paragraph_feedback')->whereIn('reading_session_id', $readingSessionIds)->delete();
+                    DB::table('paragraph_reading_sessions')->where('applicant_id', $id)->delete();
+                }
+
+                // 2. Mock interview answers, feedback & sessions
+                $mockSessionIds = DB::table('mock_interview_sessions')->where('applicant_id', $id)->pluck('id');
+                if ($mockSessionIds->isNotEmpty()) {
+                    DB::table('mock_interview_answers')->whereIn('mock_session_id', $mockSessionIds)->delete();
+                    DB::table('mock_interview_feedback')->whereIn('mock_session_id', $mockSessionIds)->delete();
+                    DB::table('mock_interview_sessions')->where('applicant_id', $id)->delete();
+                }
+
+                // 3. Call simulation logs & sessions
+                $callSessionIds = DB::table('call_simulation_sessions')->where('applicant_id', $id)->pluck('id');
+                if ($callSessionIds->isNotEmpty()) {
+                    DB::table('call_simulation_logs')->whereIn('session_id', $callSessionIds)->delete();
+                    DB::table('call_simulation_sessions')->where('applicant_id', $id)->delete();
+                }
+
+                // 4. Communication exercise attempts
+                DB::table('exercise_attempts')->where('applicant_id', $id)->delete();
+
+                // 5. Pre-assessments & performance reports
+                DB::table('pre_assessments')->where('applicant_id', $id)->delete();
+                DB::table('performance_reports')->where('applicant_id', $id)->delete();
+
+                // 6. Reset any created_by / generated_by references to NULL if any
+                DB::table('paragraphs')->where('created_by_user_id', $id)->update(['created_by_user_id' => null]);
+                DB::table('interview_questions')->where('created_by_user_id', $id)->update(['created_by_user_id' => null]);
+                DB::table('communication_exercises')->where('created_by_user_id', $id)->update(['created_by_user_id' => null]);
+                DB::table('call_scenarios')->where('created_by_user_id', $id)->update(['created_by_user_id' => null]);
+                DB::table('performance_reports')->where('generated_by_user_id', $id)->update(['generated_by_user_id' => null]);
+
+                // 7. Delete user record
+                DB::table('users')->where('id', $id)->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "User ID {$id} has been permanently deleted from the database."
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete user: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

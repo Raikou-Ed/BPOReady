@@ -37,6 +37,14 @@ export async function getRegisteredUsers(search = '', role = '', requesterRole =
   }
 }
 
+export async function deleteUser(id) {
+  const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
+    method: 'DELETE',
+    headers: { 'Accept': 'application/json' },
+  });
+  return res.json();
+}
+
 // Paragraph Passages
 export async function listParagraphs(level = '') {
   try {
