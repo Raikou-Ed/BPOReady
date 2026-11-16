@@ -48,6 +48,14 @@ export function resetPassword(payload) {
   return request('/api/auth/reset-password', payload, 'POST');
 }
 
+export function sendResetCode(payload) {
+  return request('/api/auth/send-reset-code', payload, 'POST');
+}
+
+export function verifyResetCode(payload) {
+  return request('/api/auth/verify-reset-code', payload, 'POST');
+}
+
 export function saveAuthenticatedUser(data) {
   const nextUser = data?.user;
   if (!nextUser) {

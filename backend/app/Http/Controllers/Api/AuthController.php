@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -219,6 +221,130 @@ class AuthController extends Controller
         ]);
 
         return response()->json(['message' => 'Password updated successfully.']);
+    }
+
+    private function ensureResetTokensTable()
+    {
+        if (!Schema::hasTable('password_reset_tokens')) {
+            Schema::create('password_reset_tokens', function ($table) {
+                $table->string('email')->primary();
+                $table->string('token');
+                $table->timestamp('created_at')->nullable();
+            });
+        }
+    }
+
+    public function sendResetCode(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $user = DB::table('users')->where('email', $email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'No registered account found with this email address.'], 404);
+        }
+
+        $this->ensureResetTokensTable();
+
+        // Generate 6-digit random verification code
+        $code = (string) random_int(100000, 999999);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($code),
+                'created_at' => now(),
+            ]
+        );
+
+        $userName = trim(implode(' ', array_filter([$user->first_name ?? '', $user->last_name ?? '']))) ?: 'Learner';
+
+        try {
+            Mail::html("
+                <div style='font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;'>
+                    <div style='text-align: center; margin-bottom: 24px;'>
+                        <h1 style='color: #1e3a8a; margin: 0; font-size: 26px; font-weight: 800;'>BPO<span style='color: #2563eb;'>Ready</span></h1>
+                        <p style='color: #6b7280; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin: 4px 0 0;'>Practice Today, Perform Tomorrow.</p>
+                    </div>
+                    <div style='border-top: 1px solid #f3f4f6; padding-top: 20px;'>
+                        <h2 style='color: #111827; font-size: 18px; font-weight: 700; margin-bottom: 8px;'>Password Reset Code</h2>
+                        <p style='color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 16px;'>
+                            Hello <strong>{$userName}</strong>,<br>
+                            We received a request to reset your password. Use the 6-digit verification code below to complete your password reset:
+                        </p>
+                        <div style='background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px dashed #3b82f6; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;'>
+                            <span style='font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #1d4ed8; font-family: monospace;'>{$code}</span>
+                        </div>
+                        <p style='color: #6b7280; font-size: 13px; line-height: 1.5;'>
+                            ⏱️ This verification code will expire in <strong>15 minutes</strong>.<br>
+                            If you did not request this password reset, please ignore this email or make sure your account is secure.
+                        </p>
+                    </div>
+                    <hr style='border: none; border-top: 1px solid #e5e7eb; margin: 28px 0 16px;' />
+                    <p style='color: #9ca3af; font-size: 11px; text-align: center; margin: 0;'>
+                        BPOReady Speech Coaching & Interview Simulation Platform
+                    </p>
+                </div>
+            ", function ($message) use ($email) {
+                $message->to($email)
+                        ->subject('BPOReady - Password Reset Verification Code');
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'A 6-digit verification code has been sent to your email.'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to send email. Please check your connection or try again later.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function verifyResetCode(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'code' => ['required', 'string', 'size:6'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $email = strtolower(trim($data['email']));
+        $this->ensureResetTokensTable();
+
+        $record = DB::table('password_reset_tokens')->where('email', $email)->first();
+        if (!$record) {
+            return response()->json(['message' => 'No active password reset request found for this email.'], 404);
+        }
+
+        // Check if expired (> 15 minutes)
+        if (\Carbon\Carbon::parse($record->created_at)->addMinutes(15)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+            return response()->json(['message' => 'Your verification code has expired. Please request a new one.'], 422);
+        }
+
+        // Verify code
+        if (!Hash::check($data['code'], $record->token)) {
+            return response()->json(['message' => 'Invalid verification code. Please check your email and try again.'], 422);
+        }
+
+        // Update user's password
+        DB::table('users')->where('email', $email)->update([
+            'password_hash' => Hash::make($data['password']),
+            'updated_at' => now(),
+        ]);
+
+        // Clean up reset token
+        DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset successfully! You can now sign in with your new password.'
+        ]);
     }
 
     public function resetPassword(Request $request)

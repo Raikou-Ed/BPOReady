@@ -21,6 +21,8 @@ Route::post('/auth/admin-login', [AuthController::class, 'adminLogin']);
 Route::put('/auth/profile/{id}', [AuthController::class, 'updateProfile']);
 Route::post('/auth/change-password/{id}', [AuthController::class, 'changePassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/send-reset-code', [AuthController::class, 'sendResetCode']);
+Route::post('/auth/verify-reset-code', [AuthController::class, 'verifyResetCode']);
 
 // Paragraph Reading
 Route::get('/paragraphs', [ParagraphController::class, 'index']);
