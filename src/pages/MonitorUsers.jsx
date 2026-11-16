@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
-import { getRegisteredUsers, deleteUser } from "../api/adminApi";
+import { getRegisteredUsers } from "../api/adminApi";
 import { getCurrentUser } from "../utils/userData";
 
 const defaultTrainees = [
@@ -51,26 +51,6 @@ const MonitorUsers = () => {
     }
     loadUsers();
   }, [isSuperAdmin]);
-
-  const handleDeleteUser = async (userToDelete) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${userToDelete.name}" (${userToDelete.email}) and all associated practice records?`)) {
-      return;
-    }
-    try {
-      const res = await deleteUser(userToDelete.id);
-      if (res?.success) {
-        setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
-        if (selectedUser?.id === userToDelete.id) {
-          setSelectedUser(null);
-        }
-        alert(res.message || "User account deleted successfully.");
-      } else {
-        alert(res?.message || "Failed to delete user account.");
-      }
-    } catch (err) {
-      alert("Network error while deleting account.");
-    }
-  };
 
   // Strict role-based visibility filter
   const visibleUsers = users.filter((u) => {
@@ -320,23 +300,12 @@ const MonitorUsers = () => {
                         </td>
 
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setSelectedUser(u)}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition"
-                            >
-                              {isSuperAdmin ? "View Account" : "View Details"}
-                            </button>
-                            {![17, 18, 19].includes(Number(u.id)) && (
-                              <button
-                                onClick={() => handleDeleteUser(u)}
-                                title="Delete account"
-                                className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition"
-                              >
-                                Delete
-                              </button>
-                            )}
-                          </div>
+                          <button
+                            onClick={() => setSelectedUser(u)}
+                            className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition"
+                          >
+                            {isSuperAdmin ? "View Account" : "View Details"}
+                          </button>
                         </td>
                       </tr>
                     );
@@ -444,15 +413,7 @@ const MonitorUsers = () => {
                   </>
                 )}
 
-                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  {![17, 18, 19].includes(Number(selectedUser.id)) ? (
-                    <button
-                      onClick={() => handleDeleteUser(selectedUser)}
-                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-semibold transition"
-                    >
-                      Delete Account
-                    </button>
-                  ) : <div />}
+                <div className="flex justify-end items-center pt-3 border-t border-gray-100">
                   <button
                     onClick={() => setSelectedUser(null)}
                     className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition"
