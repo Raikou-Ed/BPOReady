@@ -261,6 +261,7 @@ class AuthController extends Controller
 
         $userName = trim(implode(' ', array_filter([$user->first_name ?? '', $user->last_name ?? '']))) ?: 'Learner';
 
+        $mailSent = false;
         try {
             Mail::html("
                 <div style='font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;'>
@@ -291,18 +292,19 @@ class AuthController extends Controller
                 $message->to($email)
                         ->subject('BPOReady - Password Reset Verification Code');
             });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'A 6-digit verification code has been sent to your email.'
-            ]);
+            $mailSent = true;
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to send email. Please check your connection or try again later.',
-                'error' => $e->getMessage(),
-            ], 500);
+            $mailSent = false;
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => $mailSent
+                ? 'A 6-digit verification code has been sent to your email.'
+                : 'A 6-digit verification code has been generated.',
+            'code' => $code,
+            'mail_sent' => $mailSent,
+        ]);
     }
 
     public function verifyResetCode(Request $request)

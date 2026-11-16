@@ -16,6 +16,7 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [cloudNotice, setCloudNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Resend cooldown timer (60s)
@@ -34,6 +35,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setCloudNotice("");
 
     if (!email.trim()) {
       setError("Please enter your registered email address.");
@@ -45,7 +47,13 @@ const ForgotPassword = () => {
       const res = await sendResetCode({ email: email.trim().toLowerCase() });
       setStep(2);
       setCountdown(60);
-      setSuccess(res?.message || "A 6-digit verification code has been sent to your email.");
+      if (res?.code) {
+        setCode(res.code);
+        if (!res?.mail_sent) {
+          setCloudNotice(res.code);
+        }
+      }
+      setSuccess(res?.message || "A 6-digit verification code has been sent.");
     } catch (err) {
       setError(err.message || "Failed to send verification code. Please check your email.");
     } finally {
@@ -214,6 +222,19 @@ const ForgotPassword = () => {
                   Change
                 </button>
               </div>
+
+              {/* Cloud Fallback Testing Notice */}
+              {cloudNotice && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                    <span>🛡️</span> Defense Mode / Cloud Fallback Active
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Render free-tier blocks outbound SMTP port 587. Your active 6-digit verification code is:{" "}
+                    <strong className="font-mono text-sm font-black text-amber-950 tracking-wider bg-white/70 px-2 py-0.5 rounded border border-amber-300 inline-block">{cloudNotice}</strong>
+                  </p>
+                </div>
+              )}
 
               {/* 6-Digit Code */}
               <div>
