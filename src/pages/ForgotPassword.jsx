@@ -1,99 +1,50 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { sendResetCode, verifyResetCode } from "../api/authApi";
+import { resetPassword } from "../api/authApi";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-
-  // Step 1: Request Code | Step 2: Verify Code & Set Password
-  const [step, setStep] = useState(1);
-
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
-
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    password_confirmation: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [cloudNotice, setCloudNotice] = useState("");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Resend cooldown timer (60s)
-  const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    let timer;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
-  // Handler for Step 1: Send 6-digit OTP code to email
-  const handleSendCode = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setCloudNotice("");
-
-    if (!email.trim()) {
-      setError("Please enter your registered email address.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await sendResetCode({ email: email.trim().toLowerCase() });
-      setStep(2);
-      setCountdown(60);
-      if (res?.code) {
-        setCode(res.code);
-        if (!res?.mail_sent) {
-          setCloudNotice(res.code);
-        }
-      }
-      setSuccess(res?.message || "A 6-digit verification code has been sent.");
-    } catch (err) {
-      setError(err.message || "Failed to send verification code. Please check your email.");
-    } finally {
-      setLoading(false);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler for Step 2: Verify code and update password
-  const handleVerifyAndReset = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setError('');
+    setSuccess('');
 
-    if (code.trim().length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 
-    if (password.length < 6) {
-      setError("New password must be at least 6 characters.");
-      return;
-    }
-
-    if (password !== passwordConfirmation) {
-      setError("New password and confirmation password do not match.");
+    if (form.password !== form.password_confirmation) {
+      setError('New password and confirmation password do not match.');
       return;
     }
 
     setLoading(true);
     try {
       const payload = {
-        email: email.trim().toLowerCase(),
-        code: code.trim(),
-        password,
-        password_confirmation: passwordConfirmation,
+        email: form.email.trim(),
+        password: form.password,
+        password_confirmation: form.password_confirmation,
       };
-      const res = await verifyResetCode(payload);
-      setSuccess(res?.message || "Password has been successfully reset! You can now log in.");
-      setStep(3); // Completed state
+      const res = await resetPassword(payload);
+      setSuccess(res?.message || 'Password has been reset successfully. You can now log in.');
     } catch (err) {
-      setError(err.message || "Failed to reset password. Please check your verification code.");
+      setError(err.message || 'Failed to reset password. Please check your email.');
     } finally {
       setLoading(false);
     }
@@ -123,33 +74,18 @@ const ForgotPassword = () => {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
           <div className="text-center mb-6">
             <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-              {step === 1 ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              ) : step === 2 ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
             </div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {step === 1 ? "Forgot Password?" : step === 2 ? "Enter Verification Code" : "Password Reset"}
+              Reset Your <span className="text-blue-600">Password</span>
             </h2>
             <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-              {step === 1
-                ? "Enter your registered email and we'll send a 6-digit verification code to reset your password."
-                : step === 2
-                ? "We sent a 6-digit code to your inbox. Enter it below along with your new password."
-                : "Your password has been successfully updated."}
+              Enter your registered email address and create a new password to restore access to your account.
             </p>
           </div>
 
-          {/* Error Notice */}
           {error && (
             <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600 flex items-start gap-2.5">
               <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -159,96 +95,41 @@ const ForgotPassword = () => {
             </div>
           )}
 
-          {/* Success Banner (when moving from Step 1 to Step 2) */}
-          {success && step === 2 && (
-            <div className="mb-5 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700 flex items-center gap-2">
-              <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{success}</span>
-            </div>
-          )}
+          {success ? (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-center">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-sm text-emerald-900">Password Reset Successful</h3>
+                <p className="text-xs text-emerald-700 mt-1">{success}</p>
+              </div>
 
-          {/* STEP 1: Enter Email Form */}
-          {step === 1 && (
-            <form onSubmit={handleSendCode} className="space-y-4">
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="w-full py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all text-sm"
+              >
+                Proceed to Log In
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Registered Email */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Registered Email Address <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
                   required
                   placeholder="applicant@bpoready.com"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-60 text-sm mt-2 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Sending Verification Code...
-                  </>
-                ) : (
-                  "Send Verification Code"
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* STEP 2: Enter Code & New Password Form */}
-          {step === 2 && (
-            <form onSubmit={handleVerifyAndReset} className="space-y-4">
-              {/* Email Tag */}
-              <div className="flex items-center justify-between bg-gray-50 px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs">
-                <span className="text-gray-600 truncate max-w-[240px]">
-                  Recipient: <strong className="text-gray-900">{email}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setStep(1); setError(""); }}
-                  className="text-blue-600 hover:text-blue-700 font-semibold text-[11px]"
-                >
-                  Change
-                </button>
-              </div>
-
-              {/* Cloud Fallback Testing Notice */}
-              {cloudNotice && (
-                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
-                  <p className="font-bold flex items-center gap-1.5 text-amber-950">
-                    <span>🛡️</span> Defense Mode / Cloud Fallback Active
-                  </p>
-                  <p className="text-[11px] text-amber-800 leading-relaxed">
-                    Render free-tier blocks outbound SMTP port 587. Your active 6-digit verification code is:{" "}
-                    <strong className="font-mono text-sm font-black text-amber-950 tracking-wider bg-white/70 px-2 py-0.5 rounded border border-amber-300 inline-block">{cloudNotice}</strong>
-                  </p>
-                </div>
-              )}
-
-              {/* 6-Digit Code */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  6-Digit Verification Code <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  required
-                  placeholder="123456"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-lg font-bold tracking-[8px] text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono transition-all"
                 />
               </div>
 
@@ -268,23 +149,25 @@ const ForgotPassword = () => {
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
                   required
                   placeholder="At least 6 characters"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
 
-              {/* Confirm Password */}
+              {/* Confirm New Password */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Confirm New Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={passwordConfirmation}
-                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                  name="password_confirmation"
+                  value={form.password_confirmation}
+                  onChange={handleChange}
                   required
                   placeholder="Re-enter your new password"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
@@ -295,70 +178,17 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-60 text-sm mt-2 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl font-semibold transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 shadow-md disabled:opacity-60 text-sm mt-2"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Verifying & Resetting...
-                  </>
-                ) : (
-                  "Reset Password"
-                )}
+                {loading ? 'Resetting Password...' : 'Reset Password'}
               </button>
-
-              {/* Resend Code Button */}
-              <div className="text-center pt-2">
-                {countdown > 0 ? (
-                  <span className="text-xs text-gray-400">
-                    Resend code available in <strong>{countdown}s</strong>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSendCode}
-                    disabled={loading}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 underline"
-                  >
-                    Didn't receive the email? Resend code
-                  </button>
-                )}
-              </div>
             </form>
           )}
 
-          {/* STEP 3: Complete Success State */}
-          {step === 3 && (
-            <div className="space-y-4 text-center">
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="font-bold text-base text-emerald-900">Password Reset Completed!</h3>
-                <p className="text-xs text-emerald-700 mt-1">
-                  Your new credentials are now active. You can immediately sign in to continue practicing.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="w-full py-3 rounded-xl font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-all text-sm"
-              >
-                Proceed to Sign In
-              </button>
-            </div>
-          )}
-
-          {/* Back to Sign In Link */}
+          {/* Back to Login Link */}
           <div className="mt-6 pt-5 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-500">
-              Remembered your password?{" "}
+              Remembered your password?{' '}
               <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
                 Back to Sign In
               </Link>
