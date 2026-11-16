@@ -36,6 +36,7 @@ import MonitorUsers from "../pages/MonitorUsers";
 import AdminProfile from "../pages/AdminProfile";
 import AdminApprovals from "../pages/AdminApprovals";
 import PreAssessment from "../pages/PreAssessment";
+import ForgotPassword from "../pages/ForgotPassword";
 
 export default function AppRoutes() {
   return (
@@ -45,6 +46,8 @@ export default function AppRoutes() {
       <Route path="/homepage" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/ForgotPassword" element={<ForgotPassword />} />
 
       {/* Applicant Dashboard & Core Assessment */}
       <Route path="/dashboard" element={<Dashboard />} />
