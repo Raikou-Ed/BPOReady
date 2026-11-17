@@ -289,7 +289,6 @@ const FillerWordExercise = () => {
 
           <div className="flex flex-col items-center justify-center gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <AudioRecorder
-              expectedText={currentPrompt.promptText}
               onStateChange={setIsRecording}
               onRecorded={handleRecorded}
             />
