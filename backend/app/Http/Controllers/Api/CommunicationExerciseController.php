@@ -115,9 +115,11 @@ class CommunicationExerciseController extends Controller
 
         $score = $request->input('calculated_score', 85);
         $fillerCount = $request->input('filler_count', 0);
-        $feedback = $score >= 85
-            ? "Excellent control! Your speech delivery was clear with minimal disfluencies."
-            : "Good effort. Try pausing slightly instead of rushing to improve fluency.";
+        $feedback = $score == 0
+            ? "No speech detected during the recording. Please ensure your microphone is enabled and speak clearly."
+            : ($score >= 85
+                ? "Excellent control! Your speech delivery was clear with minimal disfluencies."
+                : "Good effort. Try pausing slightly instead of rushing to improve fluency.");
 
         $attempt = ExerciseAttempt::create([
             'applicant_id' => $request->input('applicant_id'),
@@ -159,6 +161,19 @@ class CommunicationExerciseController extends Controller
         $apiKey = env('GEMINI_API_KEY') ?: 'AIzaSyBhF7o3W2c4_5oEXWEaFqFt3a39x01rhDw';
         $model = env('GEMINI_MODEL', 'gemini-3.5-flash-lite');
 
+        $transcriptWords = array_filter(preg_split('/\s+/', trim($transcript)));
+        if (!$audio && count($transcriptWords) < 2) {
+            return response()->json([
+                'success' => true,
+                'aiEvaluated' => false,
+                'transcript' => $transcript ?: '[No audible speech detected / Silence]',
+                'fillerWords' => [],
+                'fillerCount' => 0,
+                'score' => 0,
+                'feedback' => 'No speech detected during the recording. Please speak the prompt clearly into your microphone to evaluate your filler word usage.',
+            ]);
+        }
+
         $aiEvaluated = false;
         $evalResult = null;
 
@@ -177,7 +192,20 @@ class CommunicationExerciseController extends Controller
 
         if ($aiEvaluated && $evalResult) {
             $fillerWords = is_array($evalResult['fillerWords'] ?? null) ? $evalResult['fillerWords'] : [];
-            $cleanTranscript = (string) ($evalResult['transcript'] ?? $transcript);
+            $cleanTranscript = trim((string) ($evalResult['transcript'] ?? $transcript));
+            $wordsInResult = array_filter(preg_split('/\s+/', $cleanTranscript), fn($w) => $w !== '' && !str_starts_with($w, '['));
+
+            if (count($wordsInResult) < 2) {
+                return response()->json([
+                    'success' => true,
+                    'aiEvaluated' => true,
+                    'transcript' => $cleanTranscript ?: '[No audible speech detected / Silence]',
+                    'fillerWords' => [],
+                    'fillerCount' => 0,
+                    'score' => 0,
+                    'feedback' => 'No speech detected during the recording. Please speak the prompt clearly into your microphone to evaluate your filler word usage.',
+                ]);
+            }
 
             // Also scan transcript text with regex to catch any filler words transcribed by Gemini
             preg_match_all($fillerPattern, $cleanTranscript, $tMatches);
@@ -217,6 +245,19 @@ class CommunicationExerciseController extends Controller
         }
 
         // Heuristics fallback: detect um, uh, ah, like, and client-captured interim tokens
+        $wordsInFallback = array_filter(preg_split('/\s+/', trim($transcript)), fn($w) => $w !== '' && !str_starts_with($w, '['));
+        if (count($wordsInFallback) < 2) {
+            return response()->json([
+                'success' => true,
+                'aiEvaluated' => false,
+                'transcript' => $transcript ?: '[No audible speech detected / Silence]',
+                'fillerWords' => [],
+                'fillerCount' => 0,
+                'score' => 0,
+                'feedback' => 'No speech detected during the recording. Please speak the prompt clearly into your microphone to evaluate your filler word usage.',
+            ]);
+        }
+
         preg_match_all($fillerPattern, $transcript, $matches);
         $detected = array_map('strtolower', $matches[0] ?? []);
         $allDetected = array_values(array_unique(array_filter(array_merge($detected, array_map('strtolower', $clientFillers)))));

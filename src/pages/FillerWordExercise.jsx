@@ -78,6 +78,23 @@ const FillerWordExercise = () => {
 
   const handleRecorded = async (blob, durationSeconds, transcript, audioMetrics) => {
     const text = (transcript || "").trim();
+    const spokenTokens = text.split(/\s+/).filter(Boolean).filter((w) => !w.startsWith("[") && !w.toLowerCase().includes("silence"));
+
+    if (spokenTokens.length < 2) {
+      const zeroRecording = {
+        blob,
+        durationSeconds,
+        transcript: text || "[No audible speech detected / Silence]",
+        fillerCount: 0,
+        fillerWords: [],
+        score: 0,
+        aiFeedback: "No audible speech detected during your recording. To practice filler word reduction, please speak the prompt clearly into your microphone.",
+        aiEvaluated: false,
+      };
+      setRecording(zeroRecording);
+      return;
+    }
+
     const liveFillers = audioMetrics?.detectedFillers || [];
     const localMatches = text.match(fillerRegex) || [];
     const combinedFillers = Array.from(new Set([
@@ -85,7 +102,7 @@ const FillerWordExercise = () => {
       ...liveFillers.map((w) => w.toLowerCase()),
     ]));
     const localCount = Math.max(localMatches.length, liveFillers.length);
-    const initialScore = text ? Math.max(35, Math.min(100, 100 - (localCount * 15))) : 0;
+    const initialScore = Math.max(35, Math.min(100, 100 - (localCount * 15)));
 
     const initialRecording = {
       blob,
@@ -168,15 +185,19 @@ const FillerWordExercise = () => {
       setResult({
         score: recording.score,
         fillerCount: recording.fillerCount,
-        feedback: recording.aiFeedback || (recording.score >= 85
-          ? "Exceptional filler control! Your delivery was smooth and articulate."
-          : `Detected ${recording.fillerCount} filler word(s). Take a conscious 1-second pause when forming thoughts instead of using fillers.`),
+        feedback: recording.score === 0
+          ? "No audible speech detected during your recording. Please ensure your microphone is enabled and speak clearly."
+          : (recording.aiFeedback || (recording.score >= 85
+              ? "Exceptional filler control! Your delivery was smooth and articulate."
+              : `Detected ${recording.fillerCount} filler word(s). Take a conscious 1-second pause when forming thoughts instead of using fillers.`)),
       });
     } catch {
       setResult({
         score: recording.score,
         fillerCount: recording.fillerCount,
-        feedback: recording.aiFeedback || "Practice session completed. Aim for 0 fillers next time!",
+        feedback: recording.score === 0
+          ? "No audible speech detected during your recording. Please speak clearly to practice filler reduction."
+          : (recording.aiFeedback || "Practice session completed. Aim for 0 fillers next time!"),
       });
     } finally {
       setSubmitting(false);

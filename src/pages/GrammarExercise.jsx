@@ -92,14 +92,19 @@ const GrammarExercise = () => {
   };
 
   const handleRecorded = (blob, durationSeconds, transcript) => {
-    setSpokenTranscript(transcript);
-    if (!transcript) {
-      setSpokenAccuracy(50);
+    const text = (transcript || "").trim();
+    setSpokenTranscript(text);
+    if (!text) {
+      setSpokenAccuracy(0);
       return;
     }
     // Calculate simple word similarity
-    const targetWords = currentQuestion.correctSentence.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/);
-    const spokenWords = transcript.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/);
+    const targetWords = currentQuestion.correctSentence.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean);
+    const spokenWords = text.toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean);
+    if (spokenWords.length === 0) {
+      setSpokenAccuracy(0);
+      return;
+    }
     let matched = 0;
     targetWords.forEach(w => {
       if (spokenWords.includes(w)) matched++;
@@ -110,7 +115,10 @@ const GrammarExercise = () => {
 
   const handleNextQuestion = () => {
     const isCorrect = selectedOption === currentQuestion.correctOptionIndex;
-    const qScore = (isCorrect ? 60 : 20) + (spokenAccuracy ? Math.round(spokenAccuracy * 0.4) : 20);
+    const speechContribution = (spokenAccuracy != null && spokenAccuracy > 0)
+      ? Math.round(spokenAccuracy * 0.4)
+      : 0;
+    const qScore = (isCorrect ? 60 : 0) + speechContribution;
     const updatedScores = [...scoreList, qScore];
     setScoreList(updatedScores);
 

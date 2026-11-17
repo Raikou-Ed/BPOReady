@@ -39,8 +39,26 @@ const SpeechPacingExercise = () => {
   const currentScript = pacingScripts[selectedScriptIdx];
 
   const handleRecorded = (blob, durationSeconds, transcript) => {
-    const text = transcript || "";
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const text = (transcript || "").trim();
+    const spokenTokens = text.split(/\s+/).filter(Boolean).filter((w) => !w.startsWith("[") && !w.toLowerCase().includes("silence"));
+    const words = spokenTokens.length;
+
+    if (words < 3) {
+      setRecording({
+        blob,
+        durationSeconds,
+        transcript: text || "[No audible speech detected / Silence]",
+        wordCount: 0,
+        wpm: 0,
+        score: 0,
+        status: "No Speech Detected",
+        statusColor: "text-red-600",
+        badgeBg: "bg-red-100",
+        advice: "No audible words detected. Please speak the passage aloud into your microphone to measure your speech pacing and words per minute.",
+      });
+      return;
+    }
+
     const durationMin = durationSeconds > 0 ? durationSeconds / 60 : 0.1;
     const wpm = Math.round(words / durationMin);
 
@@ -69,12 +87,18 @@ const SpeechPacingExercise = () => {
       statusColor = "text-orange-600";
       badgeBg = "bg-orange-100";
       advice = "Good energy, but take a micro-pause at commas and periods so the customer has time to digest numbers and details.";
-    } else if (wpm < 110) {
+    } else if (wpm >= 60 && wpm < 110) {
       score = 65;
       status = "Too Slow / Hesitant";
       statusColor = "text-amber-600";
       badgeBg = "bg-amber-100";
       advice = "Your pace is below standard call-center conversational rate. Practice reading sentences in full breath groups.";
+    } else if (wpm < 60) {
+      score = 30;
+      status = "Extremely Slow / Incomplete";
+      statusColor = "text-red-600";
+      badgeBg = "bg-red-100";
+      advice = "Very few words spoken. Speak continuously through the passage to maintain a natural conversation flow.";
     } else {
       score = 60;
       status = "Too Fast / Rushed";
