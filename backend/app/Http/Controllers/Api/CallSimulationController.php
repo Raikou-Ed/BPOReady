@@ -98,50 +98,76 @@ class CallSimulationController extends Controller
         $aggregatedText = trim($request->input('response_text', ''));
         $duration = (int) $request->input('duration_seconds', 30);
 
-        $apiKey = env('GEMINI_API_KEY');
-        $model = env('GEMINI_MODEL', 'gemini-3.8-flash');
-        $evalResult = null;
-
-        if ($apiKey) {
-            $evalResult = $this->evaluateWithGemini($conversationHistory, $aggregatedText, $scenarioTitle, $apiKey, $model);
+        // 1. Detect Silence / Dead Air / Empty Response across all turns
+        $agentWordCount = 0;
+        if (!empty($conversationHistory) && is_array($conversationHistory)) {
+            foreach ($conversationHistory as $turn) {
+                $reply = trim($turn['agentReply'] ?? $turn['agent_text'] ?? '');
+                if (!empty($reply) && !str_starts_with($reply, '[') && !str_contains($reply, 'Silence')) {
+                    $words = array_filter(preg_split('/\s+/', strtolower($reply)));
+                    $agentWordCount += count($words);
+                }
+            }
         }
+        $aggWords = array_filter(preg_split('/\s+/', strtolower($aggregatedText)), fn($w) => $w !== '' && !str_starts_with($w, '['));
+        $totalWords = max($agentWordCount, count($aggWords));
 
-        if ($evalResult) {
-            $empathyScore = (int) ($evalResult['empathy_score'] ?? 85);
-            $resolutionScore = (int) ($evalResult['resolution_score'] ?? 85);
-            $clarityScore = (int) ($evalResult['clarity_score'] ?? 85);
-            $overallScore = (int) ($evalResult['overall_score'] ?? round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2)));
-            $feedbackText = $evalResult['feedback_text'] ?? "Well-managed call interaction with solid customer rapport and clear problem-solving delivery.";
-            $suggestions = is_array($evalResult['suggestions'] ?? null)
-                ? $evalResult['suggestions']
-                : ["Acknowledge customer frustration earlier", "Keep technical instructions simple", "Reiterate closing courtesy"];
-        } else {
-            // Heuristic fallback
-            $text = strtolower($aggregatedText);
-            $empathyKeywords = ['understand', 'apologize', 'sorry', 'assist', 'help', 'certainly', 'appreciate', 'glad', 'reassure', 'care'];
-            $empathyHits = 0;
-            foreach ($empathyKeywords as $kw) {
-                if (str_contains($text, $kw)) $empathyHits++;
-            }
-            $empathyScore = min(98, max(65, 70 + ($empathyHits * 6)));
-
-            $resolutionKeywords = ['resolve', 'check', 'account', 'fix', 'refund', 'confirm', 'schedule', 'credit', 'verify', 'update', 'test', 'cable'];
-            $resolutionHits = 0;
-            foreach ($resolutionKeywords as $kw) {
-                if (str_contains($text, $kw)) $resolutionHits++;
-            }
-            $resolutionScore = min(98, max(65, 72 + ($resolutionHits * 5)));
-
-            $wordCount = count(array_filter(preg_split('/\s+/', $text)));
-            $clarityScore = $wordCount > 15 ? min(95, 78 + (int)($wordCount / 5)) : 72;
-            $overallScore = round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2));
-
-            $feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
+        if ($totalWords < 3) {
+            $empathyScore = 0;
+            $resolutionScore = 0;
+            $clarityScore = 0;
+            $overallScore = 0;
+            $feedbackText = "No audible speech or verbal response was detected during this call simulation (Dead Air / Silence). In professional BPO operations, failing to acknowledge a customer or remaining silent results in an immediate call failure. Please ensure your microphone is enabled, grant audio permissions, and speak clearly to assist the customer.";
             $suggestions = [
-                "Practice mirroring customer pace to establish deeper conversational rapport",
-                "State specific turnaround times clearly when proposing resolution actions",
-                "Reiterate customer account verification smoothly without hesitation"
+                "Acknowledge the customer immediately upon connection to eliminate dead air penalties",
+                "Verify your microphone input and speak in an active, audible voice",
+                "Verbalize standard call openings (e.g., 'Thank you for calling, my name is Alex, how may I assist you today?')"
             ];
+        } else {
+            $apiKey = env('GEMINI_API_KEY');
+            $model = env('GEMINI_MODEL', 'gemini-3.8-flash');
+            $evalResult = null;
+
+            if ($apiKey) {
+                $evalResult = $this->evaluateWithGemini($conversationHistory, $aggregatedText, $scenarioTitle, $apiKey, $model);
+            }
+
+            if ($evalResult && isset($evalResult['overall_score']) && $evalResult['overall_score'] > 0) {
+                $empathyScore = (int) ($evalResult['empathy_score'] ?? 80);
+                $resolutionScore = (int) ($evalResult['resolution_score'] ?? 80);
+                $clarityScore = (int) ($evalResult['clarity_score'] ?? 80);
+                $overallScore = (int) ($evalResult['overall_score'] ?? round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2)));
+                $feedbackText = $evalResult['feedback_text'] ?? "Well-managed call interaction with solid customer rapport and clear problem-solving delivery.";
+                $suggestions = is_array($evalResult['suggestions'] ?? null)
+                    ? $evalResult['suggestions']
+                    : ["Acknowledge customer frustration earlier", "Keep technical instructions simple", "Reiterate closing courtesy"];
+            } else {
+                // Heuristic fallback calibrated by actual word count & keywords
+                $text = strtolower($aggregatedText);
+                $empathyKeywords = ['understand', 'apologize', 'sorry', 'assist', 'help', 'certainly', 'appreciate', 'glad', 'reassure', 'care'];
+                $empathyHits = 0;
+                foreach ($empathyKeywords as $kw) {
+                    if (str_contains($text, $kw)) $empathyHits++;
+                }
+                $empathyScore = min(95, max(45, 55 + ($empathyHits * 8)));
+
+                $resolutionKeywords = ['resolve', 'check', 'account', 'fix', 'refund', 'confirm', 'schedule', 'credit', 'verify', 'update', 'test', 'cable'];
+                $resolutionHits = 0;
+                foreach ($resolutionKeywords as $kw) {
+                    if (str_contains($text, $kw)) $resolutionHits++;
+                }
+                $resolutionScore = min(95, max(45, 55 + ($resolutionHits * 8)));
+
+                $clarityScore = min(95, max(40, 50 + min(45, (int)($totalWords * 1.5))));
+                $overallScore = round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2));
+
+                $feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
+                $suggestions = [
+                    "Practice mirroring customer pace to establish deeper conversational rapport",
+                    "State specific turnaround times clearly when proposing resolution actions",
+                    "Reiterate customer account verification smoothly without hesitation"
+                ];
+            }
         }
 
         $session = CallSimulationSession::create([
@@ -199,6 +225,7 @@ class CallSimulationController extends Controller
             . "Scenario: {$scenarioTitle}\n\n"
             . "Call Dialogue:\n{$dialogueTranscript}\n"
             . "Evaluation Guidelines:\n"
+            . "CRITICAL RULE: If the agent's replies are empty, silent, or contain no actual spoken response, overall_score, empathy_score, resolution_score, and clarity_score MUST BE 0, and feedback_text MUST indicate that the candidate failed to respond.\n"
             . "1. empathy_score (0-100): Validating customer feelings, professional composure, de-escalation, politeness.\n"
             . "2. resolution_score (0-100): Accurate troubleshooting/pitch, proper verification, effective problem resolution.\n"
             . "3. clarity_score (0-100): Clear English articulation, absence of awkward phrasing, concise explanations.\n"

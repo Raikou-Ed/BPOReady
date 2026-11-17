@@ -413,41 +413,92 @@ const CallSimulationSession = () => {
       audioPlayerRef.current.pause();
     }
 
-    const aggregatedSpeech = allResponses.map((r) => r.agentReply).join(" ");
+    const allAgentWords = allResponses
+      .map((r) => r.agentReply || "")
+      .join(" ")
+      .trim();
+    const liveWord = (liveAgentTranscriptRef.current || "").trim();
+    const fullCombined = `${allAgentWords} ${liveWord}`.trim();
+    const spokenTokens = fullCombined
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((w) => !w.startsWith("[") && !w.toLowerCase().includes("silence"));
+    const hasMeaningfulSpeech = spokenTokens.length >= 3;
+
+    if (!hasMeaningfulSpeech) {
+      const zeroEvaluation = {
+        overall_score: 0,
+        empathy_score: 0,
+        resolution_score: 0,
+        clarity_score: 0,
+        feedback_text:
+          "No audible speech was detected during this call simulation (Dead Air / Silence). In a professional BPO environment, failing to acknowledge a customer or remaining silent results in an immediate call failure. Please ensure your microphone is active and practice speaking your response clearly.",
+        suggestions: [
+          "Acknowledge the customer immediately upon connection to eliminate dead air penalties",
+          "Verify your microphone hardware and browser audio permissions",
+          "Verbalize standard call openings (e.g., 'Thank you for calling, my name is Alex, how may I assist you today?')"
+        ],
+      };
+      setEvaluation(zeroEvaluation);
+      addUserActivity({
+        activity: `Call Simulation: ${scenario.title}`,
+        level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
+        result: "0%",
+        type: "call_simulation",
+      });
+      try {
+        await submitCallSimulation({
+          applicant_id: currentUser.id || 19,
+          scenario_id: scenario.id || 1,
+          response_text: "[Silence / No response recorded]",
+          duration_seconds: callDuration,
+          conversation_history: allResponses,
+        });
+      } catch (e) {
+        console.warn("Could not log silent session to backend:", e);
+      }
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const res = await submitCallSimulation({
         applicant_id: currentUser.id || 19,
         scenario_id: scenario.id || 1,
-        response_text: aggregatedSpeech,
+        response_text: fullCombined,
         duration_seconds: callDuration,
         conversation_history: allResponses,
       });
 
-      if (res && res.overall_score) {
+      if (res && res.overall_score != null) {
         setEvaluation(res);
+        addUserActivity({
+          activity: `Call Simulation: ${scenario.title}`,
+          level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
+          result: `${res.overall_score}%`,
+          type: "call_simulation",
+        });
       } else {
         throw new Error("Invalid evaluation payload");
       }
-
-      addUserActivity({
-        activity: `Call Simulation: ${scenario.title}`,
-        level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-        result: `${res.overall_score || 86}%`,
-        type: "call_simulation",
-      });
     } catch (err) {
       console.warn("Backend evaluation failed, computing local fallback:", err);
+      const wordCount = spokenTokens.length;
+      const calcClarity = Math.min(95, Math.max(50, 60 + Math.round(wordCount * 1.5)));
+      const calcEmpathy = Math.min(90, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      const calcResolution = Math.min(90, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      const calcOverall = Math.round((calcEmpathy * 0.4) + (calcResolution * 0.4) + (calcClarity * 0.2));
+
       const fallbackEvaluation = {
-        overall_score: 86,
-        empathy_score: 88,
-        resolution_score: 85,
-        clarity_score: 86,
+        overall_score: calcOverall,
+        empathy_score: calcEmpathy,
+        resolution_score: calcResolution,
+        clarity_score: calcClarity,
         feedback_text:
-          "Outstanding customer call delivery! You maintained high composure, spoke with natural empathy, and followed protocol to guide the customer to a satisfactory resolution.",
+          "Good call handling attempt. You actively engaged with the customer. Continue working on your opening composure and resolution phrasing.",
         suggestions: [
-          "Continue validating customer emotions early in the conversation",
-          "Maintain concise, jargon-free explanations during troubleshooting",
+          "Validate customer emotions promptly early in the dialogue",
+          "Maintain concise, step-by-step explanations during troubleshooting",
           "Ensure closing courtesy statement is offered with warm vocal tone",
         ],
       };
@@ -455,7 +506,7 @@ const CallSimulationSession = () => {
       addUserActivity({
         activity: `Call Simulation: ${scenario.title}`,
         level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-        result: "86%",
+        result: `${calcOverall}%`,
         type: "call_simulation",
       });
     } finally {
@@ -831,7 +882,7 @@ const CallSimulationSession = () => {
                   <div className="text-right bg-blue-50/70 p-4 rounded-xl border border-blue-100">
                     <span className="text-xs text-blue-700 font-semibold uppercase">Overall QA Score</span>
                     <p className="text-4xl font-extrabold text-blue-600 mt-1">
-                      {evaluation ? evaluation.overall_score : 86}%
+                      {evaluation ? (evaluation.overall_score ?? 0) : 0}%
                     </p>
                   </div>
                 </div>
@@ -841,7 +892,7 @@ const CallSimulationSession = () => {
                   <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 text-center">
                     <span className="text-xs text-purple-700 font-semibold uppercase">Empathy & Rapport</span>
                     <p className="text-3xl font-extrabold text-purple-700 mt-1">
-                      {evaluation ? evaluation.empathy_score : 88}%
+                      {evaluation ? (evaluation.empathy_score ?? 0) : 0}%
                     </p>
                     <p className="text-xs text-purple-600/80 mt-1">Emotion validation & politeness</p>
                   </div>
@@ -849,7 +900,7 @@ const CallSimulationSession = () => {
                   <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 text-center">
                     <span className="text-xs text-emerald-700 font-semibold uppercase">Issue Resolution</span>
                     <p className="text-3xl font-extrabold text-emerald-700 mt-1">
-                      {evaluation ? evaluation.resolution_score : 85}%
+                      {evaluation ? (evaluation.resolution_score ?? 0) : 0}%
                     </p>
                     <p className="text-xs text-emerald-600/80 mt-1">Troubleshooting & step adherence</p>
                   </div>
@@ -857,7 +908,7 @@ const CallSimulationSession = () => {
                   <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 text-center">
                     <span className="text-xs text-blue-700 font-semibold uppercase">Speech Clarity</span>
                     <p className="text-3xl font-extrabold text-blue-700 mt-1">
-                      {evaluation ? evaluation.clarity_score : 86}%
+                      {evaluation ? (evaluation.clarity_score ?? 0) : 0}%
                     </p>
                     <p className="text-xs text-blue-600/80 mt-1">Pronunciation & concise phrasing</p>
                   </div>
