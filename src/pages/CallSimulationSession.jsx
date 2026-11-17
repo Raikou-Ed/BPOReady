@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { submitCallSimulation, listCallScenarios } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
 import { CALL_SCENARIOS } from "../data/callScenariosData";
+import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
 
 const CallSimulationSession = () => {
   const { id } = useParams();
@@ -963,14 +964,17 @@ const CallSimulationSession = () => {
                         ).map((tip, idx) => (
                           <div
                             key={idx}
-                            className="flex items-start gap-3 p-3 bg-white rounded-xl border border-amber-200/80 shadow-xs"
+                            className="p-3 bg-white rounded-xl border border-amber-200/80 shadow-xs"
                           >
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-xs">
-                              {idx + 1}
-                            </span>
-                            <p className="text-xs font-semibold text-gray-800 leading-relaxed">
-                              {tip}
-                            </p>
+                            <div className="flex items-start gap-3">
+                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-xs">
+                                {idx + 1}
+                              </span>
+                              <p className="text-xs font-semibold text-gray-800 leading-relaxed flex-1">
+                                {tip}
+                              </p>
+                            </div>
+                            <SuggestedExerciseBadge tipText={tip} />
                           </div>
                         ))}
                       </div>

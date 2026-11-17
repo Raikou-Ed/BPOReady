@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { formatScore, getAssignedLevel, getScoreTieredFeedback } from "../utils/assessmentScoring";
 import { getUserData } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
+import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
 
 const HardLevelResult = () => {
   const location = useLocation();
@@ -128,14 +129,17 @@ const HardLevelResult = () => {
                     ).map((suggestion, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-3 p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
+                        className="p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
                       >
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
-                          {idx + 1}
-                        </span>
-                        <p className="text-sm font-semibold text-gray-800 leading-relaxed">
-                          {suggestion}
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
+                            {idx + 1}
+                          </span>
+                          <p className="text-sm font-semibold text-gray-800 leading-relaxed flex-1">
+                            {suggestion}
+                          </p>
+                        </div>
+                        <SuggestedExerciseBadge tipText={suggestion} />
                       </div>
                     ))}
                   </div>
@@ -184,14 +188,17 @@ const HardLevelResult = () => {
                     ].map((suggestion, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-3 p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
+                        className="p-3.5 bg-white rounded-xl border border-amber-200 shadow-2xs hover:border-amber-400 transition-colors"
                       >
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
-                          {idx + 1}
-                        </span>
-                        <p className="text-sm font-semibold text-gray-800 leading-relaxed">
-                          {suggestion}
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
+                            {idx + 1}
+                          </span>
+                          <p className="text-sm font-semibold text-gray-800 leading-relaxed flex-1">
+                            {suggestion}
+                          </p>
+                        </div>
+                        <SuggestedExerciseBadge tipText={suggestion} />
                       </div>
                     ))}
                   </div>
