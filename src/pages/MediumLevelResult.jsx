@@ -4,6 +4,7 @@ import { formatScore, getAssignedLevel, getScoreTieredFeedback } from "../utils/
 import { getUserData } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
+import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
 
 const MediumLevelResult = () => {
   const location = useLocation();
@@ -84,16 +85,24 @@ const MediumLevelResult = () => {
                   </div>
                 </div>
 
-                <div className="mb-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-                  <div className="grid grid-cols-4 border-b border-gray-200 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 relative">
+                  <div className="grid grid-cols-4 border-b border-gray-200 bg-white rounded-t-lg px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
                     <span>Factor</span>
                     <span>Result</span>
                     <span>Weight</span>
                     <span>Contribution</span>
                   </div>
-                  {result.criteria?.map((criterion) => (
-                    <div key={criterion.name} className="grid grid-cols-4 border-t border-gray-200 px-4 py-3 text-sm text-gray-700">
-                      <span>{criterion.name}</span>
+                  {result.criteria?.map((criterion, idx, arr) => (
+                    <div
+                      key={criterion.name}
+                      className={`grid grid-cols-4 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 ${
+                        idx === arr.length - 1 ? 'rounded-b-lg' : ''
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        {criterion.name}
+                        <PillarFormulaTooltip pillarName={criterion.name} />
+                      </span>
                       <span className="font-medium">
                         {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
                         {criterion.detail ? <span className="text-xs text-gray-400 font-normal"> ({criterion.detail})</span> : null}

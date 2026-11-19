@@ -13,6 +13,7 @@ import {
 } from '../utils/assessmentScoring';
 import { submitPreAssessmentAudio, getUserPreAssessment, savePreAssessmentResult } from '../api/preAssessmentApi';
 import { addUserActivity, getCurrentUser } from '../utils/userData';
+import PillarFormulaTooltip from '../components/PillarFormulaTooltip';
 
 const levelLabels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 const scoreCriteria = new Set(['pronunciation', 'fluency', 'sentenceMastery', 'vocabulary', 'speakingPace', 'passageCoverage']);
@@ -324,17 +325,23 @@ export default function PreAssessment() {
 
                 {/* Rubric Factor Breakdown */}
                 {Array.isArray(result.criteria) && result.criteria.length > 0 && (
-                  <div className="mt-5 overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
-                    <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-gray-600">
+                  <div className="mt-5 rounded-xl border border-emerald-200 bg-white shadow-sm relative">
+                    <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50 rounded-t-xl px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-gray-600">
                       <span>Evaluation Factor</span>
                       <span>Result</span>
                       <span>Weight</span>
                       <span>Contribution</span>
                     </div>
-                    {result.criteria.map((criterion) => (
-                      <div key={criterion.name} className="grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition">
-                        <div>
+                    {result.criteria.map((criterion, idx, arr) => (
+                      <div
+                        key={criterion.name}
+                        className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
+                          idx === arr.length - 1 ? 'rounded-b-xl' : ''
+                        }`}
+                      >
+                        <div className="flex items-center">
                           <p className="font-semibold text-gray-900">{criterion.name}</p>
+                          <PillarFormulaTooltip pillarName={criterion.name} />
                         </div>
                         <div className="flex flex-col justify-center">
                           <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
