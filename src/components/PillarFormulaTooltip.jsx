@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 export const PILLAR_FORMULAS = {
+  // Paragraph Reading / Diagnostic Pillars (Pearson Versant standard)
   'Pronunciation': {
     name: 'Pronunciation',
     weight: '30%',
@@ -10,6 +11,7 @@ export const PILLAR_FORMULAS = {
       { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
       { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
     ],
+    standard: 'Pearson Versant Rubric',
   },
   'Fluency': {
     name: 'Fluency',
@@ -19,6 +21,7 @@ export const PILLAR_FORMULAS = {
       { name: 'Pacing Rate', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
       { name: 'Delivery Consistency', weight: '35%', desc: 'Continuous vocal flow without long unnatural pauses' },
     ],
+    standard: 'Pearson Versant Rubric',
   },
   'Sentence Mastery': {
     name: 'Sentence Mastery',
@@ -28,6 +31,7 @@ export const PILLAR_FORMULAS = {
       { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & sentence hesitations' },
       { name: 'Content Accuracy', weight: '45%', desc: 'Accurate sentence structure & word sequencing' },
     ],
+    standard: 'Pearson Versant Rubric',
   },
   'Vocabulary': {
     name: 'Vocabulary',
@@ -37,10 +41,39 @@ export const PILLAR_FORMULAS = {
       { name: 'Passage Coverage', weight: '70%', desc: 'Percentage of unique passage vocabulary read aloud' },
       { name: 'Completion Ratio', weight: '30%', desc: 'Full passage completion within target reading time' },
     ],
+    standard: 'Pearson Versant Rubric',
+  },
+
+  // Mock Interview Scoring Model
+  'MockInterview': {
+    name: 'Mock Interview Scoring',
+    weight: '100%',
+    formula: '(Clarity × 25%) + (Confidence × 20%) + (Pacing × 20%) + (Answer Quality × 20%) + (Grammar × 15%)',
+    subWeights: [
+      { name: 'Speech Clarity', weight: '25%', desc: 'Articulation, vocal audibility & speech crispness' },
+      { name: 'Confidence & Composure', weight: '20%', desc: 'Hesitation-free delivery & self-assured tone' },
+      { name: 'Speaking Pace', weight: '20%', desc: 'Conversational tempo (target: 120–150 words per minute)' },
+      { name: 'Answer Quality', weight: '20%', desc: 'Relevance, completeness & BPO customer orientation' },
+      { name: 'Grammar & Syntax', weight: '15%', desc: 'Syntactic accuracy and sentence construction' },
+    ],
+    standard: 'BPO HR Competency Standard',
+  },
+
+  // Call Simulation QA Scorecard
+  'CallSimulation': {
+    name: 'Call QA Scorecard',
+    weight: '100%',
+    formula: '(Empathy & Rapport × 40%) + (Issue Resolution × 40%) + (Speech Clarity × 20%)',
+    subWeights: [
+      { name: 'Empathy & Rapport', weight: '40%', desc: 'Customer rapport, active listening & de-escalation' },
+      { name: 'Issue Resolution', weight: '40%', desc: 'Troubleshooting adherence, procedural accuracy & resolution' },
+      { name: 'Speech Clarity', weight: '20%', desc: 'Professional phone manner, audibility & phrasing' },
+    ],
+    standard: 'BPO Quality Assurance (QA) Standard',
   },
 };
 
-export default function PillarFormulaTooltip({ pillarName }) {
+export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const containerRef = useRef(null);
@@ -68,10 +101,12 @@ export default function PillarFormulaTooltip({ pillarName }) {
 
   if (!info) return null;
 
+  const isAlignRight = align === 'right';
+
   return (
     <span
       ref={containerRef}
-      className="relative inline-flex items-center ml-1.5 align-middle select-none"
+      className="relative inline-flex items-center ml-1.5 align-middle select-none text-left"
       onMouseEnter={() => {
         if (!isPinned) setIsOpen(true);
       }}
@@ -107,7 +142,9 @@ export default function PillarFormulaTooltip({ pillarName }) {
       {(isOpen || isPinned) && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-0 bottom-full mb-2 w-72 sm:w-80 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100"
+          className={`absolute bottom-full mb-2 w-72 sm:w-84 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100 ${
+            isAlignRight ? 'right-0' : 'left-0'
+          }`}
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
@@ -116,7 +153,7 @@ export default function PillarFormulaTooltip({ pillarName }) {
                 {info.name} Breakdown
               </h4>
               <p className="text-[10px] text-gray-500 font-medium">
-                Pillar Weight: <span className="font-semibold text-blue-600">{info.weight}</span> of total score
+                Evaluation Weight: <span className="font-semibold text-blue-600">{info.weight}</span>
               </p>
             </div>
             <button
@@ -142,7 +179,7 @@ export default function PillarFormulaTooltip({ pillarName }) {
           </div>
 
           {/* Sub-Weights List */}
-          <div className="mt-2.5 space-y-1.5">
+          <div className="mt-2.5 space-y-1.5 max-h-48 overflow-y-auto">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
               Components:
             </span>
@@ -168,12 +205,16 @@ export default function PillarFormulaTooltip({ pillarName }) {
 
           {/* Subtle note footer */}
           <div className="mt-2.5 pt-2 border-t border-gray-100 text-[10px] text-gray-400 flex items-center justify-between">
-            <span>Pearson Versant Rubric</span>
+            <span>{info.standard || 'Evaluation Rubric'}</span>
             <span>Weighted Scoring</span>
           </div>
 
           {/* Clean downward pointer arrow */}
-          <div className="absolute left-2.5 -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform"></div>
+          <div
+            className={`absolute -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform ${
+              isAlignRight ? 'right-3' : 'left-2.5'
+            }`}
+          ></div>
         </div>
       )}
     </span>

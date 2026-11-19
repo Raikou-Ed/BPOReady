@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
+import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
 
 const MockInterviewFeedback = () => {
   const location = useLocation();
@@ -89,9 +90,12 @@ const MockInterviewFeedback = () => {
               </div>
             </div>
 
-            <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border flex-shrink-0 ${readinessTier.box}`}>
+            <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border flex-shrink-0 ${readinessTier.box} relative`}>
               <div className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-wider">{readinessTier.label}</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider">{readinessTier.label}</p>
+                  <PillarFormulaTooltip pillarName="MockInterview" align="right" />
+                </div>
                 <p className={`text-4xl font-extrabold ${readinessTier.text}`}>{Math.round(overallScore)}<span className="text-lg font-medium text-gray-400">/100</span></p>
               </div>
             </div>
@@ -100,31 +104,46 @@ const MockInterviewFeedback = () => {
           {/* Speech Analysis Metrics Grid */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <p className="text-xs text-gray-500 font-semibold mb-1">Clarity</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Clarity</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">25%</span>
+              </div>
               <p className="text-2xl font-bold text-gray-800">{Math.round(clarity)}%</p>
               <span className={`text-[11px] font-semibold ${clarityTier.color}`}>{clarityTier.label}</span>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <p className="text-xs text-gray-500 font-semibold mb-1">Confidence</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Confidence</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
+              </div>
               <p className="text-2xl font-bold text-gray-800">{Math.round(confidence)}%</p>
               <span className={`text-[11px] font-semibold ${confidenceTier.color}`}>{confidenceTier.label}</span>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <p className="text-xs text-gray-500 font-semibold mb-1">Pacing</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Pacing</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
+              </div>
               <p className="text-2xl font-bold text-gray-800">{Math.round(pacing)}%</p>
               <span className={`text-[11px] font-semibold ${pacingTier.color}`}>{pacingTier.label}</span>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <p className="text-xs text-gray-500 font-semibold mb-1">Answer Quality</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Answer Quality</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
+              </div>
               <p className="text-2xl font-bold text-gray-800">{Math.round(answerQuality)}%</p>
               <span className={`text-[11px] font-semibold ${qualityTier.color}`}>{qualityTier.label}</span>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center col-span-2 md:col-span-1">
-              <p className="text-xs text-gray-500 font-semibold mb-1">Filler Words</p>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Filler Words</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Tracked</span>
+              </div>
               <p className="text-2xl font-bold text-gray-800">{fillerCount}</p>
               <span className={`text-[11px] font-semibold ${fillerTier.color}`}>
                 {fillerTier.label}

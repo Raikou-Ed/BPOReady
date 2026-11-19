@@ -4,6 +4,7 @@ import { submitCallSimulation, listCallScenarios } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
 import { CALL_SCENARIOS } from "../data/callScenariosData";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
+import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
 
 const CallSimulationSession = () => {
   const { id } = useParams();
@@ -880,8 +881,11 @@ const CallSimulationSession = () => {
                       </div>
                     )}
                   </div>
-                  <div className="text-right bg-blue-50/70 p-4 rounded-xl border border-blue-100">
-                    <span className="text-xs text-blue-700 font-semibold uppercase">Overall QA Score</span>
+                  <div className="text-right bg-blue-50/70 p-4 rounded-xl border border-blue-100 relative">
+                    <div className="flex items-center justify-end gap-1">
+                      <span className="text-xs text-blue-700 font-semibold uppercase">Overall QA Score</span>
+                      <PillarFormulaTooltip pillarName="CallSimulation" align="right" />
+                    </div>
                     <p className="text-4xl font-extrabold text-blue-600 mt-1">
                       {evaluation ? (evaluation.overall_score ?? 0) : 0}%
                     </p>
@@ -891,7 +895,10 @@ const CallSimulationSession = () => {
                 {/* Scorecard 3-Metric Breakdown */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 text-center">
-                    <span className="text-xs text-purple-700 font-semibold uppercase">Empathy & Rapport</span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-xs text-purple-700 font-semibold uppercase">Empathy & Rapport</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">40%</span>
+                    </div>
                     <p className="text-3xl font-extrabold text-purple-700 mt-1">
                       {evaluation ? (evaluation.empathy_score ?? 0) : 0}%
                     </p>
@@ -899,7 +906,10 @@ const CallSimulationSession = () => {
                   </div>
 
                   <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 text-center">
-                    <span className="text-xs text-emerald-700 font-semibold uppercase">Issue Resolution</span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-xs text-emerald-700 font-semibold uppercase">Issue Resolution</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">40%</span>
+                    </div>
                     <p className="text-3xl font-extrabold text-emerald-700 mt-1">
                       {evaluation ? (evaluation.resolution_score ?? 0) : 0}%
                     </p>
@@ -907,7 +917,10 @@ const CallSimulationSession = () => {
                   </div>
 
                   <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 text-center">
-                    <span className="text-xs text-blue-700 font-semibold uppercase">Speech Clarity</span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-xs text-blue-700 font-semibold uppercase">Speech Clarity</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">20%</span>
+                    </div>
                     <p className="text-3xl font-extrabold text-blue-700 mt-1">
                       {evaluation ? (evaluation.clarity_score ?? 0) : 0}%
                     </p>
