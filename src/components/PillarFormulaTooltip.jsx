@@ -4,38 +4,38 @@ export const PILLAR_FORMULAS = {
   'Pronunciation': {
     name: 'Pronunciation',
     weight: '30%',
-    formula: 'P = (Content Accuracy × 0.40) + (Filler Cleanliness × 0.30) + (Audio Quality × 0.30)',
+    formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
     subWeights: [
       { name: 'Content Accuracy', weight: '40%', desc: 'Word recognition accuracy against target passage' },
-      { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & disfluencies' },
-      { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity (45%) & energy blend (55%)' },
+      { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
+      { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
     ],
   },
   'Fluency': {
     name: 'Fluency',
     weight: '25%',
-    formula: 'F = (Pacing Score × 0.65) + (Audio Delivery Consistency × 0.35)',
+    formula: '(Pacing Rate × 65%) + (Delivery Consistency × 35%)',
     subWeights: [
-      { name: 'Pacing Score', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
-      { name: 'Delivery Consistency', weight: '35%', desc: 'Smooth vocal delivery without dead air or abrupt halts' },
+      { name: 'Pacing Rate', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
+      { name: 'Delivery Consistency', weight: '35%', desc: 'Continuous vocal flow without long unnatural pauses' },
     ],
   },
   'Sentence Mastery': {
     name: 'Sentence Mastery',
     weight: '25%',
-    formula: 'S = (Filler Cleanliness × 0.55) + (Content Accuracy × 0.45)',
+    formula: '(Filler Cleanliness × 55%) + (Content Accuracy × 45%)',
     subWeights: [
-      { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & hesitation pauses' },
-      { name: 'Content Accuracy', weight: '45%', desc: 'Syntactic sentence structure & correct word sequencing' },
+      { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & sentence hesitations' },
+      { name: 'Content Accuracy', weight: '45%', desc: 'Accurate sentence structure & word sequencing' },
     ],
   },
   'Vocabulary': {
     name: 'Vocabulary',
     weight: '20%',
-    formula: 'V = (Content Coverage × 0.70) + (Completion Ratio × 0.30)',
+    formula: '(Passage Coverage × 70%) + (Completion Ratio × 30%)',
     subWeights: [
-      { name: 'Content Coverage', weight: '70%', desc: 'Lexical coverage: percentage of target passage words spoken' },
-      { name: 'Completion Ratio', weight: '30%', desc: 'Full passage completion ratio within target timeframe' },
+      { name: 'Passage Coverage', weight: '70%', desc: 'Percentage of unique passage vocabulary read aloud' },
+      { name: 'Completion Ratio', weight: '30%', desc: 'Full passage completion within target reading time' },
     ],
   },
 };
@@ -79,7 +79,7 @@ export default function PillarFormulaTooltip({ pillarName }) {
         if (!isPinned) setIsOpen(false);
       }}
     >
-      {/* Tooltip Trigger Icon */}
+      {/* Subtle, standard question mark / info trigger icon */}
       <button
         type="button"
         onClick={(e) => {
@@ -92,33 +92,32 @@ export default function PillarFormulaTooltip({ pillarName }) {
             setIsOpen(true);
           }
         }}
-        className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center transition-all cursor-pointer shadow-xs ${
+        className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer ${
           isOpen || isPinned
-            ? 'bg-blue-600 text-white ring-2 ring-blue-300 ring-offset-1'
-            : 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 hover:text-blue-800'
+            ? 'bg-blue-600 text-white shadow-xs'
+            : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 border border-gray-200'
         }`}
-        title={`View ${info.name} formula & sub-weights`}
-        aria-label={`View ${info.name} formula and sub-weights`}
+        title={`Click to view ${info.name} formula`}
+        aria-label={`View ${info.name} calculation breakdown`}
       >
         i
       </button>
 
-      {/* Floating Popover / Tooltip */}
+      {/* Clean, professional popover that matches the BPOReady light theme */}
       {(isOpen || isPinned) && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-0 bottom-full mb-2.5 w-76 sm:w-84 bg-gray-900/98 text-white rounded-xl shadow-2xl p-3.5 z-[100] border border-gray-700/80 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+          className="absolute left-0 bottom-full mb-2 w-72 sm:w-80 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100"
         >
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-gray-800">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              <span className="text-xs font-bold text-gray-100 tracking-wide">
-                {info.name} Sub-Weights
-              </span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/60">
-                Pillar Weight: {info.weight}
-              </span>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+            <div>
+              <h4 className="text-xs font-bold text-gray-900">
+                {info.name} Breakdown
+              </h4>
+              <p className="text-[10px] text-gray-500 font-medium">
+                Pillar Weight: <span className="font-semibold text-blue-600">{info.weight}</span> of total score
+              </p>
             </div>
             <button
               type="button"
@@ -126,55 +125,55 @@ export default function PillarFormulaTooltip({ pillarName }) {
                 setIsOpen(false);
                 setIsPinned(false);
               }}
-              className="text-gray-400 hover:text-white text-xs px-1 hover:bg-gray-800 rounded transition"
+              className="text-gray-400 hover:text-gray-600 text-xs w-5 h-5 flex items-center justify-center rounded hover:bg-gray-100 transition"
             >
               ✕
             </button>
           </div>
 
-          {/* Formula Display Box */}
-          <div className="mt-2.5 p-2 rounded-lg bg-gray-950/90 border border-gray-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
-              Sub-Weight Formula (WSM):
+          {/* Formula Card - Soft Blue Accent */}
+          <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/70 border border-blue-100">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 block mb-1">
+              Formula:
             </span>
-            <code className="text-[11px] font-mono text-emerald-300 font-semibold leading-relaxed block break-words">
+            <div className="text-xs font-medium text-blue-950 leading-relaxed">
               {info.formula}
-            </code>
+            </div>
           </div>
 
-          {/* Sub-Components Breakdown */}
+          {/* Sub-Weights List */}
           <div className="mt-2.5 space-y-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-              Feature Decomposition:
+              Components:
             </span>
             {info.subWeights.map((sub, idx) => (
               <div
                 key={idx}
-                className="flex items-start justify-between gap-2 p-1.5 rounded-md bg-gray-800/40 hover:bg-gray-800/70 transition"
+                className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-gray-50 transition border border-transparent hover:border-gray-100"
               >
-                <div className="flex-1">
-                  <div className="text-[11px] font-semibold text-gray-200">
+                <div className="flex-1 pr-1">
+                  <div className="text-xs font-semibold text-gray-800">
                     {sub.name}
                   </div>
-                  <div className="text-[10px] text-gray-400 leading-tight">
+                  <div className="text-[10px] text-gray-500 leading-tight">
                     {sub.desc}
                   </div>
                 </div>
-                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 self-center">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200 flex-shrink-0">
                   {sub.weight}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Academic Attribution Footer */}
-          <div className="mt-2.5 pt-2 border-t border-gray-800/80 flex items-center justify-between text-[9px] text-gray-400 font-medium">
-            <span>Algorithm: Weighted Sum Model (WSM)</span>
-            <span className="text-gray-500">MCDA Framework</span>
+          {/* Subtle note footer */}
+          <div className="mt-2.5 pt-2 border-t border-gray-100 text-[10px] text-gray-400 flex items-center justify-between">
+            <span>Pearson Versant Rubric</span>
+            <span>Weighted Scoring</span>
           </div>
 
-          {/* Arrow pointing down */}
-          <div className="absolute left-2.5 -bottom-1.5 w-3 h-3 bg-gray-900 border-b border-r border-gray-700/80 rotate-45 transform"></div>
+          {/* Clean downward pointer arrow */}
+          <div className="absolute left-2.5 -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform"></div>
         </div>
       )}
     </span>
