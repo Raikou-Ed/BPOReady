@@ -231,9 +231,9 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   } else if (wordsPerMinute > 170 && wordsPerMinute <= 200) {
     paceScore = Math.round(82 - ((wordsPerMinute - 170) / 30) * 17);
   } else if (wordsPerMinute < 70) {
-    paceScore = Math.max(30, Math.round(40 + (wordsPerMinute / 70) * 20));
+    paceScore = Math.max(30, Math.round(48 + (wordsPerMinute / 70) * 20));
   } else {
-    paceScore = Math.max(30, Math.round(60 - ((wordsPerMinute - 200) / 50) * 20));
+    paceScore = Math.max(30, Math.round(65 - ((wordsPerMinute - 200) / 50) * 20));
   }
 
   const targetDuration = Math.max(10, Math.round((expectedWordCount / 125) * 60));
