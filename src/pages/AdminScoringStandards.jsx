@@ -120,16 +120,16 @@ const AdminScoringStandards = () => {
           {/* Evaluation Criteria Distribution */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm">
             <div>
-              <h2 className="text-sm font-bold text-gray-900">Evaluation Criteria &amp; Weight Distribution</h2>
+              <h2 className="text-sm font-bold text-gray-900">CEFR Table 3 Spoken Assessment Criteria &amp; Weight Distribution</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Speech assessments are evaluated across 4 standard criteria to determine applicant proficiency.
+                Council of Europe CEFR Table 3 qualitative dimensions for monologic speech reading &amp; pre-assessment.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Pronunciation</span>
+                  <span className="text-xs font-bold text-gray-900">Accuracy</span>
                   <span className="text-xs font-extrabold text-blue-600">30%</span>
                 </div>
                 <p className="text-[11px] text-gray-500">Vowel/consonant enunciation, acoustic clarity, and syllable stress intelligibility.</p>
@@ -138,25 +138,25 @@ const AdminScoringStandards = () => {
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-gray-900">Fluency</span>
-                  <span className="text-xs font-extrabold text-blue-600">25%</span>
+                  <span className="text-xs font-extrabold text-blue-600">30%</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Speech rhythm, optimal cadence (115–145 WPM), and dead-air / pause penalties.</p>
+                <p className="text-[11px] text-gray-500">Speech rhythm, optimal cadence (115–145 WPM), and continuous delivery without unnatural pauses.</p>
               </div>
 
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Sentence Mastery</span>
-                  <span className="text-xs font-extrabold text-blue-600">25%</span>
-                </div>
-                <p className="text-[11px] text-gray-500">Grammatical syntax, complete clause formation, and filler-word suppression.</p>
-              </div>
-
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Vocabulary</span>
+                  <span className="text-xs font-bold text-gray-900">Range</span>
                   <span className="text-xs font-extrabold text-blue-600">20%</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Lexical precision, contextual word appropriateness, and passage coverage.</p>
+                <p className="text-[11px] text-gray-500">Passage vocabulary repertoire, lexical coverage, and verbal crutch suppression.</p>
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-gray-900">Coherence</span>
+                  <span className="text-xs font-extrabold text-blue-600">20%</span>
+                </div>
+                <p className="text-[11px] text-gray-500">Sentence structure flow, clause connection, and complete passage discourse continuity.</p>
               </div>
             </div>
           </div>

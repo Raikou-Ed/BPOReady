@@ -130,9 +130,9 @@ export default function ApplyCertification() {
       }
 
       const mergedMap = new Map();
-      local.forEach(a => mergedMap.set(`${a.activity}_${a.level}_${(a.date||'').substring(0,10)}`, a));
+      local.forEach(a => mergedMap.set(`${a.activity}_${a.level}_${(a.date || '').substring(0, 10)}`, a));
       remoteHist.forEach(a => {
-        const k = `${a.activity_type||a.activity}_${a.level}_${(a.date||a.created_at||'').substring(0,10)}`;
+        const k = `${a.activity_type || a.activity}_${a.level}_${(a.date || a.created_at || '').substring(0, 10)}`;
         if (!mergedMap.has(k)) mergedMap.set(k, a);
       });
       const allActs = Array.from(mergedMap.values());
@@ -612,7 +612,7 @@ export default function ApplyCertification() {
                   style={{
                     width:
                       currentStep === "STAGE_1_READING" ? "33%" :
-                      currentStep === "STAGE_2_INTERVIEW" ? "66%" : "100%"
+                        currentStep === "STAGE_2_INTERVIEW" ? "66%" : "100%"
                   }}
                 />
               </div>
@@ -631,7 +631,7 @@ export default function ApplyCertification() {
                     BPO Communication Readiness Examination
                   </h2>
                   <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                    Standardized against the Council of Europe CEFR Table 3 (CEFR 3.3 Qualitative Aspects of Spoken Language Use) across Fluency, Accuracy, Range, Interaction, and Coherence. Complete the 3-stage examination to receive your official BPO Voice Readiness Certification.
+                    To maintain professional accreditation standards, candidates must demonstrate rigorous practice in Performance Summary before attempting the official 3-stage certification examination.
                   </p>
                 </div>
               </div>
@@ -641,7 +641,7 @@ export default function ApplyCertification() {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">
                   Certification Prerequisite Audit:
                 </h3>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
                     <span>📖 Paragraph Readings:</span>
@@ -673,7 +673,7 @@ export default function ApplyCertification() {
                 </div>
 
                 <div className="pt-2 text-[11px] text-gray-500 leading-relaxed">
-                  * Accreditation standard: Minimum composite average of <strong>85% (CEFR B2 Benchmark)</strong> required to pass; <strong>90% and above</strong> awards <strong>CEFR C1 (Advanced Voice Professional)</strong> accreditation.
+                  * Passing standard: You must achieve an overall average of <strong>85% or higher</strong> across the 3 exam stages to unlock the official certificate.
                 </div>
               </div>
 
@@ -747,11 +747,10 @@ export default function ApplyCertification() {
               <button
                 disabled={isRecordingStage1 || !stage1RecordingData}
                 onClick={handleSubmitStage1}
-                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${
-                  !stage1RecordingData
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
-                }`}
+                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${!stage1RecordingData
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  }`}
               >
                 Submit Stage 1 &amp; Proceed to HR Interview →
               </button>
@@ -802,11 +801,10 @@ export default function ApplyCertification() {
               <button
                 disabled={isRecordingStage2 || !stage2RecordingData}
                 onClick={handleSaveInterviewAnswer}
-                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${
-                  !stage2RecordingData
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-purple-600 hover:bg-purple-700 text-white cursor-pointer"
-                }`}
+                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${!stage2RecordingData
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700 text-white cursor-pointer"
+                  }`}
               >
                 {currentQuestionIdx + 1 < CERTIFICATION_INTERVIEW_QUESTIONS.length
                   ? "Save Answer & Next Question →"
@@ -870,11 +868,10 @@ export default function ApplyCertification() {
               <button
                 disabled={isRecordingCall || !callRecordingData}
                 onClick={handleNextCallTurn}
-                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${
-                  !callRecordingData
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                }`}
+                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${!callRecordingData
+                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                  }`}
               >
                 {callTurn + 1 < callScenario.dialogues.length
                   ? "Submit Turn & Next Customer Exchange →"
@@ -886,7 +883,7 @@ export default function ApplyCertification() {
           {/* STAGE 4: RESULT & CERTIFICATE VIEW */}
           {currentStep === "STAGE_4_RESULT" && savedCertificate && (
             <div className="space-y-4">
-              
+
               {/* Clean Action Toolbar (Hidden during print) */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-2 print:hidden">
                 <button

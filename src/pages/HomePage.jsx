@@ -342,7 +342,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Paragraph Reading Practice</h3>
               <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                Structured passages across Easy, Medium, and Hard difficulty levels. Measures pronunciation clarity, articulation, sentence mastery, and speech coverage.
+                Structured passages across Easy, Medium, and Hard difficulty levels. Evaluates Accuracy (30%), Fluency (30%), Range (20%), and Coherence (20%) aligned with CEFR Table 3.
               </p>
               <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">
                 Tiered Level Unlocking &rarr;

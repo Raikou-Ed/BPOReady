@@ -2,8 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 
 export const PILLAR_FORMULAS = {
   // Paragraph Reading / Diagnostic Pillars (Aligned with CEFR Table 3: Qualitative Aspects of Spoken Language Use)
+  'Accuracy': {
+    name: 'Accuracy (CEFR Accuracy)',
+    weight: '30%',
+    formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
+    subWeights: [
+      { name: 'Content Accuracy', weight: '40%', desc: 'Word recognition accuracy against target passage' },
+      { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
+      { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
+    ],
+    standard: 'CEFR Table 3: Accuracy & Pronunciation',
+  },
   'Pronunciation': {
-    name: 'Pronunciation (CEFR Accuracy)',
+    name: 'Accuracy (Pronunciation)',
     weight: '30%',
     formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
     subWeights: [
@@ -23,8 +34,8 @@ export const PILLAR_FORMULAS = {
     ],
     standard: 'CEFR Table 3: Spoken Fluency',
   },
-  'Sentence Mastery': {
-    name: 'Sentence Mastery (CEFR Range)',
+  'Range': {
+    name: 'Range (CEFR Range)',
     weight: '20%',
     formula: '(Filler Cleanliness × 55%) + (Content Accuracy × 45%)',
     subWeights: [
@@ -33,8 +44,28 @@ export const PILLAR_FORMULAS = {
     ],
     standard: 'CEFR Table 3: Lexical & Grammatical Range',
   },
+  'Sentence Mastery': {
+    name: 'Range (Sentence Mastery)',
+    weight: '20%',
+    formula: '(Filler Cleanliness × 55%) + (Content Accuracy × 45%)',
+    subWeights: [
+      { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & sentence hesitations' },
+      { name: 'Content Accuracy', weight: '45%', desc: 'Accurate sentence structure & word sequencing' },
+    ],
+    standard: 'CEFR Table 3: Lexical & Grammatical Range',
+  },
+  'Coherence': {
+    name: 'Coherence (CEFR Coherence)',
+    weight: '20%',
+    formula: '(Passage Coverage × 70%) + (Completion Ratio × 30%)',
+    subWeights: [
+      { name: 'Passage Coverage', weight: '70%', desc: 'Percentage of unique passage vocabulary read aloud' },
+      { name: 'Completion Ratio', weight: '30%', desc: 'Full passage completion within target reading time' },
+    ],
+    standard: 'CEFR Table 3: Vocabulary & Discourse Coherence',
+  },
   'Vocabulary': {
-    name: 'Vocabulary (CEFR Coherence)',
+    name: 'Coherence (Vocabulary)',
     weight: '20%',
     formula: '(Passage Coverage × 70%) + (Completion Ratio × 30%)',
     subWeights: [
@@ -129,11 +160,10 @@ export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
             setIsOpen(true);
           }
         }}
-        className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer ${
-          isOpen || isPinned
-            ? 'bg-blue-600 text-white shadow-xs'
-            : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 border border-gray-200'
-        }`}
+        className={`w-4 h-4 rounded-full text-[10px] font-semibold flex items-center justify-center transition-all cursor-pointer ${isOpen || isPinned
+          ? 'bg-blue-600 text-white shadow-xs'
+          : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600 border border-gray-200'
+          }`}
         title={`Click to view ${info.name} formula`}
         aria-label={`View ${info.name} calculation breakdown`}
       >
@@ -144,9 +174,8 @@ export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
       {(isOpen || isPinned) && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`absolute bottom-full mb-2 w-72 sm:w-84 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100 ${
-            isAlignRight ? 'right-0' : 'left-0'
-          }`}
+          className={`absolute bottom-full mb-2 w-72 sm:w-84 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100 ${isAlignRight ? 'right-0' : 'left-0'
+            }`}
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
@@ -213,9 +242,8 @@ export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
 
           {/* Clean downward pointer arrow */}
           <div
-            className={`absolute -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform ${
-              isAlignRight ? 'right-3' : 'left-2.5'
-            }`}
+            className={`absolute -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform ${isAlignRight ? 'right-3' : 'left-2.5'
+              }`}
           ></div>
         </div>
       )}

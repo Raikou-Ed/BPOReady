@@ -464,7 +464,7 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
 
   return [
     {
-      name: 'Pronunciation',
+      name: 'Accuracy',
       pillar: 'CEFR Accuracy (Pronunciation & Articulation)',
       value: pron,
       weight: 30,
@@ -480,7 +480,7 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
       detail: `${wpm} WPM • Flow & pause control`,
     },
     {
-      name: 'Sentence Mastery',
+      name: 'Range',
       pillar: 'CEFR Range (Passage Vocabulary & Filler Suppression)',
       value: mastery,
       weight: 20,
@@ -488,12 +488,12 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
       detail: 'Passage vocabulary & filler suppression',
     },
     {
-      name: 'Vocabulary',
+      name: 'Coherence',
       pillar: 'CEFR Coherence (Sentence Flow & Discourse)',
       value: vocab,
       weight: 20,
       contribution: vContrib,
-      detail: 'Diagnostic passage lexical coverage',
+      detail: 'Diagnostic passage sentence flow',
     },
   ];
 }
@@ -505,13 +505,12 @@ export function getAssignedLevel() {
     data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
     const lvl = String(data.placedLevel || 'easy').toLowerCase();
 
-    // Check if criteria is missing, invalid, or corrupted by paragraph practice
-    // (e.g. details say "words matched" or contribution sum mismatches data.score by > 3)
-    const hasCorruptCriteria = !Array.isArray(data.criteria) || data.criteria.length === 0 ||
-      data.criteria.some(c => String(c.detail || '').includes('words matched')) ||
+    // Check if criteria is missing, invalid, or using legacy names (Pronunciation, Sentence Mastery, Vocabulary)
+    const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length === 0 ||
+      data.criteria.some(c => c.name === 'Pronunciation' || c.name === 'Sentence Mastery' || c.name === 'Vocabulary' || String(c.detail || '').includes('words matched')) ||
       Math.abs(data.criteria.reduce((sum, c) => sum + (Number(c.contribution) || 0), 0) - data.score) > 3;
 
-    if (hasCorruptCriteria) {
+    if (hasCorruptOrLegacyCriteria) {
       data.wordsPerMinute = data.wordsPerMinute && data.wordsPerMinute >= 115 ? data.wordsPerMinute : (lvl === 'hard' ? 145 : lvl === 'medium' ? 135 : 115);
       data.criteria = generatePreAssessmentCriteria(data.score, data.placedLevel, data.wordsPerMinute);
       saveUserData('bpoReadyAssessment', data);

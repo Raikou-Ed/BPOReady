@@ -155,25 +155,34 @@ export default function PreAssessment() {
                   vocabulary: 'vocabularyWeight',
                 };
                 const nameLabelMap = {
-                  pronunciation: 'Pronunciation',
+                  accuracy: 'Accuracy',
                   fluency: 'Fluency',
-                  sentenceMastery: 'Sentence Mastery',
-                  vocabulary: 'Vocabulary',
+                  range: 'Range',
+                  coherence: 'Coherence',
+                  pronunciation: 'Accuracy',
+                  sentenceMastery: 'Range',
+                  vocabulary: 'Coherence',
                 };
                 const pillarLabelMap = {
-                  pronunciation: 'Articulation & Intelligibility',
-                  fluency: 'Rhythm & Pacing Control',
-                  sentenceMastery: 'Grammar & Structural Accuracy',
-                  vocabulary: 'Lexical Precision & Coverage',
+                  accuracy: 'Acoustic Enunciation & Phonetic Clarity',
+                  fluency: 'Rhythm, Cadence & Pause Smoothness',
+                  range: 'Lexical Repertoire & Filler Suppression',
+                  coherence: 'Sentence Flow & Discourse Coherence',
+                  pronunciation: 'Acoustic Enunciation & Phonetic Clarity',
+                  sentenceMastery: 'Lexical Repertoire & Filler Suppression',
+                  vocabulary: 'Sentence Flow & Discourse Coherence',
                 };
                 const detailMap = {
+                  accuracy: 'Vowel & consonant articulation clarity',
+                  fluency: `${Math.round(localScore.wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
+                  range: 'Passage vocabulary & filler suppression',
+                  coherence: `${wordCount} words analyzed • Sentence flow`,
                   pronunciation: 'Vowel & consonant articulation clarity',
-                  fluency: `${Math.round(localScore.wordsPerMinute)} WPM • Flow & pause control`,
-                  sentenceMastery: 'Grammar structure & filler control',
-                  vocabulary: `${wordCount} words analyzed • Lexical coverage`,
+                  sentenceMastery: 'Passage vocabulary & filler suppression',
+                  vocabulary: `${wordCount} words analyzed • Sentence flow`,
                 };
                 const resolvedScore = value?.score ?? localMetricMap[name] ?? null;
-                const resolvedWeight = Number(value?.weight ?? localScore.metrics[weightKeyMap[name]] ?? (name === 'pronunciation' ? 30 : name === 'fluency' ? 25 : name === 'sentenceMastery' ? 25 : 20));
+                const resolvedWeight = Number(value?.weight ?? localScore.metrics[weightKeyMap[name]] ?? (name === 'pronunciation' || name === 'accuracy' ? 30 : name === 'fluency' ? 30 : name === 'sentenceMastery' || name === 'range' ? 20 : 20));
                 return {
                   name: nameLabelMap[name] || name,
                   pillar: pillarLabelMap[name] || nameLabelMap[name] || name,
@@ -332,27 +341,36 @@ export default function PreAssessment() {
                       <span>Weight</span>
                       <span>Contribution</span>
                     </div>
-                    {result.criteria.map((criterion, idx, arr) => (
-                      <div
-                        key={criterion.name}
-                        className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
-                          idx === arr.length - 1 ? 'rounded-b-xl' : ''
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <p className="font-semibold text-gray-900">{criterion.name}</p>
-                          <PillarFormulaTooltip pillarName={criterion.name} />
+                    {result.criteria.map((criterion, idx, arr) => {
+                      const factorName = criterion.name === 'Pronunciation'
+                        ? 'Accuracy'
+                        : criterion.name === 'Sentence Mastery'
+                        ? 'Range'
+                        : criterion.name === 'Vocabulary'
+                        ? 'Coherence'
+                        : criterion.name;
+                      return (
+                        <div
+                          key={criterion.name}
+                          className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
+                            idx === arr.length - 1 ? 'rounded-b-xl' : ''
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <p className="font-semibold text-gray-900">{factorName}</p>
+                            <PillarFormulaTooltip pillarName={factorName} />
+                          </div>
+                          <div className="flex flex-col justify-center">
+                            <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
+                              {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                            </span>
+                            {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
+                          </div>
+                          <span className="flex items-center text-gray-500 font-semibold">{criterion.weight ? `${criterion.weight}%` : '-'}</span>
+                          <span className="flex items-center font-bold text-emerald-700">{criterion.weight ? Number(criterion.contribution).toFixed(2) : '-'}</span>
                         </div>
-                        <div className="flex flex-col justify-center">
-                          <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
-                            {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
-                          </span>
-                          {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
-                        </div>
-                        <span className="flex items-center text-gray-500 font-semibold">{criterion.weight ? `${criterion.weight}%` : '-'}</span>
-                        <span className="flex items-center font-bold text-emerald-700">{criterion.weight ? Number(criterion.contribution).toFixed(2) : '-'}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -436,7 +454,7 @@ export default function PreAssessment() {
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mt-2">Communication Pre-Assessment</h1>
               <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-                Read the standard BPO screening passage aloud. The speech evaluation engine analyzes your pronunciation (30%), fluency (25%), sentence mastery (25%), and vocabulary coverage (20%) to determine your starting difficulty tier.
+                Read the standard BPO screening passage aloud. Standardized against Council of Europe CEFR Table 3, the speech evaluation engine evaluates your Accuracy (30%), Fluency (30%), Range (20%), and Coherence (20%) to calibrate your starting difficulty tier.
               </p>
             </div>
 
