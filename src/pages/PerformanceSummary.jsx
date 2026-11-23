@@ -176,6 +176,7 @@ const PerformanceSummary = () => {
         filler_control: fillerControl,
         empathy_score: empathyScore,
         cadence_score: cadenceScore,
+        coherence_score: coherenceScore,
         overall_readiness: readiness,
         recommendations,
         category_counts: {
