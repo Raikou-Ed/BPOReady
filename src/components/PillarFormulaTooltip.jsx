@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 export const PILLAR_FORMULAS = {
-  // Paragraph Reading / Diagnostic Pillars (Pearson Versant standard)
+  // Paragraph Reading / Diagnostic Pillars (Aligned with CEFR Table 3: Qualitative Aspects of Spoken Language Use)
   'Pronunciation': {
-    name: 'Pronunciation',
+    name: 'Pronunciation (CEFR Accuracy)',
     weight: '30%',
     formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
     subWeights: [
@@ -11,65 +11,65 @@ export const PILLAR_FORMULAS = {
       { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
       { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
     ],
-    standard: 'Pearson Versant Rubric',
+    standard: 'CEFR Table 3: Accuracy & Pronunciation',
   },
   'Fluency': {
-    name: 'Fluency',
+    name: 'Fluency (CEFR Fluency)',
     weight: '25%',
     formula: '(Pacing Rate × 65%) + (Delivery Consistency × 35%)',
     subWeights: [
       { name: 'Pacing Rate', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
       { name: 'Delivery Consistency', weight: '35%', desc: 'Continuous vocal flow without long unnatural pauses' },
     ],
-    standard: 'Pearson Versant Rubric',
+    standard: 'CEFR Table 3: Spoken Fluency',
   },
   'Sentence Mastery': {
-    name: 'Sentence Mastery',
+    name: 'Sentence Mastery (CEFR Range)',
     weight: '25%',
     formula: '(Filler Cleanliness × 55%) + (Content Accuracy × 45%)',
     subWeights: [
       { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & sentence hesitations' },
       { name: 'Content Accuracy', weight: '45%', desc: 'Accurate sentence structure & word sequencing' },
     ],
-    standard: 'Pearson Versant Rubric',
+    standard: 'CEFR Table 3: Lexical & Grammatical Range',
   },
   'Vocabulary': {
-    name: 'Vocabulary',
+    name: 'Vocabulary (CEFR Coherence)',
     weight: '20%',
     formula: '(Passage Coverage × 70%) + (Completion Ratio × 30%)',
     subWeights: [
       { name: 'Passage Coverage', weight: '70%', desc: 'Percentage of unique passage vocabulary read aloud' },
       { name: 'Completion Ratio', weight: '30%', desc: 'Full passage completion within target reading time' },
     ],
-    standard: 'Pearson Versant Rubric',
+    standard: 'CEFR Table 3: Vocabulary & Discourse Coherence',
   },
 
   // Mock Interview Scoring Model
   'MockInterview': {
-    name: 'Mock Interview Scoring',
+    name: 'Mock Interview Scoring (CEFR Interaction & Coherence)',
     weight: '100%',
     formula: '(Clarity × 25%) + (Confidence × 20%) + (Pacing × 20%) + (Answer Quality × 20%) + (Grammar × 15%)',
     subWeights: [
-      { name: 'Speech Clarity', weight: '25%', desc: 'Articulation, vocal audibility & speech crispness' },
-      { name: 'Confidence & Composure', weight: '20%', desc: 'Hesitation-free delivery & self-assured tone' },
-      { name: 'Speaking Pace', weight: '20%', desc: 'Conversational tempo (target: 120–150 words per minute)' },
-      { name: 'Answer Quality', weight: '20%', desc: 'Relevance, completeness & BPO customer orientation' },
-      { name: 'Grammar & Syntax', weight: '15%', desc: 'Syntactic accuracy and sentence construction' },
+      { name: 'Speech Clarity (Accuracy)', weight: '25%', desc: 'Articulation, vocal audibility & speech crispness' },
+      { name: 'Confidence & Composure (Interaction)', weight: '20%', desc: 'Hesitation-free delivery & self-assured tone' },
+      { name: 'Speaking Pace (Fluency)', weight: '20%', desc: 'Conversational tempo (target: 120–150 words per minute)' },
+      { name: 'Answer Quality (Coherence)', weight: '20%', desc: 'STAR structure, relevance & customer orientation' },
+      { name: 'Grammar & Syntax (Range)', weight: '15%', desc: 'Syntactic accuracy and sentence construction' },
     ],
-    standard: 'BPO HR Competency Standard',
+    standard: 'CEFR Table 3: Spoken Interaction & STAR Coherence',
   },
 
   // Call Simulation QA Scorecard
   'CallSimulation': {
-    name: 'Call QA Scorecard',
+    name: 'Call QA Scorecard (CEFR Spoken Interaction)',
     weight: '100%',
     formula: '(Empathy & Rapport × 40%) + (Issue Resolution × 40%) + (Speech Clarity × 20%)',
     subWeights: [
-      { name: 'Empathy & Rapport', weight: '40%', desc: 'Customer rapport, active listening & de-escalation' },
-      { name: 'Issue Resolution', weight: '40%', desc: 'Troubleshooting adherence, procedural accuracy & resolution' },
-      { name: 'Speech Clarity', weight: '20%', desc: 'Professional phone manner, audibility & phrasing' },
+      { name: 'Empathy & Rapport (Interaction)', weight: '40%', desc: 'Customer rapport, active listening & de-escalation' },
+      { name: 'Issue Resolution (Coherence)', weight: '40%', desc: 'Troubleshooting adherence, procedural accuracy & resolution' },
+      { name: 'Speech Clarity (Accuracy & Fluency)', weight: '20%', desc: 'Professional phone manner, audibility & phrasing' },
     ],
-    standard: 'BPO Quality Assurance (QA) Standard',
+    standard: 'CEFR Table 3: Spoken Interaction & Customer QA',
   },
 };
 

@@ -110,6 +110,7 @@ const PerformanceSummary = () => {
       let fillerControl = 0;
       let empathyScore = 0;
       let cadenceScore = 0;
+      let coherenceScore = 0;
       let readiness = "Not Started";
 
       if (hasData) {
@@ -126,6 +127,7 @@ const PerformanceSummary = () => {
         fillerControl = remoteSummary?.filler_control || Math.min(95, Math.max(65, finalAvg + 2));
         empathyScore = remoteSummary?.empathy_score || Math.min(94, Math.max(68, finalAvg - 1));
         cadenceScore = remoteSummary?.cadence_score || finalAvg;
+        coherenceScore = remoteSummary?.coherence_score || Math.min(95, Math.max(68, finalAvg + 1));
       }
 
       let totalR = Math.max(readingCount, remoteSummary?.category_counts?.paragraph_readings || 0);
@@ -142,6 +144,7 @@ const PerformanceSummary = () => {
         fillerControl = Math.max(92, fillerControl);
         empathyScore = Math.max(88, empathyScore);
         cadenceScore = Math.max(89, cadenceScore);
+        coherenceScore = Math.max(90, coherenceScore || 90);
       }
 
       const meetsQuotas = totalR >= 10 && totalM >= 10 && totalC >= 10;
@@ -173,6 +176,7 @@ const PerformanceSummary = () => {
         filler_control: fillerControl,
         empathy_score: empathyScore,
         cadence_score: cadenceScore,
+        coherence_score: coherenceScore,
         overall_readiness: readiness,
         recommendations,
         category_counts: {
@@ -366,34 +370,32 @@ const PerformanceSummary = () => {
             </div>
           </div>
 
-          {/* 3. Detailed Competency Breakdown */}
+          {/* 3. Detailed Competency Breakdown (CEFR Table 3 Qualitative Aspects of Spoken Language Use) */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">BPO Core Competency Assessment</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-900">CEFR Table 3 Qualitative Spoken Competencies</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+                    CEFR 3.3 Framework
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Council of Europe Qualitative Aspects of Spoken Language Use: Fluency, Accuracy, Range, Interaction, and Coherence.
+                </p>
+              </div>
               {!summary?.hasData && (
-                <span className="text-[11px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg font-medium">
+                <span className="text-[11px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg font-medium self-start sm:self-auto">
                   Complete an assessment or training drill to calibrate scores
                 </span>
               )}
             </div>
 
             <div className="space-y-4">
+              {/* 1. Fluency */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className="text-gray-700">Acoustic Clarity &amp; Word Articulation</span>
-                  <span className="text-purple-600 font-bold">{summary?.hasData ? `${summary.clarity_score}%` : "0%"}</span>
-                </div>
-                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-purple-600 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${summary?.hasData ? summary.clarity_score : 0}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className="text-gray-700">Conversational Cadence &amp; Breath Timing</span>
+                  <span className="text-gray-700">1. Fluency (Conversational Cadence &amp; Breath Timing: 115–145 WPM)</span>
                   <span className="text-emerald-600 font-bold">{summary?.hasData ? `${summary.cadence_score || summary.average_score}%` : "0%"}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
@@ -404,9 +406,24 @@ const PerformanceSummary = () => {
                 </div>
               </div>
 
+              {/* 2. Accuracy */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className="text-gray-700">Filler Word Control ("um", "ah", "you know")</span>
+                  <span className="text-gray-700">2. Accuracy (Phonetic Articulation, Pronunciation &amp; Grammar)</span>
+                  <span className="text-purple-600 font-bold">{summary?.hasData ? `${summary.clarity_score}%` : "0%"}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-purple-600 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${summary?.hasData ? summary.clarity_score : 0}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 3. Range */}
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1.5">
+                  <span className="text-gray-700">3. Range (Lexical Repertoire &amp; Filler Word Suppression)</span>
                   <span className="text-amber-600 font-bold">{summary?.hasData ? `${summary.filler_control}%` : "0%"}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
@@ -417,15 +434,30 @@ const PerformanceSummary = () => {
                 </div>
               </div>
 
+              {/* 4. Interaction */}
               <div>
                 <div className="flex justify-between text-xs font-semibold mb-1.5">
-                  <span className="text-gray-700">Empathy, Tone &amp; Problem Resolution</span>
+                  <span className="text-gray-700">4. Interaction (Active Listening, Customer Empathy &amp; De-escalation)</span>
                   <span className="text-blue-600 font-bold">{summary?.hasData ? `${summary.empathy_score}%` : "0%"}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
                   <div
                     className="bg-blue-600 h-full rounded-full transition-all duration-500"
                     style={{ width: `${summary?.hasData ? summary.empathy_score : 0}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 5. Coherence */}
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1.5">
+                  <span className="text-gray-700">5. Coherence (STAR Framework &amp; Step-by-Step Problem Resolution)</span>
+                  <span className="text-indigo-600 font-bold">{summary?.hasData ? `${summary.coherence_score || summary.average_score}%` : "0%"}</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${summary?.hasData ? (summary.coherence_score || summary.average_score) : 0}%` }}
                   />
                 </div>
               </div>

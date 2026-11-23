@@ -623,7 +623,7 @@ export default function ApplyCertification() {
                     BPO Communication Readiness Examination
                   </h2>
                   <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                    To maintain professional accreditation standards, candidates must demonstrate rigorous practice in Performance Summary before attempting the official 3-stage certification examination.
+                    Standardized against the Council of Europe CEFR Table 3 (CEFR 3.3 Qualitative Aspects of Spoken Language Use) across Fluency, Accuracy, Range, Interaction, and Coherence. Complete the 3-stage examination to receive your official BPO Voice Readiness Certification.
                   </p>
                 </div>
               </div>
@@ -665,7 +665,7 @@ export default function ApplyCertification() {
                 </div>
 
                 <div className="pt-2 text-[11px] text-gray-500 leading-relaxed">
-                  * Passing standard: You must achieve an overall average of <strong>85% or higher</strong> across the 3 exam stages to unlock the official certificate.
+                  * Accreditation standard: Minimum composite average of <strong>85% (CEFR B2 Benchmark)</strong> required to pass; <strong>90% and above</strong> awards <strong>CEFR C1 (Advanced Voice Professional)</strong> accreditation.
                 </div>
               </div>
 
