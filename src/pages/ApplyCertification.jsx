@@ -893,13 +893,7 @@ export default function ApplyCertification() {
                     onClick={handleDownloadCertificate}
                     className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
                   >
-                    <span>📥 Download Certificate (HD PNG)</span>
-                  </button>
-                  <button
-                    onClick={() => window.print()}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>🖨️ Print / Save PDF</span>
+                    <span>📥 Download Certificate</span>
                   </button>
                   <button
                     onClick={() => {
