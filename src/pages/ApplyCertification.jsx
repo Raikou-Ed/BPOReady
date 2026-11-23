@@ -347,6 +347,217 @@ export default function ApplyCertification() {
     }
   };
 
+  // Direct Download Certificate as HD Image
+  const handleDownloadCertificate = () => {
+    if (!savedCertificate) return;
+
+    const canvas = document.createElement("canvas");
+    const width = 2000;
+    const height = 1350;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    // Outer double border
+    ctx.strokeStyle = "#1e3a8a"; // Blue 900
+    ctx.lineWidth = 14;
+    ctx.strokeRect(30, 30, width - 60, height - 60);
+    ctx.lineWidth = 4;
+    ctx.strokeRect(50, 50, width - 100, height - 100);
+
+    // Decorative Gold Corners
+    ctx.strokeStyle = "#d97706"; // Amber 600
+    ctx.lineWidth = 6;
+    const cornerSize = 100;
+    // Top-Left
+    ctx.beginPath();
+    ctx.moveTo(65, 65 + cornerSize);
+    ctx.lineTo(65, 65);
+    ctx.lineTo(65 + cornerSize, 65);
+    ctx.stroke();
+    // Top-Right
+    ctx.beginPath();
+    ctx.moveTo(width - 65 - cornerSize, 65);
+    ctx.lineTo(width - 65, 65);
+    ctx.lineTo(width - 65, 65 + cornerSize);
+    ctx.stroke();
+    // Bottom-Left
+    ctx.beginPath();
+    ctx.moveTo(65, height - 65 - cornerSize);
+    ctx.lineTo(65, height - 65);
+    ctx.lineTo(65 + cornerSize, height - 65);
+    ctx.stroke();
+    // Bottom-Right
+    ctx.beginPath();
+    ctx.moveTo(width - 65 - cornerSize, height - 65);
+    ctx.lineTo(width - 65, height - 65);
+    ctx.lineTo(width - 65, height - 65 - cornerSize);
+    ctx.stroke();
+
+    // Top Gold Badge Pill
+    const badgeText = "★ OFFICIAL CONTACT CENTER COMPETENCY ACCREDITATION ★";
+    ctx.font = "bold 20px Montserrat, sans-serif";
+    const badgeMetrics = ctx.measureText(badgeText);
+    const badgeWidth = badgeMetrics.width + 60;
+    const badgeX = (width - badgeWidth) / 2;
+    const badgeY = 120;
+    ctx.fillStyle = "#fffbeb";
+    ctx.strokeStyle = "#fcd34d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(badgeX, badgeY - 26, badgeWidth, 38, 19);
+    } else {
+      ctx.rect(badgeX, badgeY - 26, badgeWidth, 38);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#92400e";
+    ctx.textAlign = "center";
+    ctx.fillText(badgeText, width / 2, badgeY);
+
+    // Certificate Title
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "900 52px 'Cinzel', Georgia, serif";
+    ctx.fillText("CERTIFICATE OF BPO VOICE READINESS", width / 2, 220);
+
+    // Framework Subtitle
+    ctx.fillStyle = "#64748b";
+    ctx.font = "600 20px Montserrat, sans-serif";
+    ctx.fillText("BPOREADY SPEECH & COMMUNICATION ASSESSMENT FRAMEWORK", width / 2, 265);
+
+    // "This is officially awarded to"
+    ctx.fillStyle = "#64748b";
+    ctx.font = "italic 24px 'Playfair Display', Georgia, serif";
+    ctx.fillText("This is officially awarded to", width / 2, 360);
+
+    // Recipient Name
+    const candidateName = savedCertificate.candidateName || "Candidate";
+    ctx.fillStyle = "#172554"; // Navy
+    ctx.font = "900 68px 'Playfair Display', Georgia, serif";
+    ctx.fillText(candidateName, width / 2, 450);
+
+    // Name Underline
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 3;
+    const nameWidth = Math.max(400, ctx.measureText(candidateName).width + 80);
+    ctx.beginPath();
+    ctx.moveTo((width - nameWidth) / 2, 480);
+    ctx.lineTo((width + nameWidth) / 2, 480);
+    ctx.stroke();
+
+    // Citation Paragraph
+    ctx.fillStyle = "#475569";
+    ctx.font = "500 24px Montserrat, sans-serif";
+    const line1 = "for successfully demonstrating superior speech articulation, conversational pacing,";
+    const line2 = "conflict de-escalation, and professional customer phone etiquette on the comprehensive examination,";
+    const line3 = `achieving an accredited composite score of ${savedCertificate.overallScore}%.`;
+    ctx.fillText(line1, width / 2, 560);
+    ctx.fillText(line2, width / 2, 600);
+    ctx.fillText(line3, width / 2, 640);
+
+    // Verified Level Banner
+    const levelText = `Standard Verified: ${savedCertificate.cefrLevel || "CEFR C1"} • BPO Voice Account Hiring Ready`;
+    ctx.fillStyle = "#eff6ff";
+    ctx.strokeStyle = "#bfdbfe";
+    ctx.lineWidth = 2;
+    ctx.font = "bold 22px Montserrat, sans-serif";
+    const levelMetrics = ctx.measureText(levelText);
+    const levelWidth = levelMetrics.width + 60;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect((width - levelWidth) / 2, 700 - 30, levelWidth, 48, 12);
+    } else {
+      ctx.rect((width - levelWidth) / 2, 700 - 30, levelWidth, 48);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#1e3a8a";
+    ctx.fillText(levelText, width / 2, 702);
+
+    // Exam Breakdown Badges
+    const s1Text = `Stage 1 Reading: ${savedCertificate.stage1ReadingScore}%`;
+    const s2Text = `Stage 2 HR Interview: ${savedCertificate.stage2InterviewScore}%`;
+    const s3Text = `Stage 3 Call Sim QA: ${savedCertificate.stage3CallScore}%`;
+    ctx.font = "600 18px Montserrat, sans-serif";
+    ctx.fillStyle = "#64748b";
+    ctx.fillText(`${s1Text}    •    ${s2Text}    •    ${s3Text}`, width / 2, 790);
+
+    // Divider Line
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(120, 880);
+    ctx.lineTo(width - 120, 880);
+    ctx.stroke();
+
+    // Footer - Left: Serial & Date
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "bold 20px Montserrat, sans-serif";
+    ctx.fillText("Certificate Serial:", 140, 950);
+    ctx.font = "bold 22px monospace";
+    ctx.fillStyle = "#475569";
+    ctx.fillText(savedCertificate.certificateNumber || "BPO-2026-CTU-08492", 140, 985);
+    ctx.font = "16px Montserrat, sans-serif";
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText(`Date of Issuance: ${savedCertificate.issueDate || "November 23, 2026"}`, 140, 1020);
+
+    // Footer - Center: Gold Seal
+    const sealX = width / 2;
+    const sealY = 980;
+    const sealRadius = 65;
+    ctx.beginPath();
+    ctx.arc(sealX, sealY, sealRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "#fef3c7";
+    ctx.fill();
+    ctx.strokeStyle = "#d97706";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(sealX, sealY, sealRadius - 10, 0, Math.PI * 2);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#78350f";
+    ctx.font = "bold 16px Montserrat, sans-serif";
+    ctx.fillText("OFFICIAL", sealX, sealY - 14);
+    ctx.font = "900 14px Montserrat, sans-serif";
+    ctx.fillText("SEAL", sealX, sealY + 6);
+    ctx.font = "bold 12px Montserrat, sans-serif";
+    ctx.fillStyle = "#b45309";
+    ctx.fillText("★ VERIFIED ★", sealX, sealY + 26);
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "14px Montserrat, sans-serif";
+    ctx.fillText("Multi-Criteria Decision Analysis", sealX, sealY + 95);
+
+    // Footer - Right: Authority
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "italic bold 26px 'Playfair Display', Georgia, serif";
+    ctx.fillText("BPOReady Assessment Engine", width - 140, 950);
+    ctx.font = "16px Montserrat, sans-serif";
+    ctx.fillStyle = "#64748b";
+    ctx.fillText("Automated Speech & Interview Analytics", width - 140, 985);
+    ctx.font = "14px Montserrat, sans-serif";
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText("Cebu Technological University - Main Campus", width - 140, 1015);
+
+    // Trigger instant download
+    const cleanName = (candidateName || "Candidate").replace(/[^a-zA-Z0-9]/g, "_");
+    const link = document.createElement("a");
+    link.download = `BPOReady_Certificate_${cleanName}.png`;
+    link.href = canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins">
       <ApplicantSidebar activeItem="Apply for Certification" />
@@ -355,24 +566,26 @@ export default function ApplyCertification() {
       <div className="flex-1 ml-64 p-8">
         <div className="max-w-4xl mx-auto space-y-6">
 
-          {/* Top Banner */}
-          <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Official Accreditation</span>
-              <h1 className="text-2xl font-extrabold text-gray-900 mt-0.5">Apply for BPO Certification</h1>
+          {/* Top Banner (Only on Gatekeeper & Exam Stages) */}
+          {currentStep !== "STAGE_4_RESULT" && (
+            <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Official Accreditation</span>
+                <h1 className="text-2xl font-extrabold text-gray-900 mt-0.5">Apply for BPO Certification</h1>
+              </div>
+              {savedCertificate?.passed && (
+                <button
+                  onClick={() => setCurrentStep("STAGE_4_RESULT")}
+                  className="text-xs font-bold px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>🎓 View Issued Certificate</span>
+                </button>
+              )}
             </div>
-            {savedCertificate?.passed && currentStep !== "STAGE_4_RESULT" && (
-              <button
-                onClick={() => setCurrentStep("STAGE_4_RESULT")}
-                className="text-xs font-bold px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
-              >
-                <span>🎓 View Issued Certificate</span>
-              </button>
-            )}
-          </div>
+          )}
 
-          {/* Stepper Progress Bar (Only during active exam) */}
-          {currentStep.startsWith("STAGE_") && (
+          {/* Stepper Progress Bar (Only during active exam stages 1, 2, 3) */}
+          {currentStep.startsWith("STAGE_") && currentStep !== "STAGE_4_RESULT" && (
             <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-xs">
               <div className="flex items-center justify-between text-xs font-bold text-gray-600 mb-2">
                 <span className={currentStep === "STAGE_1_READING" ? "text-blue-600" : "text-gray-400"}>
@@ -384,18 +597,14 @@ export default function ApplyCertification() {
                 <span className={currentStep === "STAGE_3_CALL" ? "text-blue-600" : "text-gray-400"}>
                   3. Call Handling {stage3Score && "✓"}
                 </span>
-                <span className={currentStep === "STAGE_4_RESULT" ? "text-emerald-600 font-extrabold" : "text-gray-400"}>
-                  4. Certification
-                </span>
               </div>
               <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                 <div
                   className="bg-blue-600 h-full rounded-full transition-all duration-500"
                   style={{
                     width:
-                      currentStep === "STAGE_1_READING" ? "25%" :
-                      currentStep === "STAGE_2_INTERVIEW" ? "50%" :
-                      currentStep === "STAGE_3_CALL" ? "75%" : "100%"
+                      currentStep === "STAGE_1_READING" ? "33%" :
+                      currentStep === "STAGE_2_INTERVIEW" ? "66%" : "100%"
                   }}
                 />
               </div>
@@ -668,31 +877,30 @@ export default function ApplyCertification() {
 
           {/* STAGE 4: RESULT & CERTIFICATE VIEW */}
           {currentStep === "STAGE_4_RESULT" && savedCertificate && (
-            <div className="space-y-8">
+            <div className="space-y-4">
               
-              {/* Scorecard Header */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${savedCertificate.passed ? "text-emerald-600" : "text-rose-600"}`}>
-                    {savedCertificate.passed ? "Accreditation Granted" : "Benchmark Not Met"}
-                  </span>
-                  <h2 className="text-2xl font-black text-gray-900 mt-1">
-                    Certification Exam Score: {savedCertificate.overallScore}%
-                  </h2>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Standard passing threshold: 85% composite average across all 3 exam stages.
-                  </p>
-                </div>
+              {/* Clean Action Toolbar (Hidden during print) */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-2 print:hidden">
+                <button
+                  onClick={() => setCurrentStep("GATEKEEPER")}
+                  className="text-xs font-semibold text-gray-500 hover:text-gray-800 transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  ← Back to Prerequisite Audit
+                </button>
 
-                <div className="flex items-center gap-3">
-                  {savedCertificate.passed && (
-                    <button
-                      onClick={() => window.print()}
-                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                      🖨️ Print / Save Certificate PDF
-                    </button>
-                  )}
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={handleDownloadCertificate}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>📥 Download Certificate (HD PNG)</span>
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🖨️ Print / Save PDF</span>
+                  </button>
                   <button
                     onClick={() => {
                       setCurrentStep("STAGE_1_READING");
@@ -702,39 +910,14 @@ export default function ApplyCertification() {
                       setInterviewAnswers([]);
                       setCallTurn(0);
                     }}
-                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                    className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
                   >
-                    Retake Exam
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep("GATEKEEPER")}
-                    className="px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 font-bold text-xs rounded-xl transition cursor-pointer"
-                  >
-                    Prerequisite Overview
+                    <span>↺ Retake Exam</span>
                   </button>
                 </div>
               </div>
 
-              {/* 3-Stage Score Breakdown Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs text-center">
-                  <p className="text-xs text-gray-500 font-medium">Stage 1: Reading Articulation</p>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">{savedCertificate.stage1ReadingScore}%</p>
-                  <span className="text-[10px] text-gray-400">Pearson Versant WSM</span>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs text-center">
-                  <p className="text-xs text-gray-500 font-medium">Stage 2: HR Interview</p>
-                  <p className="text-2xl font-bold text-purple-600 mt-1">{savedCertificate.stage2InterviewScore}%</p>
-                  <span className="text-[10px] text-gray-400">5 BPO HR Competencies</span>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs text-center">
-                  <p className="text-xs text-gray-500 font-medium">Stage 3: Call Handling QA</p>
-                  <p className="text-2xl font-bold text-emerald-600 mt-1">{savedCertificate.stage3CallScore}%</p>
-                  <span className="text-[10px] text-gray-400">Empathy &amp; Resolution QA</span>
-                </div>
-              </div>
-
-              {/* THE OFFICIAL HIGH-RES CERTIFICATE (Printable) */}
+              {/* THE OFFICIAL HIGH-RES CERTIFICATE */}
               {savedCertificate.passed ? (
                 <div
                   id="bpo-official-certificate"
