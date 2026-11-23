@@ -26,6 +26,7 @@ import CallSimulationSession from "../pages/CallSimulationSession";
 import PracticeHistory from "../pages/PracticeHistory";
 import Profile from "../pages/Profile";
 import PerformanceSummary from "../pages/PerformanceSummary";
+import ApplyCertification from "../pages/ApplyCertification";
 import AdminLogin from "../pages/AdminLogin";
 import AdminDashboard from "../pages/AdminDashboard";
 import AdminScoringStandards from "../pages/AdminScoringStandards";
@@ -99,6 +100,8 @@ export default function AppRoutes() {
       <Route path="/practice-history" element={<PracticeHistory />} />
       <Route path="/PerformanceSummary" element={<PerformanceSummary />} />
       <Route path="/performance-summary" element={<PerformanceSummary />} />
+      <Route path="/apply-certification" element={<ApplyCertification />} />
+      <Route path="/ApplyCertification" element={<ApplyCertification />} />
       <Route path="/Profile" element={<Profile />} />
       <Route path="/profile" element={<Profile />} />
 

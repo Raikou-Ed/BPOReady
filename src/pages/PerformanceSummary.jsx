@@ -8,8 +8,25 @@ const PerformanceSummary = () => {
   const [summary, setSummary] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [demoBypass, setDemoBypass] = useState(() => {
+    try {
+      return localStorage.getItem("bpoready_cert_demo_bypass") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
+
+  const handleToggleDemoBypass = () => {
+    const nextVal = !demoBypass;
+    setDemoBypass(nextVal);
+    try {
+      localStorage.setItem("bpoready_cert_demo_bypass", String(nextVal));
+    } catch (e) {
+      console.warn("Could not save demo bypass state:", e);
+    }
+  };
 
   useEffect(() => {
     async function loadPerformanceData() {
@@ -119,11 +136,21 @@ const PerformanceSummary = () => {
         fillerControl = remoteSummary?.filler_control || Math.min(95, Math.max(65, finalAvg + 2));
         empathyScore = remoteSummary?.empathy_score || Math.min(94, Math.max(68, finalAvg - 1));
         cadenceScore = remoteSummary?.cadence_score || finalAvg;
+      }
 
-        if (finalAvg >= 85) readiness = "BPO Ready - Highly Recommended";
-        else if (finalAvg >= 75) readiness = "BPO Interview Ready";
-        else if (finalAvg >= 65) readiness = "Proficient - Near Ready";
-        else readiness = "Developing Competencies";
+      const totalR = Math.max(readingCount, remoteSummary?.category_counts?.paragraph_readings || 0);
+      const totalM = Math.max(mockCount, remoteSummary?.category_counts?.mock_interviews || 0);
+      const totalC = Math.max(callCount, remoteSummary?.category_counts?.call_simulations || 0);
+      const meetsQuotas = (totalR >= 10 && totalM >= 10 && totalC >= 10) || demoBypass;
+
+      if (!hasData && !demoBypass) {
+        readiness = "In Progress: Pipeline Incomplete";
+      } else if (!meetsQuotas) {
+        readiness = "In Progress: Pipeline Incomplete";
+      } else if (finalAvg >= 75 || (demoBypass && finalAvg < 75)) {
+        readiness = "BPO Interview Ready";
+      } else {
+        readiness = "Developing Competencies";
       }
 
       const recommendations = remoteSummary?.recommendations || (hasData ? [
@@ -159,17 +186,22 @@ const PerformanceSummary = () => {
     }
 
     loadPerformanceData();
-  }, [currentUser.id]);
+  }, [currentUser.id, demoBypass]);
 
   const getReadinessBadgeClass = (readiness) => {
     if (!readiness || readiness === "Not Started" || readiness === "No Data") {
       return "bg-gray-100 text-gray-700 border-gray-200";
     }
-    if (readiness?.includes("Highly Recommended")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (readiness?.includes("Interview Ready")) return "bg-green-50 text-green-700 border-green-200";
-    if (readiness?.includes("Near Ready")) return "bg-blue-50 text-blue-700 border-blue-200";
-    return "bg-amber-50 text-amber-700 border-amber-200";
+    if (readiness?.includes("Interview Ready")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (readiness?.includes("Pipeline Incomplete")) return "bg-blue-50 text-blue-700 border-blue-200";
+    if (readiness?.includes("Developing Competencies")) return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-gray-50 text-gray-700 border-gray-200";
   };
+
+  const isCertificationEligible = summary?.overall_readiness === "BPO Interview Ready";
+  const totalR = summary?.category_counts?.paragraph_readings || 0;
+  const totalM = summary?.category_counts?.mock_interviews || 0;
+  const totalC = summary?.category_counts?.call_simulations || 0;
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins text-gray-800">
@@ -448,6 +480,181 @@ const PerformanceSummary = () => {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* BPO Certification Pathway & Eligibility Card */}
+          <div className="bg-gradient-to-br from-white to-blue-50/40 rounded-2xl border-2 border-blue-200/80 p-7 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-xs">
+                  🎓
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-gray-900">
+                      Official BPO Voice Readiness Certification Pathway
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase tracking-wider">
+                      Accreditation
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Candidates with "BPO Interview Ready" status (10 Paragraph Readings, 10 Mock Interviews, 10 Call Simulations, and ≥75% Average) qualify for the Official 3-Stage Certification Exam.
+                  </p>
+                </div>
+              </div>
+
+              {/* Panel Demo Bypass Toggle */}
+              <button
+                onClick={handleToggleDemoBypass}
+                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition self-start md:self-auto cursor-pointer ${
+                  demoBypass
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                }`}
+                title="Toggle demo mode to test certification qualification without completing 30 practice sessions"
+              >
+                {demoBypass ? "⚡ Demo Bypass: Active (Unlocked)" : "⚡ Panel Demo Switch"}
+              </button>
+            </div>
+
+            {/* 4 Quotas Metric Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
+              {/* 1. Paragraph Readings */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-gray-600">Paragraph Readings</span>
+                  <span className={`font-bold ${totalR >= 10 || demoBypass ? "text-emerald-600" : "text-gray-500"}`}>
+                    {demoBypass ? 10 : Math.min(totalR, 10)} / 10
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${totalR >= 10 || demoBypass ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${demoBypass ? 100 : Math.min(100, (totalR / 10) * 100)}%` }}
+                  />
+                </div>
+                <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
+                  {totalR >= 10 || demoBypass ? (
+                    <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
+                  ) : (
+                    <span className="text-gray-400">{Math.max(0, 10 - totalR)} more drill{10 - totalR === 1 ? '' : 's'} needed</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Mock Interviews */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-gray-600">Mock Interviews</span>
+                  <span className={`font-bold ${totalM >= 10 || demoBypass ? "text-emerald-600" : "text-gray-500"}`}>
+                    {demoBypass ? 10 : Math.min(totalM, 10)} / 10
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${totalM >= 10 || demoBypass ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${demoBypass ? 100 : Math.min(100, (totalM / 10) * 100)}%` }}
+                  />
+                </div>
+                <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
+                  {totalM >= 10 || demoBypass ? (
+                    <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
+                  ) : (
+                    <span className="text-gray-400">{Math.max(0, 10 - totalM)} more session{10 - totalM === 1 ? '' : 's'} needed</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Call Simulations */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-gray-600">Call Simulations</span>
+                  <span className={`font-bold ${totalC >= 10 || demoBypass ? "text-emerald-600" : "text-gray-500"}`}>
+                    {demoBypass ? 10 : Math.min(totalC, 10)} / 10
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${totalC >= 10 || demoBypass ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${demoBypass ? 100 : Math.min(100, (totalC / 10) * 100)}%` }}
+                  />
+                </div>
+                <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
+                  {totalC >= 10 || demoBypass ? (
+                    <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
+                  ) : (
+                    <span className="text-gray-400">{Math.max(0, 10 - totalC)} more call{10 - totalC === 1 ? '' : 's'} needed</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 4. Minimum Passing Average */}
+              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-gray-600">Overall Average</span>
+                  <span className={`font-bold ${(summary?.average_score >= 75) || demoBypass ? "text-emerald-600" : "text-gray-500"}`}>
+                    {demoBypass && (!summary?.average_score || summary?.average_score < 75) ? "82%" : `${summary?.average_score || 0}%`} / 75%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${(summary?.average_score >= 75) || demoBypass ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${demoBypass && (!summary?.average_score || summary?.average_score < 75) ? 82 : Math.min(100, summary?.average_score || 0)}%` }}
+                  />
+                </div>
+                <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
+                  {(summary?.average_score >= 75) || demoBypass ? (
+                    <span className="text-emerald-600 font-bold">✓ Benchmark Attained</span>
+                  ) : (
+                    <span className="text-gray-400">Target ≥ 75% Average</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Status & CTA Banner */}
+            {isCertificationEligible ? (
+              <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <span className="text-lg">🎉</span>
+                    <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+                      Eligibility Confirmed: BPO Interview Ready
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                    You have successfully completed all requisite practice quotas and met the verbal competency threshold. You are now authorized to challenge the official 3-Stage BPO Certification Examination.
+                  </p>
+                </div>
+                <Link
+                  to="/apply-certification"
+                  className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0"
+                >
+                  <span>🎓 Apply for Certification Exam →</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="bg-gray-100/90 border border-gray-200 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <span className="text-lg">🔒</span>
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Certification Exam Currently Locked
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                    Complete the required minimum of 10 Paragraph Readings, 10 Mock Interviews, and 10 Call Simulations with an average of at least 75% to attain <strong>"BPO Interview Ready"</strong> status and unlock official accreditation.
+                  </p>
+                </div>
+                <Link
+                  to="/call-simulation"
+                  className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0"
+                >
+                  <span>Continue Practice Drills →</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* 5. Recent Completed Practice Sessions Table */}
