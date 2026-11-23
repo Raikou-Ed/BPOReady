@@ -80,9 +80,9 @@ export default function ApplyCertification() {
   const userEmail = (currentUser?.email || "").toLowerCase();
   const userName = (currentUser?.name || "").toLowerCase();
   const isEdrianAccount =
+    userEmail === "edrian@bpoready.com" ||
     userEmail.includes("edrian") ||
     userName.includes("edrian") ||
-    userEmail.includes("bpoready") ||
     currentUser?.id === 19;
 
   const candidateDisplayName =

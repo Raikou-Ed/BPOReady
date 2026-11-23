@@ -13,9 +13,9 @@ const PerformanceSummary = () => {
   const userEmail = (currentUser?.email || "").toLowerCase();
   const userName = (currentUser?.name || "").toLowerCase();
   const isEdrianAccount =
+    userEmail === "edrian@bpoready.com" ||
     userEmail.includes("edrian") ||
     userName.includes("edrian") ||
-    userEmail.includes("bpoready") ||
     currentUser?.id === 19;
 
   useEffect(() => {
@@ -110,6 +110,7 @@ const PerformanceSummary = () => {
       let fillerControl = 0;
       let empathyScore = 0;
       let cadenceScore = 0;
+      let coherenceScore = 0;
       let readiness = "Not Started";
 
       if (hasData) {
@@ -126,6 +127,7 @@ const PerformanceSummary = () => {
         fillerControl = remoteSummary?.filler_control || Math.min(95, Math.max(65, finalAvg + 2));
         empathyScore = remoteSummary?.empathy_score || Math.min(94, Math.max(68, finalAvg - 1));
         cadenceScore = remoteSummary?.cadence_score || finalAvg;
+        coherenceScore = remoteSummary?.coherence_score || Math.min(95, Math.max(70, finalAvg + 1));
       }
 
       let totalR = Math.max(readingCount, remoteSummary?.category_counts?.paragraph_readings || 0);
