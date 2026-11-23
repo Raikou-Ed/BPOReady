@@ -364,7 +364,13 @@ export default function PreAssessment() {
                             <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
                               {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
                             </span>
-                            {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
+                            {criterion.detail ? (
+                              <span className="text-[10px] text-gray-400 font-normal">
+                                {factorName === 'Coherence' && String(criterion.detail).includes('lexical coverage')
+                                  ? 'Diagnostic passage sentence flow'
+                                  : criterion.detail}
+                              </span>
+                            ) : null}
                           </div>
                           <span className="flex items-center text-gray-500 font-semibold">{criterion.weight ? `${criterion.weight}%` : '-'}</span>
                           <span className="flex items-center font-bold text-emerald-700">{criterion.weight ? Number(criterion.contribution).toFixed(2) : '-'}</span>
