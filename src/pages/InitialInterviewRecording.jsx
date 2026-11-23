@@ -146,15 +146,22 @@ const InitialInterviewRecording = () => {
           const depthScore = Math.min(100, Math.max(15, Math.round((avgWords / 35) * 85)));
           clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
           confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
-          grammarScore = Math.max(20, min(95, Math.round(85 - (fillerCount * 3))));
+          grammarScore = Math.max(20, Math.min(95, Math.round(85 - (fillerCount * 3))));
           answerQuality = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
 
+          // CEFR Table 3 Balanced 20% Scoring Model across 5 Spoken Language Dimensions
+          const accuracyScore = Math.max(10, Math.min(100, Math.round((clarityScore * 0.5) + (grammarScore * 0.5))));
+          const fluencyScore = pacingScore;
+          const rangeScore = fillerCleanliness;
+          const interactionScore = confidenceScore;
+          const coherenceScore = answerQuality;
+
           overallScore = Math.round(
-            (clarityScore * 0.25) +
-            (confidenceScore * 0.20) +
-            (pacingScore * 0.20) +
-            (fillerCleanliness * 0.15) +
-            (answerQuality * 0.20)
+            (accuracyScore * 0.20) +
+            (fluencyScore * 0.20) +
+            (rangeScore * 0.20) +
+            (interactionScore * 0.20) +
+            (coherenceScore * 0.20)
           );
 
           if (overallScore < 50) {
@@ -174,11 +181,18 @@ const InitialInterviewRecording = () => {
           feedback: {
             filler_word_count: fillerCount,
             filler_words: fillerMap,
-            clarity_score: clarityScore,
-            confidence_score: confidenceScore,
-            pacing_score: pacingScore,
+            // CEFR Table 3 5 Dimensions (Balanced 20% each)
+            accuracy_score: accuracyScore,
+            fluency_score: fluencyScore,
+            range_score: rangeScore,
+            interaction_score: interactionScore,
+            coherence_score: coherenceScore,
+            // Backward-compatible aliases
+            clarity_score: accuracyScore,
+            confidence_score: interactionScore,
+            pacing_score: fluencyScore,
             grammar_score: grammarScore,
-            answer_quality_score: answerQuality,
+            answer_quality_score: coherenceScore,
             feedback_text: feedbackText,
             suggestions: suggestions,
           },

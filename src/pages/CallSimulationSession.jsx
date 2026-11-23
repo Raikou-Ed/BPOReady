@@ -430,6 +430,11 @@ const CallSimulationSession = () => {
     if (!hasMeaningfulSpeech) {
       const zeroEvaluation = {
         overall_score: 0,
+        interaction_score: 0,
+        coherence_score: 0,
+        fluency_score: 0,
+        accuracy_score: 0,
+        range_score: 0,
         empathy_score: 0,
         resolution_score: 0,
         clarity_score: 0,
@@ -486,22 +491,40 @@ const CallSimulationSession = () => {
     } catch (err) {
       console.warn("Backend evaluation failed, computing local fallback:", err);
       const wordCount = spokenTokens.length;
-      const calcClarity = Math.min(95, Math.max(50, 60 + Math.round(wordCount * 1.5)));
-      const calcEmpathy = Math.min(90, Math.max(55, 65 + Math.round(wordCount * 0.8)));
-      const calcResolution = Math.min(90, Math.max(55, 65 + Math.round(wordCount * 0.8)));
-      const calcOverall = Math.round((calcEmpathy * 0.4) + (calcResolution * 0.4) + (calcClarity * 0.2));
+      // CEFR Table 3 Customer-Centric Weighting (Total: 100%)
+      // Interaction (30%), Coherence (25%), Fluency (15%), Accuracy (15%), Range (15%)
+      const interactionScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      const coherenceScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      const fluencyScore = Math.min(96, Math.max(60, 70 + Math.round(wordCount * 0.6)));
+      const accuracyScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.7)));
+      const rangeScore = Math.min(95, Math.max(55, 68 + Math.round(wordCount * 0.6)));
+
+      const calcOverall = Math.round(
+        (interactionScore * 0.30) +
+        (coherenceScore * 0.25) +
+        (fluencyScore * 0.15) +
+        (accuracyScore * 0.15) +
+        (rangeScore * 0.15)
+      );
 
       const fallbackEvaluation = {
         overall_score: calcOverall,
-        empathy_score: calcEmpathy,
-        resolution_score: calcResolution,
-        clarity_score: calcClarity,
+        // CEFR Table 3 Spoken Dimensions
+        interaction_score: interactionScore,
+        coherence_score: coherenceScore,
+        fluency_score: fluencyScore,
+        accuracy_score: accuracyScore,
+        range_score: rangeScore,
+        // Backward compatibility
+        empathy_score: interactionScore,
+        resolution_score: coherenceScore,
+        clarity_score: accuracyScore,
         feedback_text:
-          "Good call handling attempt. You actively engaged with the customer. Continue working on your opening composure and resolution phrasing.",
+          "Good call handling attempt. You actively engaged with the customer. Continue working on your opening composure, de-escalation validation, and step-by-step resolution phrasing.",
         suggestions: [
-          "Validate customer emotions promptly early in the dialogue",
-          "Maintain concise, step-by-step explanations during troubleshooting",
-          "Ensure closing courtesy statement is offered with warm vocal tone",
+          "Validate customer emotions promptly early in the dialogue (CEFR Interaction)",
+          "Maintain concise, step-by-step troubleshooting explanations (CEFR Coherence)",
+          "Keep a calm, steady conversational pace under customer escalation (CEFR Fluency)",
         ],
       };
       setEvaluation(fallbackEvaluation);
@@ -892,39 +915,61 @@ const CallSimulationSession = () => {
                   </div>
                 </div>
 
-                {/* Scorecard 3-Metric Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-xs text-purple-700 font-semibold uppercase">Empathy & Rapport</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200">40%</span>
+                {/* Scorecard 5-Dimension CEFR Breakdown (Customer-Centric Weighting: 30/25/15/15/15 = 100%) */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-purple-50/50 p-3.5 rounded-xl border border-purple-200 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <span className="text-xs text-purple-700 font-semibold uppercase">Interaction</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 border border-purple-200">30%</span>
                     </div>
-                    <p className="text-3xl font-extrabold text-purple-700 mt-1">
-                      {evaluation ? (evaluation.empathy_score ?? 0) : 0}%
+                    <p className="text-2xl font-extrabold text-purple-700">
+                      {evaluation ? (evaluation.interaction_score ?? evaluation.empathy_score ?? 0) : 0}%
                     </p>
-                    <p className="text-xs text-purple-600/80 mt-1">Emotion validation & politeness</p>
+                    <p className="text-[10px] text-purple-600/90 mt-0.5">Empathy &amp; De-escalation</p>
                   </div>
 
-                  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-xs text-emerald-700 font-semibold uppercase">Issue Resolution</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">40%</span>
+                  <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <span className="text-xs text-emerald-700 font-semibold uppercase">Coherence</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">25%</span>
                     </div>
-                    <p className="text-3xl font-extrabold text-emerald-700 mt-1">
-                      {evaluation ? (evaluation.resolution_score ?? 0) : 0}%
+                    <p className="text-2xl font-extrabold text-emerald-700">
+                      {evaluation ? (evaluation.coherence_score ?? evaluation.resolution_score ?? 0) : 0}%
                     </p>
-                    <p className="text-xs text-emerald-600/80 mt-1">Troubleshooting & step adherence</p>
+                    <p className="text-[10px] text-emerald-600/90 mt-0.5">Troubleshooting &amp; Steps</p>
                   </div>
 
-                  <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-200 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className="text-xs text-blue-700 font-semibold uppercase">Speech Clarity</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">20%</span>
+                  <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-200 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <span className="text-xs text-blue-700 font-semibold uppercase">Fluency</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700 border border-blue-200">15%</span>
                     </div>
-                    <p className="text-3xl font-extrabold text-blue-700 mt-1">
-                      {evaluation ? (evaluation.clarity_score ?? 0) : 0}%
+                    <p className="text-2xl font-extrabold text-blue-700">
+                      {evaluation ? (evaluation.fluency_score ?? evaluation.overall_score ?? 0) : 0}%
                     </p>
-                    <p className="text-xs text-blue-600/80 mt-1">Pronunciation & concise phrasing</p>
+                    <p className="text-[10px] text-blue-600/90 mt-0.5">Calm Conversational Pace</p>
+                  </div>
+
+                  <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-200 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <span className="text-xs text-indigo-700 font-semibold uppercase">Accuracy</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">15%</span>
+                    </div>
+                    <p className="text-2xl font-extrabold text-indigo-700">
+                      {evaluation ? (evaluation.accuracy_score ?? evaluation.clarity_score ?? 0) : 0}%
+                    </p>
+                    <p className="text-[10px] text-indigo-600/90 mt-0.5">Verification &amp; Clarity</p>
+                  </div>
+
+                  <div className="bg-amber-50/50 p-3.5 rounded-xl border border-amber-200 text-center col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <span className="text-xs text-amber-700 font-semibold uppercase">Range</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 border border-amber-200">15%</span>
+                    </div>
+                    <p className="text-2xl font-extrabold text-amber-700">
+                      {evaluation ? (evaluation.range_score ?? (evaluation.overall_score ? Math.min(95, evaluation.overall_score + 2) : 0)) : 0}%
+                    </p>
+                    <p className="text-[10px] text-amber-600/90 mt-0.5">Polite BPO Vocabulary</p>
                   </div>
                 </div>
 

@@ -15,7 +15,7 @@ export const PILLAR_FORMULAS = {
   },
   'Fluency': {
     name: 'Fluency (CEFR Fluency)',
-    weight: '25%',
+    weight: '30%',
     formula: '(Pacing Rate × 65%) + (Delivery Consistency × 35%)',
     subWeights: [
       { name: 'Pacing Rate', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
@@ -25,7 +25,7 @@ export const PILLAR_FORMULAS = {
   },
   'Sentence Mastery': {
     name: 'Sentence Mastery (CEFR Range)',
-    weight: '25%',
+    weight: '20%',
     formula: '(Filler Cleanliness × 55%) + (Content Accuracy × 45%)',
     subWeights: [
       { name: 'Filler Cleanliness', weight: '55%', desc: 'Suppression of verbal crutches & sentence hesitations' },
@@ -46,30 +46,32 @@ export const PILLAR_FORMULAS = {
 
   // Mock Interview Scoring Model
   'MockInterview': {
-    name: 'Mock Interview Scoring (CEFR Interaction & Coherence)',
+    name: 'Mock Interview Scoring (CEFR Table 3 Balanced Model)',
     weight: '100%',
-    formula: '(Clarity × 25%) + (Confidence × 20%) + (Pacing × 20%) + (Answer Quality × 20%) + (Grammar × 15%)',
+    formula: '(Accuracy × 20%) + (Fluency × 20%) + (Range × 20%) + (Interaction × 20%) + (Coherence × 20%)',
     subWeights: [
-      { name: 'Speech Clarity (Accuracy)', weight: '25%', desc: 'Articulation, vocal audibility & speech crispness' },
-      { name: 'Confidence & Composure (Interaction)', weight: '20%', desc: 'Hesitation-free delivery & self-assured tone' },
-      { name: 'Speaking Pace (Fluency)', weight: '20%', desc: 'Conversational tempo (target: 120–150 words per minute)' },
-      { name: 'Answer Quality (Coherence)', weight: '20%', desc: 'STAR structure, relevance & customer orientation' },
-      { name: 'Grammar & Syntax (Range)', weight: '15%', desc: 'Syntactic accuracy and sentence construction' },
+      { name: 'Accuracy (Grammar & Enunciation)', weight: '20%', desc: 'Grammatical control, clear pronunciation & acoustic crispness' },
+      { name: 'Fluency (Speaking Pace)', weight: '20%', desc: 'Natural tempo without long hesitation (120–150 words per minute)' },
+      { name: 'Range (Professional Lexicon)', weight: '20%', desc: 'Professional BPO vocabulary without crutch words or fillers' },
+      { name: 'Interaction (Composure & Tone)', weight: '20%', desc: 'Professional composure, question relevance & confident delivery' },
+      { name: 'Coherence (STAR Method Structure)', weight: '20%', desc: 'Structuring answers using Situation, Task, Action, and Result' },
     ],
     standard: 'CEFR Table 3: Spoken Interaction & STAR Coherence',
   },
 
   // Call Simulation QA Scorecard
   'CallSimulation': {
-    name: 'Call QA Scorecard (CEFR Spoken Interaction)',
+    name: 'Call Simulation QA (CEFR Customer-Centric Model)',
     weight: '100%',
-    formula: '(Empathy & Rapport × 40%) + (Issue Resolution × 40%) + (Speech Clarity × 20%)',
+    formula: '(Interaction × 30%) + (Coherence × 25%) + (Fluency × 15%) + (Accuracy × 15%) + (Range × 15%)',
     subWeights: [
-      { name: 'Empathy & Rapport (Interaction)', weight: '40%', desc: 'Customer rapport, active listening & de-escalation' },
-      { name: 'Issue Resolution (Coherence)', weight: '40%', desc: 'Troubleshooting adherence, procedural accuracy & resolution' },
-      { name: 'Speech Clarity (Accuracy & Fluency)', weight: '20%', desc: 'Professional phone manner, audibility & phrasing' },
+      { name: 'Interaction (Empathy & De-escalation)', weight: '30%', desc: 'Empathy validation, customer de-escalation & active listening' },
+      { name: 'Coherence (Troubleshooting & Resolution)', weight: '25%', desc: 'Step-by-step troubleshooting, timeline setting & issue resolution' },
+      { name: 'Fluency (Conversational Pace)', weight: '15%', desc: 'Calm, steady conversational tempo with customer under pressure' },
+      { name: 'Accuracy (Verification & Enunciation)', weight: '15%', desc: 'Accurate customer verification & clear phonetic enunciation' },
+      { name: 'Range (Customer Service Vocabulary)', weight: '15%', desc: 'Polite customer service phrasing ("Certainly", "Allow me to verify")' },
     ],
-    standard: 'CEFR Table 3: Spoken Interaction & Customer QA',
+    standard: 'CEFR Table 3: Spoken Interaction & Customer Phone Support',
   },
 };
 

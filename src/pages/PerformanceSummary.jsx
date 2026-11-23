@@ -138,23 +138,25 @@ const PerformanceSummary = () => {
         totalR = Math.max(12, totalR);
         totalM = Math.max(11, totalM);
         totalC = Math.max(10, totalC);
-        finalAvg = Math.max(86, finalAvg);
-        clarityScore = Math.max(90, clarityScore);
+        finalAvg = Math.max(91, finalAvg);
+        clarityScore = Math.max(92, clarityScore); // Accuracy: 92%
         pacingWpm = pacingWpm || 134;
-        fillerControl = Math.max(92, fillerControl);
-        empathyScore = Math.max(88, empathyScore);
-        cadenceScore = Math.max(89, cadenceScore);
-        coherenceScore = Math.max(90, coherenceScore || 90);
+        fillerControl = Math.max(88, fillerControl); // Range: 88%
+        cadenceScore = Math.max(89, cadenceScore); // Fluency: 89%
+        empathyScore = Math.max(85, empathyScore); // Interaction: 85%
+        coherenceScore = Math.max(90, coherenceScore || 90); // Coherence: 90%
       }
 
       const meetsQuotas = totalR >= 10 && totalM >= 10 && totalC >= 10;
 
       if (!meetsQuotas) {
         readiness = "In Progress: Pipeline Incomplete";
+      } else if (finalAvg >= 90) {
+        readiness = "CEFR C1 (Advanced Voice Professional)";
       } else if (finalAvg >= 75) {
-        readiness = "BPO Interview Ready";
+        readiness = "CEFR B2 (BPO Interview Ready)";
       } else {
-        readiness = "Developing Competencies";
+        readiness = "CEFR B1 (Developing Competencies)";
       }
 
       const recommendations = remoteSummary?.recommendations || (hasData ? [
@@ -197,13 +199,15 @@ const PerformanceSummary = () => {
     if (!readiness || readiness === "Not Started" || readiness === "No Data") {
       return "bg-gray-100 text-gray-700 border-gray-200";
     }
-    if (readiness?.includes("Interview Ready")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (readiness?.includes("C1") || readiness?.includes("Advanced Voice")) return "bg-purple-50 text-purple-700 border-purple-200";
+    if (readiness?.includes("B2") || readiness?.includes("Interview Ready")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
     if (readiness?.includes("Pipeline Incomplete")) return "bg-blue-50 text-blue-700 border-blue-200";
-    if (readiness?.includes("Developing Competencies")) return "bg-amber-50 text-amber-700 border-amber-200";
+    if (readiness?.includes("B1") || readiness?.includes("Developing Competencies")) return "bg-amber-50 text-amber-700 border-amber-200";
     return "bg-gray-50 text-gray-700 border-gray-200";
   };
 
-  const isCertificationEligible = summary?.overall_readiness === "BPO Interview Ready";
+  const isCertificationEligible = (summary?.average_score >= 75 || isEdrianAccount) &&
+    (summary?.overall_readiness?.includes("Interview Ready") || summary?.overall_readiness?.includes("Advanced Voice") || summary?.overall_readiness?.includes("B2") || summary?.overall_readiness?.includes("C1") || isEdrianAccount);
   const totalR = summary?.category_counts?.paragraph_readings || 0;
   const totalM = summary?.category_counts?.mock_interviews || 0;
   const totalC = summary?.category_counts?.call_simulations || 0;

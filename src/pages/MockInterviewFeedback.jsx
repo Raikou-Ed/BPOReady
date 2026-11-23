@@ -22,6 +22,13 @@ const MockInterviewFeedback = () => {
   const grammar = Number(feedback.grammar_score ?? 0);
   const answerQuality = Number(feedback.answer_quality_score ?? 0);
 
+  // CEFR Table 3 5-Dimension Competencies (Balanced 20% each)
+  const accuracy = Number(feedback.accuracy_score ?? clarity ?? 0);
+  const fluency = Number(feedback.fluency_score ?? pacing ?? 0);
+  const range = Number(feedback.range_score ?? Math.max(10, 100 - (fillerCount * 8)));
+  const interaction = Number(feedback.interaction_score ?? confidence ?? 0);
+  const coherence = Number(feedback.coherence_score ?? answerQuality ?? 0);
+
   const feedbackText = feedback.feedback_text ||
     (overallScore < 50
       ? "The responses provided in this mock interview were very brief, hesitant, or lacked sufficient substance. Multiple disfluencies or incomplete answers were detected. Practice delivering structured answers before retrying."
@@ -101,53 +108,58 @@ const MockInterviewFeedback = () => {
             </div>
           </div>
 
-          {/* Speech Analysis Metrics Grid */}
+          {/* CEFR Table 3 Spoken Language Metrics Grid (Balanced 20% each) */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Clarity</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">25%</span>
+                <p className="text-xs text-gray-500 font-semibold">Accuracy</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(clarity)}%</p>
+              <p className="text-2xl font-bold text-gray-800">{Math.round(accuracy)}%</p>
               <span className={`text-[11px] font-semibold ${clarityTier.color}`}>{clarityTier.label}</span>
+              <p className="text-[10px] text-gray-400 mt-0.5">Clarity &amp; Grammar</p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Confidence</p>
+                <p className="text-xs text-gray-500 font-semibold">Fluency</p>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(confidence)}%</p>
-              <span className={`text-[11px] font-semibold ${confidenceTier.color}`}>{confidenceTier.label}</span>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Pacing</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(pacing)}%</p>
+              <p className="text-2xl font-bold text-gray-800">{Math.round(fluency)}%</p>
               <span className={`text-[11px] font-semibold ${pacingTier.color}`}>{pacingTier.label}</span>
+              <p className="text-[10px] text-gray-400 mt-0.5">120–150 WPM Tempo</p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Answer Quality</p>
+                <p className="text-xs text-gray-500 font-semibold">Range</p>
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(answerQuality)}%</p>
-              <span className={`text-[11px] font-semibold ${qualityTier.color}`}>{qualityTier.label}</span>
+              <p className="text-2xl font-bold text-gray-800">{Math.round(range)}%</p>
+              <span className={`text-[11px] font-semibold ${fillerTier.color}`}>
+                {fillerCount === 0 ? "Clean Lexicon" : `${fillerCount} Fillers`}
+              </span>
+              <p className="text-[10px] text-gray-400 mt-0.5">Crutch Suppression</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <p className="text-xs text-gray-500 font-semibold">Interaction</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{Math.round(interaction)}%</p>
+              <span className={`text-[11px] font-semibold ${confidenceTier.color}`}>{confidenceTier.label}</span>
+              <p className="text-[10px] text-gray-400 mt-0.5">Composure &amp; Tone</p>
             </div>
 
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center col-span-2 md:col-span-1">
               <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Filler Words</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Tracked</span>
+                <p className="text-xs text-gray-500 font-semibold">Coherence</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
               </div>
-              <p className="text-2xl font-bold text-gray-800">{fillerCount}</p>
-              <span className={`text-[11px] font-semibold ${fillerTier.color}`}>
-                {fillerTier.label}
-              </span>
+              <p className="text-2xl font-bold text-gray-800">{Math.round(coherence)}%</p>
+              <span className={`text-[11px] font-semibold ${qualityTier.color}`}>{qualityTier.label}</span>
+              <p className="text-[10px] text-gray-400 mt-0.5">STAR Method Flow</p>
             </div>
           </div>
 

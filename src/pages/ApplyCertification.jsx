@@ -303,12 +303,20 @@ export default function ApplyCertification() {
         playCustomerAudio(nextAudio);
       }
     } else {
-      // Completed all call turns -> evaluate Stage 3
+      // Completed all call turns -> evaluate Stage 3 (CEFR Table 3 Customer-Centric Weighting: 30/25/15/15/15)
       const totalWords = updatedHistory.reduce((acc, h) => acc + h.agent.split(/\s+/).filter(Boolean).length, 0);
-      const empathyScore = Math.min(95, Math.max(65, 60 + totalWords * 0.5));
-      const resolutionScore = Math.min(96, Math.max(70, 65 + totalWords * 0.6));
-      const clarityScore = Math.min(94, Math.max(68, 60 + totalWords * 0.5));
-      const callQA = Math.round((empathyScore * 0.40) + (resolutionScore * 0.40) + (clarityScore * 0.20));
+      const interactionScore = Math.min(95, Math.max(65, 60 + totalWords * 0.5));
+      const coherenceScore = Math.min(96, Math.max(70, 65 + totalWords * 0.6));
+      const fluencyScore = Math.min(95, Math.max(65, 70 + totalWords * 0.4));
+      const accuracyScore = Math.min(94, Math.max(68, 60 + totalWords * 0.5));
+      const rangeScore = Math.min(95, Math.max(68, 65 + totalWords * 0.4));
+      const callQA = Math.round(
+        (interactionScore * 0.30) +
+        (coherenceScore * 0.25) +
+        (fluencyScore * 0.15) +
+        (accuracyScore * 0.15) +
+        (rangeScore * 0.15)
+      );
 
       setStage3Score(callQA);
 

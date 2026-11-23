@@ -118,14 +118,18 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Pronunciation', pillar: 'Pronunciation', value: 0, weight: 30, contribution: 0, detail: 'No speech detected' },
-        { name: 'Fluency', pillar: 'Fluency', value: 0, weight: 25, contribution: 0, detail: 'No speech detected' },
-        { name: 'Sentence Mastery', pillar: 'Sentence Mastery', value: 0, weight: 25, contribution: 0, detail: 'No speech detected' },
-        { name: 'Vocabulary', pillar: 'Vocabulary', value: 0, weight: 20, contribution: 0, detail: 'No speech detected' },
+        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 30, contribution: 0, detail: 'No speech detected' },
+        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 30, contribution: 0, detail: 'No speech detected' },
+        { name: 'Range', pillar: 'Range (Passage Lexical Coverage)', value: 0, weight: 20, contribution: 0, detail: 'No speech detected' },
+        { name: 'Coherence', pillar: 'Coherence (Sentence Flow & Discourse)', value: 0, weight: 20, contribution: 0, detail: 'No speech detected' },
       ],
       metrics: {
-        pronunciation: 0,
+        accuracy: 0,
         fluency: 0,
+        range: 0,
+        coherence: 0,
+        // Backward-compatible aliases for legacy readers
+        pronunciation: 0,
         sentenceMastery: 0,
         vocabulary: 0,
         pacing: 0,
@@ -134,17 +138,23 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
+        accuracyWeight: 30,
+        fluencyWeight: 30,
+        rangeWeight: 20,
+        coherenceWeight: 20,
         pronunciationWeight: 30,
-        fluencyWeight: 25,
-        sentenceMasteryWeight: 25,
+        sentenceMasteryWeight: 20,
         vocabularyWeight: 20,
-        pacingWeight: 25,
+        pacingWeight: 30,
         contentWeight: 20,
-        clarityConfidenceWeight: 25,
-        deliveryConsistencyWeight: 25,
+        clarityConfidenceWeight: 20,
+        deliveryConsistencyWeight: 30,
         completionWeight: 20,
-        pronunciationContribution: 0,
+        accuracyContribution: 0,
         fluencyContribution: 0,
+        rangeContribution: 0,
+        coherenceContribution: 0,
+        pronunciationContribution: 0,
         sentenceMasteryContribution: 0,
         vocabularyContribution: 0,
         transcriptWordCount: 0,
@@ -174,14 +184,18 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Pronunciation', pillar: 'Pronunciation', value: 0, weight: 30, contribution: 0, detail: 'Passage not read' },
-        { name: 'Fluency', pillar: 'Fluency', value: 0, weight: 25, contribution: 0, detail: 'Off-topic speech' },
-        { name: 'Sentence Mastery', pillar: 'Sentence Mastery', value: 0, weight: 25, contribution: 0, detail: 'Passage not read' },
-        { name: 'Vocabulary', pillar: 'Vocabulary', value: 0, weight: 20, contribution: 0, detail: `${matchedWords} word${matchedWords === 1 ? '' : 's'} matched (unrelated speech)` },
+        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 30, contribution: 0, detail: 'Passage not read' },
+        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 30, contribution: 0, detail: 'Off-topic speech' },
+        { name: 'Range', pillar: 'Range (Passage Lexical Coverage)', value: 0, weight: 20, contribution: 0, detail: 'Passage not read' },
+        { name: 'Coherence', pillar: 'Coherence (Sentence Flow & Discourse)', value: 0, weight: 20, contribution: 0, detail: `${matchedWords} word${matchedWords === 1 ? '' : 's'} matched (unrelated speech)` },
       ],
       metrics: {
-        pronunciation: 0,
+        accuracy: 0,
         fluency: 0,
+        range: 0,
+        coherence: 0,
+        // Backward-compatible aliases for legacy readers
+        pronunciation: 0,
         sentenceMastery: 0,
         vocabulary: 0,
         pacing: 0,
@@ -190,17 +204,23 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
+        accuracyWeight: 30,
+        fluencyWeight: 30,
+        rangeWeight: 20,
+        coherenceWeight: 20,
         pronunciationWeight: 30,
-        fluencyWeight: 25,
-        sentenceMasteryWeight: 25,
+        sentenceMasteryWeight: 20,
         vocabularyWeight: 20,
-        pacingWeight: 25,
+        pacingWeight: 30,
         contentWeight: 20,
-        clarityConfidenceWeight: 25,
-        deliveryConsistencyWeight: 25,
+        clarityConfidenceWeight: 20,
+        deliveryConsistencyWeight: 30,
         completionWeight: 20,
-        pronunciationContribution: 0,
+        accuracyContribution: 0,
         fluencyContribution: 0,
+        rangeContribution: 0,
+        coherenceContribution: 0,
+        pronunciationContribution: 0,
         sentenceMasteryContribution: 0,
         vocabularyContribution: 0,
         transcriptWordCount: transcriptWords.length,
@@ -251,41 +271,50 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   const fillerCleanliness = Math.max(20, Math.min(100, speechCriteria.filler));
   const contentScore = Math.max(0, Math.min(100, speechCriteria.content));
 
-  // Pearson Versant Pillar 1: Pronunciation (Weight: 30%) - Articulation, vowel/consonant quality, intelligibility
-  const pronunciationScore = Math.max(10, Math.min(100, Math.round(
+  // CEFR Table 3 Dimension 1: Accuracy / Pronunciation (Weight: 30%) - Acoustic enunciation & phonetic clarity
+  const accuracyScore = Math.max(10, Math.min(100, Math.round(
     (contentScore * 0.40) + (fillerCleanliness * 0.30) + (audioBlendScore * 0.30)
   )));
 
-  // Pearson Versant Pillar 2: Fluency (Weight: 25%) - Rhythm, speaking pace (115-145 WPM), pause & dead air control
+  // CEFR Table 3 Dimension 2: Fluency (Weight: 30%) - Conversational reading pace (115-145 WPM) & pause smoothness
   const fluencyScore = Math.max(10, Math.min(100, Math.round(
     (paceScore * 0.65) + (audioBlendScore * 0.35)
   )));
 
-  // Pearson Versant Pillar 3: Sentence Mastery (Weight: 25%) - Grammar flow, structural consistency, filler-word suppression
-  const sentenceMasteryScore = Math.max(10, Math.min(100, Math.round(
+  // CEFR Table 3 Dimension 3: Range / Sentence Mastery (Weight: 20%) - Vocabulary coverage & filler suppression
+  const rangeScore = Math.max(10, Math.min(100, Math.round(
     (fillerCleanliness * 0.55) + (contentScore * 0.45)
   )));
 
-  // Pearson Versant Pillar 4: Vocabulary (Weight: 20%) - Lexical accuracy, passage word coverage & completion
-  const vocabularyScore = Math.max(0, Math.min(100, Math.round(
+  // CEFR Table 3 Dimension 4: Coherence / Vocabulary (Weight: 20%) - Complete sentence flow without choppy breaks
+  const coherenceScore = Math.max(0, Math.min(100, Math.round(
     (contentScore * 0.70) + (completionScore * 0.30)
   )));
 
-  // Pearson Versant Official Weights (Total: 30 + 25 + 25 + 20 = 100%)
-  const pronunciationWeight = 30;
-  const fluencyWeight = 25;
-  const sentenceMasteryWeight = 25;
-  const vocabularyWeight = 20;
+  // CEFR Table 3 Official Calibrated Weights (Total: 30 + 30 + 20 + 20 = 100%)
+  const accuracyWeight = 30;
+  const fluencyWeight = 30;
+  const rangeWeight = 20;
+  const coherenceWeight = 20;
 
-  const pronunciationContribution = Number(((pronunciationScore * pronunciationWeight) / 100).toFixed(2));
+  // Backward compatibility weights
+  const pronunciationWeight = accuracyWeight;
+  const sentenceMasteryWeight = rangeWeight;
+  const vocabularyWeight = coherenceWeight;
+
+  const accuracyContribution = Number(((accuracyScore * accuracyWeight) / 100).toFixed(2));
   const fluencyContribution = Number(((fluencyScore * fluencyWeight) / 100).toFixed(2));
-  const sentenceMasteryContribution = Number(((sentenceMasteryScore * sentenceMasteryWeight) / 100).toFixed(2));
-  const vocabularyContribution = Number(((vocabularyScore * vocabularyWeight) / 100).toFixed(2));
+  const rangeContribution = Number(((rangeScore * rangeWeight) / 100).toFixed(2));
+  const coherenceContribution = Number(((coherenceScore * coherenceWeight) / 100).toFixed(2));
 
-  const rawSum = pronunciationContribution +
+  const pronunciationContribution = accuracyContribution;
+  const sentenceMasteryContribution = rangeContribution;
+  const vocabularyContribution = coherenceContribution;
+
+  const rawSum = accuracyContribution +
     fluencyContribution +
-    sentenceMasteryContribution +
-    vocabularyContribution;
+    rangeContribution +
+    coherenceContribution;
 
   const score = Math.max(0, Math.min(100, Number(rawSum.toFixed(2))));
 
@@ -307,68 +336,77 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   }
 
   const metrics = {
-    pronunciation: Math.round(pronunciationScore),
+    accuracy: Math.round(accuracyScore),
     fluency: Math.round(fluencyScore),
-    sentenceMastery: Math.round(sentenceMasteryScore),
-    vocabulary: Math.round(vocabularyScore),
+    range: Math.round(rangeScore),
+    coherence: Math.round(coherenceScore),
     // Backward-compatible aliases for legacy readers
+    pronunciation: Math.round(accuracyScore),
+    sentenceMastery: Math.round(rangeScore),
+    vocabulary: Math.round(coherenceScore),
     pacing: Math.round(fluencyScore),
-    content: Math.round(vocabularyScore),
-    clarityConfidence: Math.round(sentenceMasteryScore),
+    content: Math.round(coherenceScore),
+    clarityConfidence: Math.round(rangeScore),
     deliveryConsistency: Math.round(fluencyScore),
     completion: Math.round(completionScore),
     targetWordsPerMinute: 125,
-    pronunciationWeight,
+    accuracyWeight,
     fluencyWeight,
+    rangeWeight,
+    coherenceWeight,
+    pronunciationWeight,
     sentenceMasteryWeight,
     vocabularyWeight,
     pacingWeight: fluencyWeight,
-    contentWeight: vocabularyWeight,
-    clarityConfidenceWeight: sentenceMasteryWeight,
+    contentWeight: coherenceWeight,
+    clarityConfidenceWeight: rangeWeight,
     deliveryConsistencyWeight: fluencyWeight,
-    completionWeight: vocabularyWeight,
-    pronunciationContribution,
+    completionWeight: coherenceWeight,
+    accuracyContribution,
     fluencyContribution,
+    rangeContribution,
+    coherenceContribution,
+    pronunciationContribution,
     sentenceMasteryContribution,
     vocabularyContribution,
     pacingContribution: fluencyContribution,
-    contentContribution: vocabularyContribution,
+    contentContribution: coherenceContribution,
     transcriptWordCount: speechCriteria.transcriptWordCount,
     transcriptAvailable: Boolean(transcriptWords.length),
   };
 
   const criteria = [
     {
-      name: 'Pronunciation',
-      pillar: 'Articulation & Intelligibility',
-      value: metrics.pronunciation,
-      weight: pronunciationWeight,
-      contribution: pronunciationContribution,
+      name: 'Accuracy',
+      pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
+      value: metrics.accuracy,
+      weight: accuracyWeight,
+      contribution: accuracyContribution,
       detail: 'Vowel & consonant articulation clarity',
     },
     {
       name: 'Fluency',
-      pillar: 'Rhythm & Pacing Control',
+      pillar: 'Fluency (Speech Rate & Pause Smoothness)',
       value: metrics.fluency,
       weight: fluencyWeight,
       contribution: fluencyContribution,
-      detail: `${Math.round(wordsPerMinute)} WPM • Flow & pause control`,
+      detail: `${Math.round(wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
     },
     {
-      name: 'Sentence Mastery',
-      pillar: 'Grammar & Structural Accuracy',
-      value: metrics.sentenceMastery,
-      weight: sentenceMasteryWeight,
-      contribution: sentenceMasteryContribution,
-      detail: 'Grammar structure & filler control',
+      name: 'Range',
+      pillar: 'Range (Passage Vocabulary & Filler Suppression)',
+      value: metrics.range,
+      weight: rangeWeight,
+      contribution: rangeContribution,
+      detail: 'Lexical repertoire & suppression of verbal crutches',
     },
     {
-      name: 'Vocabulary',
-      pillar: 'Lexical Precision & Coverage',
-      value: metrics.vocabulary,
-      weight: vocabularyWeight,
-      contribution: vocabularyContribution,
-      detail: transcriptWords.length ? `${speechCriteria.matchedWords} words matched` : 'Lexical passage coverage',
+      name: 'Coherence',
+      pillar: 'Coherence (Discourse Flow & Sentence Connection)',
+      value: metrics.coherence,
+      weight: coherenceWeight,
+      contribution: coherenceContribution,
+      detail: transcriptWords.length ? `${speechCriteria.matchedWords} words matched` : 'Complete sentence discourse flow',
     },
   ];
 
@@ -376,7 +414,7 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     score,
     placedLevel,
     wordsPerMinute: Math.round(wordsPerMinute),
-    framework: 'Standard Speech Evaluation',
+    framework: 'CEFR Table 3 Spoken Assessment',
     criteria,
     metrics,
   };
@@ -394,7 +432,7 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
   const lvl = String(placedLevel || 'easy').toLowerCase();
 
   // Baseline calibration per level so weighted sum matches composite score
-  // Weights: Pronunciation: 30%, Fluency: 25%, Sentence Mastery: 25%, Vocabulary: 20%
+  // Weights (CEFR Table 3 Monologic Speech): Accuracy: 30%, Fluency: 30%, Range: 20%, Coherence: 20%
   let pron = Math.round(numScore);
   let fluency = Math.round(numScore);
   let mastery = Math.round(numScore);
@@ -418,8 +456,8 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
   }
 
   const pContrib = Number((pron * 0.30).toFixed(2));
-  const fContrib = Number((fluency * 0.25).toFixed(2));
-  const mContrib = Number((mastery * 0.25).toFixed(2));
+  const fContrib = Number((fluency * 0.30).toFixed(2));
+  const mContrib = Number((mastery * 0.20).toFixed(2));
   const vContrib = Number((vocab * 0.20).toFixed(2));
 
   const wpm = wordsPerMinute || (lvl === 'hard' ? 145 : lvl === 'medium' ? 135 : 115);
@@ -427,7 +465,7 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
   return [
     {
       name: 'Pronunciation',
-      pillar: 'Articulation & Intelligibility',
+      pillar: 'CEFR Accuracy (Pronunciation & Articulation)',
       value: pron,
       weight: 30,
       contribution: pContrib,
@@ -435,23 +473,23 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
     },
     {
       name: 'Fluency',
-      pillar: 'Rhythm & Pacing Control',
+      pillar: 'CEFR Fluency (Speech Rate & Pause Smoothness)',
       value: fluency,
-      weight: 25,
+      weight: 30,
       contribution: fContrib,
       detail: `${wpm} WPM • Flow & pause control`,
     },
     {
       name: 'Sentence Mastery',
-      pillar: 'Grammar & Structural Accuracy',
+      pillar: 'CEFR Range (Passage Vocabulary & Filler Suppression)',
       value: mastery,
-      weight: 25,
+      weight: 20,
       contribution: mContrib,
-      detail: 'Grammar structure & filler control',
+      detail: 'Passage vocabulary & filler suppression',
     },
     {
       name: 'Vocabulary',
-      pillar: 'Lexical Precision & Coverage',
+      pillar: 'CEFR Coherence (Sentence Flow & Discourse)',
       value: vocab,
       weight: 20,
       contribution: vContrib,
