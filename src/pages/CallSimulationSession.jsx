@@ -907,7 +907,7 @@ const CallSimulationSession = () => {
                   <div className="text-right bg-blue-50/70 p-4 rounded-xl border border-blue-100 relative">
                     <div className="flex items-center justify-end gap-1">
                       <span className="text-xs text-blue-700 font-semibold uppercase">Overall QA Score</span>
-                      <PillarFormulaTooltip pillarName="CallSimulation" align="right" />
+                      <PillarFormulaTooltip pillarName="CallSimulation" align="right" placement="bottom" />
                     </div>
                     <p className="text-4xl font-extrabold text-blue-600 mt-1">
                       {evaluation ? (evaluation.overall_score ?? 0) : 0}%

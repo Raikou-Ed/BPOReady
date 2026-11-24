@@ -106,14 +106,29 @@ export const PILLAR_FORMULAS = {
   },
 };
 
-export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
+export default function PillarFormulaTooltip({ pillarName, align = 'left', placement = 'auto' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [positionBelow, setPositionBelow] = useState(placement === 'bottom');
   const containerRef = useRef(null);
 
   const info = PILLAR_FORMULAS[pillarName] || Object.values(PILLAR_FORMULAS).find(
     (item) => item.name.toLowerCase() === String(pillarName || '').toLowerCase()
   );
+
+  useEffect(() => {
+    if (isOpen || isPinned) {
+      if (placement === 'bottom') {
+        setPositionBelow(true);
+      } else if (placement === 'top') {
+        setPositionBelow(false);
+      } else if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        // If trigger is within 360px of the viewport top, place below to prevent cutoff
+        setPositionBelow(rect.top < 360);
+      }
+    }
+  }, [isOpen, isPinned, placement]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -174,8 +189,11 @@ export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
       {(isOpen || isPinned) && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`absolute bottom-full mb-2 w-72 sm:w-84 bg-white text-gray-800 rounded-xl shadow-xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100 ${isAlignRight ? 'right-0' : 'left-0'
-            }`}
+          className={`absolute ${
+            positionBelow ? 'top-full mt-2.5' : 'bottom-full mb-2.5'
+          } w-72 sm:w-84 max-h-[80vh] overflow-y-auto bg-white text-gray-800 rounded-xl shadow-2xl p-3.5 z-[100] border border-gray-200 animate-in fade-in zoom-in-95 duration-100 ${
+            isAlignRight ? 'right-0' : 'left-0'
+          }`}
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
@@ -240,10 +258,15 @@ export default function PillarFormulaTooltip({ pillarName, align = 'left' }) {
             <span>Weighted Scoring</span>
           </div>
 
-          {/* Clean downward pointer arrow */}
+          {/* Pointer arrow */}
           <div
-            className={`absolute -bottom-1.5 w-3 h-3 bg-white border-b border-r border-gray-200 rotate-45 transform ${isAlignRight ? 'right-3' : 'left-2.5'
-              }`}
+            className={`absolute ${
+              positionBelow
+                ? '-top-1.5 border-t border-l border-gray-200'
+                : '-bottom-1.5 border-b border-r border-gray-200'
+            } w-3 h-3 bg-white rotate-45 transform ${
+              isAlignRight ? 'right-3' : 'left-2.5'
+            }`}
           ></div>
         </div>
       )}

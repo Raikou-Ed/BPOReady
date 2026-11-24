@@ -101,7 +101,7 @@ const MockInterviewFeedback = () => {
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
                   <p className="text-xs font-semibold uppercase tracking-wider">{readinessTier.label}</p>
-                  <PillarFormulaTooltip pillarName="MockInterview" align="right" />
+                  <PillarFormulaTooltip pillarName="MockInterview" align="right" placement="bottom" />
                 </div>
                 <p className={`text-4xl font-extrabold ${readinessTier.text}`}>{Math.round(overallScore)}<span className="text-lg font-medium text-gray-400">/100</span></p>
               </div>
