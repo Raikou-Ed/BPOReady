@@ -897,12 +897,6 @@ const CallSimulationSession = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       Scenario: {scenario.title} | Duration: {formatTimer(callDuration)} | Total Turns: {agentResponses.length}
                     </p>
-                    {evaluation?.tokenUsage && (
-                      <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-md bg-gray-100 border border-gray-200 text-[11px] text-gray-600 font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span>Analysis Tokens: {evaluation.tokenUsage.totalTokens?.toLocaleString()} total ({evaluation.tokenUsage.promptTokens?.toLocaleString()} prompt + {evaluation.tokenUsage.candidatesTokens?.toLocaleString()} response)</span>
-                      </div>
-                    )}
                   </div>
                   <div className="text-right bg-blue-50/70 p-4 rounded-xl border border-blue-100 relative">
                     <div className="flex items-center justify-end gap-1">
