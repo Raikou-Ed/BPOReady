@@ -164,7 +164,7 @@ const PracticeHistory = () => {
                   <th className="px-6 py-3.5">Date & Time</th>
                   <th className="px-6 py-3.5">Score / Result</th>
                   <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Audit Action</th>
+                  <th className="px-6 py-3.5 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
