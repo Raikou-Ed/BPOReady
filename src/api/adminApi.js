@@ -233,6 +233,17 @@ export async function submitMockInterview(payload) {
   return res.json();
 }
 
+export async function getMockInterviewFeedback(sessionId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/mock-interview/feedback/${sessionId}`);
+    if (!res.ok) throw new Error('API error');
+    return res.json();
+  } catch (err) {
+    console.warn('getMockInterviewFeedback failed:', err);
+    return null;
+  }
+}
+
 // History & Summary Reports
 export async function getApplicantHistory(applicantId) {
   try {
