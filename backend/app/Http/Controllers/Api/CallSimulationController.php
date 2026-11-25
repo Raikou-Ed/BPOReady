@@ -129,14 +129,59 @@ class CallSimulationController extends Controller
             ];
         } else {
             $apiKey = env('GEMINI_API_KEY');
-            $model = env('GEMINI_MODEL', 'gemini-3.8-flash');
+            $model = env('GEMINI_MODEL', 'gemini-1.5-flash');
+            if ($model === 'gemini-3.8-flash' || $model === 'gemini-3.0-flash' || $model === 'gemini-2.0-flash') {
+                $model = 'gemini-1.5-flash';
+            }
             $evalResult = null;
 
             if ($apiKey) {
                 $evalResult = $this->evaluateWithGemini($conversationHistory, $aggregatedText, $scenarioTitle, $apiKey, $model);
             }
 
-            if ($evalResult && isset($evalResult['overall_score']) && $evalResult['overall_score'] > 0) {
+            // Clean tokens & repetitive word detection
+            $text = strtolower($aggregatedText);
+            $cleanWords = array_values(array_filter(preg_split('/\s+/', $text), fn($w) => $w !== '' && !str_starts_with($w, '[')));
+            $wordCount = count($cleanWords);
+            $uniqueWords = count(array_unique($cleanWords));
+            $isRepetitiveSpeech = ($wordCount >= 4 && $uniqueWords <= 2) || ($wordCount < 5);
+
+            // 3. Scenario Resolution Milestones Check
+            $scenarioId = (int) $request->input('scenario_id');
+            $milestoneCount = 0;
+            if ($scenarioId === 2 || str_contains(strtolower($scenarioTitle), 'bank') || str_contains(strtolower($scenarioTitle), 'wire')) {
+                // Milestone 1: Customer identity verification (account number, PIN, SSN)
+                $m1 = ['account', 'number', 'name', 'verify', 'verification', 'security', 'ssn', 'social', '1234', 'claudin'];
+                // Milestone 2: Balance inquiry resolution
+                $m2 = ['balance', 'thousand', 'cents', 'remaining', 'money', '84', 'dollar', 'checking'];
+                // Milestone 3: Wire transfer turnaround timeline
+                $m3 = ['wire', 'transfer', 'lloyds', 'london', 'business days', 'days', 'international', 'timeline'];
+                if (count(array_filter($m1, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m2, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m3, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+            } elseif ($scenarioId === 1 || str_contains(strtolower($scenarioTitle), 'dsl') || str_contains(strtolower($scenarioTitle), 'internet')) {
+                $m1 = ['dsl', 'light', 'modem', 'red', 'flashing', 'blinking', 'signal'];
+                $m2 = ['cord', 'cable', 'phone cord', 'gray', 'loose', 'plug', 'back'];
+                $m3 = ['green', 'internet', 'online', 'website', 'email', 'working'];
+                if (count(array_filter($m1, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m2, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m3, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+            } elseif ($scenarioId === 3 || str_contains(strtolower($scenarioTitle), 'speed') || str_contains(strtolower($scenarioTitle), 'fiber')) {
+                $m1 = ['buffering', 'speed', 'streaming', '4k', 'lag', 'slow'];
+                $m2 = ['speed test', 'test', 'mbps', 'megabits', 'download', 'connection'];
+                $m3 = ['100 mbps', '100', '25', 'fiber', 'plan', 'upgrade', 'installation'];
+                if (count(array_filter($m1, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m2, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+                if (count(array_filter($m3, fn($k) => str_contains($text, $k))) > 0) $milestoneCount++;
+            } else {
+                $resKw = ['resolve', 'check', 'account', 'fix', 'refund', 'confirm', 'schedule', 'credit', 'verify', 'update', 'test', 'help', 'assist'];
+                $hits = count(array_filter($resKw, fn($k) => str_contains($text, $k)));
+                if ($hits >= 1) $milestoneCount++;
+                if ($hits >= 3) $milestoneCount++;
+                if ($hits >= 5) $milestoneCount++;
+            }
+
+            if ($evalResult && isset($evalResult['overall_score']) && $evalResult['overall_score'] > 0 && !$isRepetitiveSpeech && $milestoneCount > 0) {
                 $speechInteraction = (int) ($evalResult['interaction_score'] ?? $evalResult['empathy_score'] ?? 80);
                 $fluencyScore = (int) ($evalResult['fluency_score'] ?? $evalResult['clarity_score'] ?? 80);
                 $accuracyScore = (int) ($evalResult['accuracy_score'] ?? $evalResult['resolution_score'] ?? 80);
@@ -154,14 +199,38 @@ class CallSimulationController extends Controller
                     ? $evalResult['suggestions']
                     : ["Acknowledge customer frustration earlier", "Keep technical instructions simple", "Reiterate closing courtesy"];
             } else {
-                // Heuristic fallback calibrated by actual word count & keywords
-                $text = strtolower($aggregatedText);
-                $empathyKeywords = ['understand', 'apologize', 'sorry', 'assist', 'help', 'certainly', 'appreciate', 'glad', 'reassure', 'care'];
-                $empathyHits = 0;
-                foreach ($empathyKeywords as $kw) {
-                    if (str_contains($text, $kw)) $empathyHits++;
+                // 1. Remove High Baseline Score Floors: If customer inquiries are unaddressed, scores drop to 0%–25%
+                if ($milestoneCount === 0 || $isRepetitiveSpeech) {
+                    $accuracyScore = min(20, max(5, $uniqueWords * 3));
+                    $speechInteraction = min(25, max(10, $uniqueWords * 4));
+                    $fluencyScore = min(25, max(10, $uniqueWords * 4));
+                    $feedbackText = "Critical Quality Failure: The customer's inquiry was not addressed. The agent provided generic or repetitive responses without resolving the customer's request or verifying account details. In a live BPO call, an agent must actively assist the customer through the required resolution steps.";
+                    $suggestions = [
+                        "Directly answer the customer's inquiry instead of repeating generic greetings or filler",
+                        "Perform required account verification and state specific account figures clearly",
+                        "Follow through on resolution milestones (e.g., checking balance and explaining transaction timelines)"
+                    ];
+                } elseif ($milestoneCount === 1) {
+                    $accuracyScore = min(50, max(25, 25 + ($uniqueWords * 2)));
+                    $speechInteraction = min(55, max(30, 30 + ($uniqueWords * 2)));
+                    $fluencyScore = min(60, max(35, 35 + min(20, (int)($totalWords * 1.2))));
+                    $feedbackText = "Partial call handling. You acknowledged the customer and began addressing their issue, but missed key resolution details required for full BPO quality compliance.";
+                    $suggestions = [
+                        "Ensure all customer questions are fully answered before closing the call",
+                        "Reiterate customer account verification smoothly without hesitation",
+                        "State specific turnaround times clearly when proposing resolution actions"
+                    ];
+                } else {
+                    $accuracyScore = min(95, max(60, 55 + ($milestoneCount * 12) + $uniqueWords));
+                    $speechInteraction = min(95, max(60, 55 + ($milestoneCount * 10) + $uniqueWords));
+                    $fluencyScore = min(95, max(65, 60 + min(30, (int)($totalWords * 1.1))));
+                    $feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
+                    $suggestions = [
+                        "Practice mirroring customer pace to establish deeper conversational rapport",
+                        "State specific turnaround times clearly when proposing resolution actions",
+                        "Reiterate closing courtesies to reinforce brand loyalty"
+                    ];
                 }
-                $speechInteraction = min(95, max(45, 55 + ($empathyHits * 8)));
 
                 if ($quizScore !== null) {
                     $interactionScore = (int) round(($speechInteraction * 0.50) + ($quizScore * 0.50));
@@ -169,23 +238,16 @@ class CallSimulationController extends Controller
                     $interactionScore = $speechInteraction;
                 }
 
-                $fluencyScore = min(96, max(45, 55 + min(40, (int)($totalWords * 1.2))));
-
-                $resolutionKeywords = ['resolve', 'check', 'account', 'fix', 'refund', 'confirm', 'schedule', 'credit', 'verify', 'update', 'test', 'cable'];
-                $resolutionHits = 0;
-                foreach ($resolutionKeywords as $kw) {
-                    if (str_contains($text, $kw)) $resolutionHits++;
-                }
-                $accuracyScore = min(95, max(45, 55 + ($resolutionHits * 8)));
-
                 $overallScore = (int) round(($interactionScore * 0.40) + ($fluencyScore * 0.30) + ($accuracyScore * 0.30));
+            }
 
-                $feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
-                $suggestions = [
-                    "Practice mirroring customer pace to establish deeper conversational rapport",
-                    "State specific turnaround times clearly when proposing resolution actions",
-                    "Reiterate customer account verification smoothly without hesitation"
-                ];
+            // 2. Comprehension Quiz Critical Impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)
+            if ($quizScore !== null && $quizScore <= 0) {
+                $overallScore = min(35, $overallScore);
+                $interactionScore = min(35, $interactionScore);
+                if ($milestoneCount > 0) {
+                    $feedbackText = "Critical Quality Failure: Post-call comprehension quiz scored 0%. In a professional BPO environment, active listening and capturing verified customer details are mandatory; failing comprehension results in an automatic quality failure.";
+                }
             }
         }
 
@@ -249,7 +311,9 @@ class CallSimulationController extends Controller
             . "Scenario: {$scenarioTitle}\n\n"
             . "Call Dialogue:\n{$dialogueTranscript}\n"
             . "Evaluation Guidelines (3-Pillar CEFR Spoken Interaction Model: Interaction 40%, Fluency 30%, Accuracy 30%):\n"
-            . "CRITICAL RULE: If the agent's replies are empty, silent, or contain no actual spoken response, overall_score, interaction_score, fluency_score, and accuracy_score MUST BE 0, and feedback_text MUST indicate that the candidate failed to respond.\n"
+            . "CRITICAL RULE 1: If the agent's replies are empty, silent, or contain no actual spoken response, overall_score, interaction_score, fluency_score, and accuracy_score MUST BE 0, and feedback_text MUST indicate that the candidate failed to respond.\n"
+            . "CRITICAL RULE 2 (NO HIGH FLOORS / REPETITIVE SPEECH PENALTY): If the agent repeatedly gives generic one-word greetings or filler (e.g. repeating 'hello', 'yes', 'ok' across multiple turns) or fails to address the customer's actual inquiry, overall_score, interaction_score, fluency_score, and accuracy_score MUST BE CAPPED AT 10-25. Do NOT give passing or 50+ scores to unhelpful canned greetings.\n"
+            . "CRITICAL RULE 3 (RESOLUTION MILESTONES): Check whether key scenario resolution milestones were met (e.g., verifying customer identity, solving the specific inquiry). If the customer's issue was completely ignored or unaddressed, accuracy_score MUST NOT exceed 20.\n"
             . "1. interaction_score (0-100): Customer empathy, validating concerns, professional composure, de-escalation, turn-taking, and politeness.\n"
             . "2. fluency_score (0-100): Conversational pacing (115-145 WPM), smooth delivery flow, minimal hesitations, and absence of dead-air.\n"
             . "3. accuracy_score (0-100): Phonetic clarity, correct customer account verification, grammar control, and professional phrasing.\n"
@@ -283,7 +347,7 @@ class CallSimulationController extends Controller
             ],
         ];
 
-        $models = array_unique([$model, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash']);
+        $models = array_unique([$model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash']);
 
         foreach ($models as $m) {
             try {

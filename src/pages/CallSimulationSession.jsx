@@ -543,15 +543,28 @@ const CallSimulationSession = () => {
       });
 
       if (res && res.overall_score != null) {
+        let finalOverall = Number(res.overall_score);
+        let finalInteraction = Number(res.interaction_score ?? res.empathy_score ?? 0);
+        let finalFeedback = res.feedback_text;
+
+        // Comprehension Quiz Critical Impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)
+        if (quizPercent !== null && quizPercent <= 0) {
+          finalOverall = Math.min(35, finalOverall);
+          finalInteraction = Math.min(35, finalInteraction);
+        }
+
         setEvaluation({
           ...res,
+          overall_score: finalOverall,
+          interaction_score: finalInteraction,
+          feedback_text: finalFeedback,
           quiz_result: quizRes || quizScoreResult,
           quiz_score: quizPercent,
         });
         addUserActivity({
           activity: `Call Simulation: ${scenario.title}`,
           level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-          result: `${res.overall_score}%`,
+          result: `${finalOverall}%`,
           type: "call_simulation",
         });
       } else {
@@ -559,25 +572,117 @@ const CallSimulationSession = () => {
       }
     } catch (err) {
       console.warn("Backend evaluation failed, computing local fallback:", err);
-      const wordCount = spokenTokens.length;
-      // CEFR Spoken Interaction 3-Pillar Model (Interaction 40%, Fluency 30%, Accuracy 30%)
-      const speechInteraction = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
-      const finalInteraction = quizPercent !== null
-        ? Math.round((speechInteraction * 0.50) + (quizPercent * 0.50))
-        : speechInteraction;
-      const fluencyScore = Math.min(96, Math.max(60, 70 + Math.round(wordCount * 0.6)));
-      const accuracyScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.7)));
+      const cleanWords = spokenTokens.map((w) => w.toLowerCase());
+      const totalWords = cleanWords.length;
+      const uniqueTokens = Array.from(new Set(cleanWords));
+      const uniqueCount = uniqueTokens.length;
+      const isRepetitiveSpeech = (totalWords >= 4 && uniqueCount <= 2) || (totalWords < 5);
+      const fullText = fullCombined.toLowerCase();
+
+      // 3. Scenario Resolution Milestones Check
+      const sId = Number(scenario?.id || 1);
+      const sTitle = (scenario?.title || "").toLowerCase();
+      let milestoneCount = 0;
+
+      if (sId === 2 || sTitle.includes("bank") || sTitle.includes("wire")) {
+        // Milestone 1: Customer identity & account verification
+        const m1 = ["account", "number", "name", "verify", "verification", "security", "ssn", "social", "1234", "claudin"];
+        // Milestone 2: Available balance inquiry
+        const m2 = ["balance", "thousand", "cents", "remaining", "money", "84", "dollar", "checking"];
+        // Milestone 3: Wire transfer turnaround timeline
+        const m3 = ["wire", "transfer", "lloyds", "london", "business days", "days", "international", "timeline"];
+        if (m1.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m2.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m3.some((k) => fullText.includes(k))) milestoneCount++;
+      } else if (sId === 1 || sTitle.includes("dsl") || sTitle.includes("internet")) {
+        const m1 = ["dsl", "light", "modem", "red", "flashing", "blinking", "signal"];
+        const m2 = ["cord", "cable", "phone cord", "gray", "loose", "plug", "back"];
+        const m3 = ["green", "internet", "online", "website", "email", "working"];
+        if (m1.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m2.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m3.some((k) => fullText.includes(k))) milestoneCount++;
+      } else if (sId === 3 || sTitle.includes("speed") || sTitle.includes("fiber")) {
+        const m1 = ["buffering", "speed", "streaming", "4k", "lag", "slow"];
+        const m2 = ["speed test", "test", "mbps", "megabits", "download", "connection"];
+        const m3 = ["100 mbps", "100", "25", "fiber", "plan", "upgrade", "installation"];
+        if (m1.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m2.some((k) => fullText.includes(k))) milestoneCount++;
+        if (m3.some((k) => fullText.includes(k))) milestoneCount++;
+      } else {
+        const resKeywords = ["resolve", "check", "account", "fix", "refund", "confirm", "schedule", "credit", "verify", "update", "test", "help", "assist"];
+        const hits = resKeywords.filter((k) => fullText.includes(k)).length;
+        if (hits >= 1) milestoneCount++;
+        if (hits >= 3) milestoneCount++;
+        if (hits >= 5) milestoneCount++;
+      }
+
+      // 1. Remove High Baseline Score Floors: If customer inquiries are unaddressed, scores drop to 0%–25%
+      let speechInteraction = 0;
+      let fluencyScore = 0;
+      let accuracyScore = 0;
+      let feedbackText = "";
+      let suggestions = [];
+
+      if (milestoneCount === 0 || isRepetitiveSpeech) {
+        // Unaddressed inquiries / repetitive words (e.g. repeated "hello")
+        accuracyScore = Math.min(20, Math.max(5, uniqueCount * 3));
+        speechInteraction = Math.min(25, Math.max(10, uniqueCount * 4));
+        fluencyScore = Math.min(25, Math.max(10, uniqueCount * 4));
+        feedbackText = "Critical Quality Failure: The customer's inquiry was not addressed. The agent provided generic or repetitive responses without resolving the customer's request or verifying account details. In a live BPO call, an agent must actively assist the customer through the required resolution steps.";
+        suggestions = [
+          "Directly answer the customer's inquiry instead of repeating generic greetings or filler",
+          "Perform required account verification and state specific account figures clearly",
+          "Follow through on resolution milestones (e.g., checking balance and explaining transaction timelines)"
+        ];
+      } else if (milestoneCount === 1) {
+        // Partial inquiry handling
+        accuracyScore = Math.min(50, Math.max(25, 25 + (uniqueCount * 2)));
+        speechInteraction = Math.min(55, Math.max(30, 30 + (uniqueCount * 2)));
+        fluencyScore = Math.min(60, Math.max(35, 35 + Math.min(20, Math.round(totalWords * 1.2))));
+        feedbackText = "Partial call handling. You acknowledged the customer and began addressing their issue, but missed key resolution details required for full BPO quality compliance.";
+        suggestions = [
+          "Ensure all customer questions are fully answered before closing the call",
+          "Reiterate customer account verification smoothly without hesitation",
+          "State specific turnaround times clearly when proposing resolution actions"
+        ];
+      } else {
+        // Inquiries addressed with milestones
+        accuracyScore = Math.min(95, Math.max(60, 55 + (milestoneCount * 12) + uniqueCount));
+        speechInteraction = Math.min(95, Math.max(60, 55 + (milestoneCount * 10) + uniqueCount));
+        fluencyScore = Math.min(95, Math.max(65, 60 + Math.min(30, Math.round(totalWords * 1.1))));
+        feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
+        suggestions = [
+          "Practice mirroring customer pace to establish deeper conversational rapport",
+          "State specific turnaround times clearly when proposing resolution actions",
+          "Reiterate closing courtesies to reinforce brand loyalty"
+        ];
+      }
+
+      // Blend post-call active listening quiz into Interaction pillar if provided
+      let finalInteraction = speechInteraction;
+      if (quizPercent !== null) {
+        finalInteraction = Math.round((speechInteraction * 0.50) + (quizPercent * 0.50));
+      }
 
       const activeCriteria = getActiveCallSimulationCriteria();
       const weightInteraction = (activeCriteria.find((c) => c.name.toLowerCase().includes("interaction"))?.weight ?? 40) / 100;
       const weightFluency = (activeCriteria.find((c) => c.name.toLowerCase().includes("fluency"))?.weight ?? 30) / 100;
       const weightAccuracy = (activeCriteria.find((c) => c.name.toLowerCase().includes("accuracy"))?.weight ?? 30) / 100;
 
-      const calcOverall = Math.round(
+      let calcOverall = Math.round(
         (finalInteraction * weightInteraction) +
         (fluencyScore * weightFluency) +
         (accuracyScore * weightAccuracy)
       );
+
+      // 2. Comprehension Quiz Critical Impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)
+      if (quizPercent !== null && quizPercent <= 0) {
+        calcOverall = Math.min(35, calcOverall);
+        finalInteraction = Math.min(35, finalInteraction);
+        if (milestoneCount > 0) {
+          feedbackText = "Critical Quality Failure: Post-call comprehension quiz scored 0%. In a professional BPO environment, active listening and capturing verified customer details are mandatory; failing comprehension results in an automatic quality failure.";
+        }
+      }
 
       const fallbackEvaluation = {
         overall_score: calcOverall,
@@ -590,13 +695,8 @@ const CallSimulationSession = () => {
         empathy_score: finalInteraction,
         resolution_score: accuracyScore,
         clarity_score: fluencyScore,
-        feedback_text:
-          "Good call handling attempt. You actively engaged with the customer and completed the comprehension assessment. Continue working on your opening composure, de-escalation validation, and step-by-step resolution phrasing.",
-        suggestions: [
-          "Validate customer emotions promptly early in the dialogue (CEFR Interaction)",
-          "Maintain concise, step-by-step troubleshooting explanations (CEFR Accuracy)",
-          "Keep a calm, steady conversational pace under customer escalation (CEFR Fluency)",
-        ],
+        feedback_text: feedbackText,
+        suggestions: suggestions,
       };
       setEvaluation(fallbackEvaluation);
       addUserActivity({
