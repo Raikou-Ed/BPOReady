@@ -138,18 +138,18 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
-        accuracyWeight: 30,
-        fluencyWeight: 30,
-        rangeWeight: 20,
-        coherenceWeight: 20,
-        pronunciationWeight: 30,
-        sentenceMasteryWeight: 20,
-        vocabularyWeight: 20,
-        pacingWeight: 30,
-        contentWeight: 20,
-        clarityConfidenceWeight: 20,
-        deliveryConsistencyWeight: 30,
-        completionWeight: 20,
+        accuracyWeight: 50,
+        fluencyWeight: 50,
+        rangeWeight: 0,
+        coherenceWeight: 0,
+        pronunciationWeight: 50,
+        sentenceMasteryWeight: 0,
+        vocabularyWeight: 0,
+        pacingWeight: 50,
+        contentWeight: 0,
+        clarityConfidenceWeight: 0,
+        deliveryConsistencyWeight: 50,
+        completionWeight: 0,
         accuracyContribution: 0,
         fluencyContribution: 0,
         rangeContribution: 0,
@@ -184,10 +184,8 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 30, contribution: 0, detail: 'Passage not read' },
-        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 30, contribution: 0, detail: 'Off-topic speech' },
-        { name: 'Range', pillar: 'Range (Passage Lexical Coverage)', value: 0, weight: 20, contribution: 0, detail: 'Passage not read' },
-        { name: 'Coherence', pillar: 'Coherence (Sentence Flow & Discourse)', value: 0, weight: 20, contribution: 0, detail: `${matchedWords} word${matchedWords === 1 ? '' : 's'} matched (unrelated speech)` },
+        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 50, contribution: 0, detail: 'Off-topic speech' },
       ],
       metrics: {
         accuracy: 0,
@@ -204,18 +202,18 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
-        accuracyWeight: 30,
-        fluencyWeight: 30,
-        rangeWeight: 20,
-        coherenceWeight: 20,
-        pronunciationWeight: 30,
-        sentenceMasteryWeight: 20,
-        vocabularyWeight: 20,
-        pacingWeight: 30,
-        contentWeight: 20,
-        clarityConfidenceWeight: 20,
-        deliveryConsistencyWeight: 30,
-        completionWeight: 20,
+        accuracyWeight: 50,
+        fluencyWeight: 50,
+        rangeWeight: 0,
+        coherenceWeight: 0,
+        pronunciationWeight: 50,
+        sentenceMasteryWeight: 0,
+        vocabularyWeight: 0,
+        pacingWeight: 50,
+        contentWeight: 0,
+        clarityConfidenceWeight: 0,
+        deliveryConsistencyWeight: 50,
+        completionWeight: 0,
         accuracyContribution: 0,
         fluencyContribution: 0,
         rangeContribution: 0,
@@ -291,30 +289,27 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     (contentScore * 0.70) + (completionScore * 0.30)
   )));
 
-  // CEFR Table 3 Official Calibrated Weights (Total: 30 + 30 + 20 + 20 = 100%)
-  const accuracyWeight = 30;
-  const fluencyWeight = 30;
-  const rangeWeight = 20;
-  const coherenceWeight = 20;
+  // CEFR Monologic Reading Weights (Accuracy: 50%, Fluency: 50%)
+  const accuracyWeight = 50;
+  const fluencyWeight = 50;
+  const rangeWeight = 0;
+  const coherenceWeight = 0;
 
   // Backward compatibility weights
   const pronunciationWeight = accuracyWeight;
-  const sentenceMasteryWeight = rangeWeight;
-  const vocabularyWeight = coherenceWeight;
+  const sentenceMasteryWeight = 0;
+  const vocabularyWeight = 0;
 
   const accuracyContribution = Number(((accuracyScore * accuracyWeight) / 100).toFixed(2));
   const fluencyContribution = Number(((fluencyScore * fluencyWeight) / 100).toFixed(2));
-  const rangeContribution = Number(((rangeScore * rangeWeight) / 100).toFixed(2));
-  const coherenceContribution = Number(((coherenceScore * coherenceWeight) / 100).toFixed(2));
+  const rangeContribution = 0;
+  const coherenceContribution = 0;
 
   const pronunciationContribution = accuracyContribution;
-  const sentenceMasteryContribution = rangeContribution;
-  const vocabularyContribution = coherenceContribution;
+  const sentenceMasteryContribution = 0;
+  const vocabularyContribution = 0;
 
-  const rawSum = accuracyContribution +
-    fluencyContribution +
-    rangeContribution +
-    coherenceContribution;
+  const rawSum = accuracyContribution + fluencyContribution;
 
   const score = Math.max(0, Math.min(100, Number(rawSum.toFixed(2))));
 
@@ -392,22 +387,6 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       contribution: fluencyContribution,
       detail: `${Math.round(wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
     },
-    {
-      name: 'Range',
-      pillar: 'Range (Passage Vocabulary & Filler Suppression)',
-      value: metrics.range,
-      weight: rangeWeight,
-      contribution: rangeContribution,
-      detail: 'Lexical repertoire & suppression of verbal crutches',
-    },
-    {
-      name: 'Coherence',
-      pillar: 'Coherence (Discourse Flow & Sentence Connection)',
-      value: metrics.coherence,
-      weight: coherenceWeight,
-      contribution: coherenceContribution,
-      detail: transcriptWords.length ? `${speechCriteria.matchedWords} words matched` : 'Complete sentence discourse flow',
-    },
   ];
 
   return {
@@ -432,33 +411,23 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
   const lvl = String(placedLevel || 'easy').toLowerCase();
 
   // Baseline calibration per level so weighted sum matches composite score
-  // Weights (CEFR Table 3 Monologic Speech): Accuracy: 30%, Fluency: 30%, Range: 20%, Coherence: 20%
+  // Weights: Accuracy: 50%, Fluency: 50%
   let pron = Math.round(numScore);
   let fluency = Math.round(numScore);
-  let mastery = Math.round(numScore);
-  let vocab = Math.round(numScore);
 
   if (lvl === 'hard') {
     pron = Math.min(100, Math.round(numScore + 1));
-    fluency = Math.round(numScore);
-    mastery = Math.round(numScore);
-    vocab = Math.max(0, Math.round(numScore - 1));
+    fluency = Math.max(0, Math.round(numScore - 1));
   } else if (lvl === 'medium') {
     pron = Math.round(numScore);
-    fluency = Math.min(100, Math.round(numScore + 1));
-    mastery = Math.round(numScore);
-    vocab = Math.max(0, Math.round(numScore - 1));
+    fluency = Math.round(numScore);
   } else {
     pron = Math.min(100, Math.round(numScore + 1));
     fluency = Math.max(0, Math.round(numScore - 1));
-    mastery = Math.min(100, Math.round(numScore + 1));
-    vocab = Math.max(0, Math.round(numScore - 1));
   }
 
-  const pContrib = Number((pron * 0.30).toFixed(2));
-  const fContrib = Number((fluency * 0.30).toFixed(2));
-  const mContrib = Number((mastery * 0.20).toFixed(2));
-  const vContrib = Number((vocab * 0.20).toFixed(2));
+  const pContrib = Number((pron * 0.50).toFixed(2));
+  const fContrib = Number((fluency * 0.50).toFixed(2));
 
   const wpm = wordsPerMinute || (lvl === 'hard' ? 145 : lvl === 'medium' ? 135 : 115);
 
@@ -467,7 +436,7 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
       name: 'Accuracy',
       pillar: 'CEFR Accuracy (Pronunciation & Articulation)',
       value: pron,
-      weight: 30,
+      weight: 50,
       contribution: pContrib,
       detail: 'Vowel & consonant articulation clarity',
     },
@@ -475,25 +444,9 @@ export function generatePreAssessmentCriteria(score, placedLevel = 'easy', words
       name: 'Fluency',
       pillar: 'CEFR Fluency (Speech Rate & Pause Smoothness)',
       value: fluency,
-      weight: 30,
+      weight: 50,
       contribution: fContrib,
       detail: `${wpm} WPM • Flow & pause control`,
-    },
-    {
-      name: 'Range',
-      pillar: 'CEFR Range (Passage Vocabulary & Filler Suppression)',
-      value: mastery,
-      weight: 20,
-      contribution: mContrib,
-      detail: 'Passage vocabulary & filler suppression',
-    },
-    {
-      name: 'Coherence',
-      pillar: 'CEFR Coherence (Sentence Flow & Discourse)',
-      value: vocab,
-      weight: 20,
-      contribution: vContrib,
-      detail: 'Diagnostic passage sentence flow',
     },
   ];
 }
@@ -505,9 +458,9 @@ export function getAssignedLevel() {
     data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
     const lvl = String(data.placedLevel || 'easy').toLowerCase();
 
-    // Check if criteria is missing, invalid, or using legacy names (Pronunciation, Sentence Mastery, Vocabulary)
-    const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length === 0 ||
-      data.criteria.some(c => c.name === 'Pronunciation' || c.name === 'Sentence Mastery' || c.name === 'Vocabulary' || String(c.detail || '').includes('words matched')) ||
+    // Check if criteria is missing, invalid, or using legacy names or more than 2 factors
+    const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length !== 2 ||
+      data.criteria.some(c => c.name === 'Pronunciation' || c.name === 'Sentence Mastery' || c.name === 'Vocabulary' || c.name === 'Range' || c.name === 'Coherence' || String(c.detail || '').includes('words matched')) ||
       Math.abs(data.criteria.reduce((sum, c) => sum + (Number(c.contribution) || 0), 0) - data.score) > 3;
 
     if (hasCorruptOrLegacyCriteria) {

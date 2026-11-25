@@ -16,8 +16,8 @@ import { addUserActivity, getCurrentUser } from '../utils/userData';
 import PillarFormulaTooltip from '../components/PillarFormulaTooltip';
 
 const levelLabels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
-const scoreCriteria = new Set(['pronunciation', 'fluency', 'sentenceMastery', 'vocabulary', 'speakingPace', 'passageCoverage']);
-const visibleCriteria = new Set(['pronunciation', 'fluency', 'sentenceMastery', 'vocabulary']);
+const scoreCriteria = new Set(['pronunciation', 'fluency', 'accuracy', 'speakingPace']);
+const visibleCriteria = new Set(['pronunciation', 'fluency', 'accuracy']);
 
 export default function PreAssessment() {
   const navigate = useNavigate();
@@ -120,14 +120,12 @@ export default function PreAssessment() {
               .reduce((total, [name, value]) => {
                 const localMetricMap = {
                   pronunciation: localScore.metrics.pronunciation,
+                  accuracy: localScore.metrics.accuracy,
                   fluency: localScore.metrics.fluency,
-                  sentenceMastery: localScore.metrics.sentenceMastery,
-                  vocabulary: localScore.metrics.vocabulary,
                   speakingPace: localScore.metrics.fluency,
-                  passageCoverage: localScore.metrics.vocabulary,
                 };
                 const metricValue = value?.score ?? localMetricMap[name] ?? 0;
-                const weight = Number(value?.weight ?? localScore.metrics[`${name === 'pronunciation' ? 'pronunciation' : name === 'fluency' ? 'fluency' : name === 'sentenceMastery' ? 'sentenceMastery' : 'vocabulary'}Weight`] ?? 0);
+                const weight = 50;
                 return total + ((Number(metricValue) * weight) / 100);
               }, 0).toFixed(2)),
             placedLevel: apiResult.placedLevel || localScore.placedLevel,
@@ -135,60 +133,40 @@ export default function PreAssessment() {
             metrics: {
               ...localScore.metrics,
               pronunciation: apiResult.criteria?.pronunciation?.score ?? localScore.metrics.pronunciation,
+              accuracy: apiResult.criteria?.pronunciation?.score ?? localScore.metrics.accuracy,
               fluency: apiResult.criteria?.fluency?.score ?? localScore.metrics.fluency,
-              sentenceMastery: apiResult.criteria?.sentenceMastery?.score ?? localScore.metrics.sentenceMastery,
-              vocabulary: apiResult.criteria?.vocabulary?.score ?? localScore.metrics.vocabulary,
             },
             criteria: Object.entries(apiResult.criteria || {})
               .filter(([name]) => visibleCriteria.has(name))
               .map(([name, value]) => {
                 const localMetricMap = {
                   pronunciation: localScore.metrics.pronunciation,
+                  accuracy: localScore.metrics.accuracy,
                   fluency: localScore.metrics.fluency,
-                  sentenceMastery: localScore.metrics.sentenceMastery,
-                  vocabulary: localScore.metrics.vocabulary,
-                };
-                const weightKeyMap = {
-                  pronunciation: 'pronunciationWeight',
-                  fluency: 'fluencyWeight',
-                  sentenceMastery: 'sentenceMasteryWeight',
-                  vocabulary: 'vocabularyWeight',
                 };
                 const nameLabelMap = {
                   accuracy: 'Accuracy',
                   fluency: 'Fluency',
-                  range: 'Range',
-                  coherence: 'Coherence',
                   pronunciation: 'Accuracy',
-                  sentenceMastery: 'Range',
-                  vocabulary: 'Coherence',
                 };
                 const pillarLabelMap = {
                   accuracy: 'Acoustic Enunciation & Phonetic Clarity',
                   fluency: 'Rhythm, Cadence & Pause Smoothness',
-                  range: 'Lexical Repertoire & Filler Suppression',
-                  coherence: 'Sentence Flow & Discourse Coherence',
                   pronunciation: 'Acoustic Enunciation & Phonetic Clarity',
-                  sentenceMastery: 'Lexical Repertoire & Filler Suppression',
-                  vocabulary: 'Sentence Flow & Discourse Coherence',
                 };
                 const detailMap = {
                   accuracy: 'Vowel & consonant articulation clarity',
                   fluency: `${Math.round(localScore.wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
-                  range: 'Passage vocabulary & filler suppression',
-                  coherence: `${wordCount} words analyzed • Sentence flow`,
                   pronunciation: 'Vowel & consonant articulation clarity',
-                  sentenceMastery: 'Passage vocabulary & filler suppression',
-                  vocabulary: `${wordCount} words analyzed • Sentence flow`,
                 };
                 const resolvedScore = value?.score ?? localMetricMap[name] ?? null;
-                const resolvedWeight = Number(value?.weight ?? localScore.metrics[weightKeyMap[name]] ?? (name === 'pronunciation' || name === 'accuracy' ? 30 : name === 'fluency' ? 30 : name === 'sentenceMastery' || name === 'range' ? 20 : 20));
+                const resolvedWeight = 50;
                 return {
                   name: nameLabelMap[name] || name,
                   pillar: pillarLabelMap[name] || nameLabelMap[name] || name,
                   value: resolvedScore,
                   weight: resolvedWeight,
-                  contribution: resolvedScore == null ? 0 : Number(resolvedScore) * (resolvedWeight / 100),
+                  contribution: resolvedScore == null ? 0 : Number(((Number(resolvedScore) * resolvedWeight) / 100).toFixed(2)),
                   detail: resolvedScore == null ? 'Not measured' : (detailMap[name] || ''),
                 };
               }),
@@ -341,36 +319,41 @@ export default function PreAssessment() {
                       <span>Weight</span>
                       <span>Contribution</span>
                     </div>
-                    {result.criteria.map((criterion, idx, arr) => {
-                      const factorName = criterion.name === 'Pronunciation'
-                        ? 'Accuracy'
-                        : criterion.name === 'Sentence Mastery'
-                        ? 'Range'
-                        : criterion.name === 'Vocabulary'
-                        ? 'Coherence'
-                        : criterion.name;
-                      return (
-                        <div
-                          key={criterion.name}
-                          className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
-                            idx === arr.length - 1 ? 'rounded-b-xl' : ''
-                          }`}
-                        >
-                          <div className="flex items-center">
-                            <p className="font-semibold text-gray-900">{factorName}</p>
-                            <PillarFormulaTooltip pillarName={factorName} />
+                    {result.criteria
+                      .filter(criterion => {
+                        const n = (criterion.name || '').toLowerCase();
+                        return n === 'accuracy' || n === 'pronunciation' || n === 'fluency' || n === 'speakingpace';
+                      })
+                      .map((criterion, idx, arr) => {
+                        const factorName = (criterion.name === 'Pronunciation' || criterion.name?.toLowerCase() === 'accuracy')
+                          ? 'Accuracy'
+                          : 'Fluency';
+                        const weight = 50;
+                        const contribution = criterion.contribution != null && criterion.weight === 50
+                          ? criterion.contribution
+                          : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
+                        return (
+                          <div
+                            key={criterion.name}
+                            className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
+                              idx === arr.length - 1 ? 'rounded-b-xl' : ''
+                            }`}
+                          >
+                            <div className="flex items-center">
+                              <p className="font-semibold text-gray-900">{factorName}</p>
+                              <PillarFormulaTooltip pillarName={factorName} />
+                            </div>
+                            <div className="flex flex-col justify-center">
+                              <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
+                                {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                              </span>
+                              {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
+                            </div>
+                            <span className="flex items-center text-gray-500 font-semibold">{weight}%</span>
+                            <span className="flex items-center font-bold text-emerald-700">{Number(contribution).toFixed(2)}</span>
                           </div>
-                          <div className="flex flex-col justify-center">
-                            <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
-                              {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
-                            </span>
-                            {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
-                          </div>
-                          <span className="flex items-center text-gray-500 font-semibold">{criterion.weight ? `${criterion.weight}%` : '-'}</span>
-                          <span className="flex items-center font-bold text-emerald-700">{criterion.weight ? Number(criterion.contribution).toFixed(2) : '-'}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 )}
 

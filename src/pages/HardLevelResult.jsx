@@ -91,36 +91,41 @@ const HardLevelResult = () => {
                     <span>Weight</span>
                     <span>Contribution</span>
                   </div>
-                  {result.criteria?.map((criterion, idx, arr) => {
-                    const factorName = criterion.name === 'Pronunciation'
-                      ? 'Accuracy'
-                      : criterion.name === 'Sentence Mastery'
-                      ? 'Range'
-                      : criterion.name === 'Vocabulary'
-                      ? 'Coherence'
-                      : criterion.name;
-                    return (
-                      <div
-                        key={criterion.name}
-                        className={`grid grid-cols-4 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 ${
-                          idx === arr.length - 1 ? 'rounded-b-lg' : ''
-                        }`}
-                      >
-                        <span className="flex items-center">
-                          {factorName}
-                          <PillarFormulaTooltip pillarName={factorName} />
-                        </span>
-                        <span className="font-medium">
-                          {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
-                          {criterion.detail ? <span className="text-xs text-gray-400 font-normal"> ({criterion.detail})</span> : null}
-                        </span>
-                        <span>{criterion.weight ? `${criterion.weight}%` : '-'}</span>
-                        <span className={`font-semibold ${numScore >= 76 ? 'text-emerald-700' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
-                          {criterion.weight ? Number(criterion.contribution || 0).toFixed(2) : '-'}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {result.criteria
+                    ?.filter(criterion => {
+                      const n = (criterion.name || '').toLowerCase();
+                      return n === 'accuracy' || n === 'pronunciation' || n === 'fluency' || n === 'speakingpace';
+                    })
+                    .map((criterion, idx, arr) => {
+                      const factorName = (criterion.name === 'Pronunciation' || criterion.name?.toLowerCase() === 'accuracy')
+                        ? 'Accuracy'
+                        : 'Fluency';
+                      const weight = 50;
+                      const contribution = criterion.contribution != null && criterion.weight === 50
+                        ? criterion.contribution
+                        : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
+                      return (
+                        <div
+                          key={criterion.name}
+                          className={`grid grid-cols-4 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 ${
+                            idx === arr.length - 1 ? 'rounded-b-lg' : ''
+                          }`}
+                        >
+                          <span className="flex items-center">
+                            {factorName}
+                            <PillarFormulaTooltip pillarName={factorName} />
+                          </span>
+                          <span className="font-medium">
+                            {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                            {criterion.detail ? <span className="text-xs text-gray-400 font-normal"> ({criterion.detail})</span> : null}
+                          </span>
+                          <span>{weight}%</span>
+                          <span className={`font-semibold ${numScore >= 76 ? 'text-emerald-700' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                            {Number(contribution || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
                 </div>
 
                 {/* Speech Evaluation Feedback */}

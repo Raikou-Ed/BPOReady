@@ -1,38 +1,38 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 export const PILLAR_FORMULAS = {
-  // Paragraph Reading / Diagnostic Pillars (Aligned with CEFR Table 3: Qualitative Aspects of Spoken Language Use)
+  // Paragraph Reading & Pre-Assessment Pillars (Core Monologic Speech Dimensions: Accuracy 50%, Fluency 50%)
   'Accuracy': {
-    name: 'Accuracy (CEFR Accuracy)',
-    weight: '30%',
+    name: 'Accuracy (Acoustic & Phonetic Clarity)',
+    weight: '50%',
     formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
     subWeights: [
       { name: 'Content Accuracy', weight: '40%', desc: 'Word recognition accuracy against target passage' },
       { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
       { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
     ],
-    standard: 'CEFR Table 3: Accuracy & Pronunciation',
+    standard: 'CEFR Accuracy & Pronunciation Standard',
   },
   'Pronunciation': {
     name: 'Accuracy (Pronunciation)',
-    weight: '30%',
+    weight: '50%',
     formula: '(Content Accuracy × 40%) + (Filler Cleanliness × 30%) + (Audio Quality × 30%)',
     subWeights: [
       { name: 'Content Accuracy', weight: '40%', desc: 'Word recognition accuracy against target passage' },
       { name: 'Filler Cleanliness', weight: '30%', desc: 'Absence of filler words (um, uh, like) & hesitations' },
       { name: 'Audio Signal Quality', weight: '30%', desc: 'Acoustic mic signal clarity and vocal energy' },
     ],
-    standard: 'CEFR Table 3: Accuracy & Pronunciation',
+    standard: 'CEFR Accuracy & Pronunciation Standard',
   },
   'Fluency': {
-    name: 'Fluency (CEFR Fluency)',
-    weight: '30%',
+    name: 'Fluency (Cadence & Pause Smoothness)',
+    weight: '50%',
     formula: '(Pacing Rate × 65%) + (Delivery Consistency × 35%)',
     subWeights: [
       { name: 'Pacing Rate', weight: '65%', desc: 'Target conversational cadence of 115–145 words per minute' },
       { name: 'Delivery Consistency', weight: '35%', desc: 'Continuous vocal flow without long unnatural pauses' },
     ],
-    standard: 'CEFR Table 3: Spoken Fluency',
+    standard: 'CEFR Spoken Fluency Standard',
   },
   'Range': {
     name: 'Range (CEFR Range)',

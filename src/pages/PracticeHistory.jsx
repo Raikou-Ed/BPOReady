@@ -309,12 +309,10 @@ const PracticeHistory = () => {
                   { name: "Range", weight: "15%", score: Math.min(100, Math.max(45, score)), label: "Customer Service Terms" },
                 ];
               } else if (type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment")) {
-                // Paragraph Reading & Pre-Assessment: 4 Monologic Pillars (30/30/20/20)
+                // Paragraph Reading & Pre-Assessment: 2 Pillars (Accuracy 50%, Fluency 50%)
                 pillars = [
-                  { name: "Accuracy", weight: "30%", score: Math.min(100, Math.max(45, score + 1)), label: "Vowel & Consonant Clarity" },
-                  { name: "Fluency", weight: "30%", score: Math.min(100, Math.max(45, score)), label: "115–145 WPM Cadence" },
-                  { name: "Range", weight: "20%", score: Math.min(100, Math.max(45, score - 1)), label: "Passage Lexical Coverage" },
-                  { name: "Coherence", weight: "20%", score: Math.min(100, Math.max(45, score - 1)), label: "Continuous Sentence Flow" },
+                  { name: "Accuracy", weight: "50%", score: Math.min(100, Math.max(45, score + 1)), label: "Vowel & Consonant Clarity" },
+                  { name: "Fluency", weight: "50%", score: Math.min(100, Math.max(45, score - 1)), label: "115–145 WPM Cadence" },
                 ];
               } else {
                 // Communication Drills
@@ -328,7 +326,7 @@ const PracticeHistory = () => {
                   <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5">
                     CEFR Table 3 Competency Radar Breakdown
                   </h4>
-                  <div className={`grid gap-2.5 ${pillars.length === 5 ? "grid-cols-2 sm:grid-cols-5" : pillars.length === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1"}`}>
+                  <div className={`grid gap-2.5 ${pillars.length === 5 ? "grid-cols-2 sm:grid-cols-5" : pillars.length === 4 ? "grid-cols-2 sm:grid-cols-4" : pillars.length === 2 ? "grid-cols-1 sm:grid-cols-2 max-w-md mx-auto" : "grid-cols-1"}`}>
                     {pillars.map((p) => (
                       <div key={p.name} className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
                         <div className="flex items-center justify-center gap-1 mb-0.5">

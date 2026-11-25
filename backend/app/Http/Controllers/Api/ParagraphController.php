@@ -146,10 +146,7 @@ class ParagraphController extends Controller
                 $feedbackText = 'The recorded audio did not match the required passage. Please read the passage text clearly from start to finish.';
                 $suggestions = "Speak closer to the microphone.\nFollow the provided passage closely.\nAvoid background noise or unrelated speech.";
             } else {
-                $score = ($pronunciationScore * 0.30) +
-                         ($fluencyScore * 0.25) +
-                         ($sentenceMasteryScore * 0.25) +
-                         ($vocabularyScore * 0.20);
+                $score = ($pronunciationScore * 0.50) + ($fluencyScore * 0.50);
                 $score = max(0, min(100, round($score, 2)));
 
                 $feedbackText = $evalResult['feedbackText'] ?? 'Good reading pace and clear pronunciation throughout the passage.';
@@ -240,32 +237,18 @@ class ParagraphController extends Controller
 
         $criteria = [
             [
-                'name' => 'Pronunciation',
+                'name' => 'Accuracy',
                 'value' => round($pronunciationScore),
-                'weight' => 30,
-                'contribution' => round($pronunciationScore * 0.30, 2),
+                'weight' => 50,
+                'contribution' => round($pronunciationScore * 0.50, 2),
                 'detail' => $score === 0 ? 'Passage not read' : 'Articulation & sound clarity',
             ],
             [
                 'name' => 'Fluency',
                 'value' => round($fluencyScore),
-                'weight' => 25,
-                'contribution' => round($fluencyScore * 0.25, 2),
+                'weight' => 50,
+                'contribution' => round($fluencyScore * 0.50, 2),
                 'detail' => $score === 0 ? 'Passage not read' : 'Rhythm & pause control',
-            ],
-            [
-                'name' => 'Sentence Mastery',
-                'value' => round($sentenceMasteryScore),
-                'weight' => 25,
-                'contribution' => round($sentenceMasteryScore * 0.25, 2),
-                'detail' => $score === 0 ? 'Passage not read' : 'Grammar & phrase structure',
-            ],
-            [
-                'name' => 'Vocabulary',
-                'value' => round($vocabularyScore),
-                'weight' => 20,
-                'contribution' => round($vocabularyScore * 0.20, 2),
-                'detail' => $score === 0 ? '0% matched' : 'Passage lexical coverage',
             ],
         ];
 
@@ -299,10 +282,8 @@ class ParagraphController extends Controller
         $parts[] = [
             'text' => "You are an expert speech-language and BPO communication assessor. Assess the spoken audio against the provided reading passage.\n\n"
                 . "Evaluation Rubric (all numeric scores 0-100):\n"
-                . "1. pronunciation: Clear enunciation of vowels and consonants, sound clarity, and syllable stress intelligibility (Weight: 30%).\n"
-                . "2. fluency: Rhythm, natural flow, speaking pace (target 115-145 WPM), and pause/dead-air control (Weight: 25%).\n"
-                . "3. sentenceMastery: Grammatical accuracy, phrase structure, coherence, and filler-word suppression (Weight: 25%).\n"
-                . "4. vocabulary: Contextual word precision, appropriate lexical usage, and passage coverage (Weight: 20%).\n"
+                . "1. pronunciation: Clear enunciation of vowels and consonants, sound clarity, and syllable stress intelligibility (Weight: 50%).\n"
+                . "2. fluency: Rhythm, natural flow, speaking pace (target 115-145 WPM), and pause/dead-air control (Weight: 50%).\n"
                 . "5. passageCoverage: Percentage of expected words accurately spoken (0-100). CRITICAL: If audio is silent or unrelated words, passageCoverage MUST BE 0.\n"
                 . "6. fillerWords: array of detected filler words (e.g. ['um', 'uh', 'like']).\n"
                 . "7. feedbackText: 2 to 3 sentences of constructive, encouraging BPO coaching feedback evaluating the candidate's speech.\n"

@@ -55,7 +55,7 @@ class PreAssessmentController extends Controller
             $payload = [
                 'systemInstruction' => [
                     'parts' => [[
-                        'text' => 'You are an automated speech-language evaluation engine calibrated to standardized BPO recruitment requirements. Judge the spoken reading against the provided passage across the 4 core criteria: 1) Pronunciation (30% weight: vowel/consonant articulation, phonetic clarity, syllable stress), 2) Fluency (25% weight: rhythm, flow, target pacing 115-145 WPM, penalizing unnatural pauses/dead air), 3) Sentence Mastery (25% weight: grammatical accuracy, clause completeness, filler-word control), and 4) Vocabulary (20% weight: contextual word precision and complete passage coverage). Be realistic and strict: benchmark a solid passing reading in the 76-85 range. Keep all scores between 0 and 100. Return strict JSON only, no markdown fences, no commentary.'
+                        'text' => 'You are an automated speech-language evaluation engine calibrated to standardized BPO recruitment requirements. Judge the spoken reading against the provided passage across 2 core criteria: 1) Pronunciation / Accuracy (50% weight: vowel/consonant articulation, phonetic clarity, syllable stress), and 2) Fluency (50% weight: rhythm, flow, target pacing 115-145 WPM, penalizing unnatural pauses/dead air). Be realistic and strict: benchmark a solid passing reading in the 76-85 range. Keep all scores between 0 and 100. Return strict JSON only, no markdown fences, no commentary.'
                     ]],
                 ],
                 'generationConfig' => [
@@ -65,7 +65,7 @@ class PreAssessmentController extends Controller
                 'contents' => [[
                     'parts' => [
                         [
-                            'text' => "Evaluate this spoken reading using the 4 core speech evaluation criteria: Pronunciation, Fluency, Sentence Mastery, and Vocabulary. Return strict JSON with this exact structure:\n{\n  \"transcript\": \"string\",\n  \"pronunciation\": number,\n  \"fluency\": number,\n  \"sentenceMastery\": number,\n  \"vocabulary\": number,\n  \"speakingPace\": number\n}\nExpected passage: {$expectedText}\nBrowser transcript hint: {$browserTranscriptHint}"
+                            'text' => "Evaluate this spoken reading using the 2 core speech evaluation criteria: Pronunciation (Accuracy) and Fluency. Return strict JSON with this exact structure:\n{\n  \"transcript\": \"string\",\n  \"pronunciation\": number,\n  \"fluency\": number,\n  \"speakingPace\": number\n}\nExpected passage: {$expectedText}\nBrowser transcript hint: {$browserTranscriptHint}"
                         ],
                         [
                             'inline_data' => [
@@ -121,27 +121,15 @@ class PreAssessmentController extends Controller
         $criteria = [
             'pronunciation' => [
                 'score' => (int) ($parsed['pronunciation'] ?? 0),
-                'weight' => 30,
-                'name' => 'Pronunciation',
+                'weight' => 50,
+                'name' => 'Accuracy',
                 'detail' => 'Articulation & vowel/consonant clarity',
             ],
             'fluency' => [
                 'score' => (int) ($parsed['fluency'] ?? $parsed['speakingPace'] ?? 0),
-                'weight' => 25,
+                'weight' => 50,
                 'name' => 'Fluency',
                 'detail' => 'Rhythm, speech rate & pause control',
-            ],
-            'sentenceMastery' => [
-                'score' => (int) ($parsed['sentenceMastery'] ?? $parsed['clarityConfidence'] ?? 0),
-                'weight' => 25,
-                'name' => 'Sentence Mastery',
-                'detail' => 'Grammatical flow & filler control',
-            ],
-            'vocabulary' => [
-                'score' => (int) ($parsed['vocabulary'] ?? $coverageScore),
-                'weight' => 20,
-                'name' => 'Vocabulary',
-                'detail' => 'Lexical accuracy & passage coverage',
             ],
         ];
 

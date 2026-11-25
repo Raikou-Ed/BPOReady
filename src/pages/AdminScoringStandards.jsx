@@ -120,43 +120,27 @@ const AdminScoringStandards = () => {
           {/* Evaluation Criteria Distribution */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-sm">
             <div>
-              <h2 className="text-sm font-bold text-gray-900">CEFR Table 3 Spoken Assessment Criteria &amp; Weight Distribution</h2>
+              <h2 className="text-sm font-bold text-gray-900">Spoken Reading Evaluation Criteria &amp; Weight Distribution</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Council of Europe CEFR Table 3 qualitative dimensions for monologic speech reading &amp; pre-assessment.
+                Core qualitative speech evaluation dimensions for Paragraph Reading &amp; Pre-Assessment (50% Accuracy, 50% Fluency).
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 max-w-2xl">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Accuracy</span>
-                  <span className="text-xs font-extrabold text-blue-600">30%</span>
+                  <span className="text-sm font-bold text-gray-900">Accuracy</span>
+                  <span className="text-sm font-extrabold text-blue-600">50%</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Vowel/consonant enunciation, acoustic clarity, and syllable stress intelligibility.</p>
+                <p className="text-xs text-gray-500">Vowel/consonant enunciation, acoustic clarity, syllable stress intelligibility, and phonetic precision.</p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Fluency</span>
-                  <span className="text-xs font-extrabold text-blue-600">30%</span>
+                  <span className="text-sm font-bold text-gray-900">Fluency</span>
+                  <span className="text-sm font-extrabold text-blue-600">50%</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Speech rhythm, optimal cadence (115–145 WPM), and continuous delivery without unnatural pauses.</p>
-              </div>
-
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Range</span>
-                  <span className="text-xs font-extrabold text-blue-600">20%</span>
-                </div>
-                <p className="text-[11px] text-gray-500">Passage vocabulary repertoire, lexical coverage, and verbal crutch suppression.</p>
-              </div>
-
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 shadow-xs">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-900">Coherence</span>
-                  <span className="text-xs font-extrabold text-blue-600">20%</span>
-                </div>
-                <p className="text-[11px] text-gray-500">Sentence structure flow, clause connection, and complete passage discourse continuity.</p>
+                <p className="text-xs text-gray-500">Speech rhythm, optimal cadence (115–145 WPM), natural flow, and continuous delivery without unnatural pauses.</p>
               </div>
             </div>
           </div>
