@@ -43,8 +43,10 @@ const ManageParagraphs = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin", name: "Admin" });
   const [paragraphs, setParagraphs] = useState(() => {
     let deletedIds = [];
+    let deletedTitles = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+      deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_titles") || "[]");
     } catch {}
 
     try {
@@ -59,7 +61,8 @@ const ManageParagraphs = () => {
               p.is_active !== "0" &&
               !deletedIds.includes(p.id) &&
               !deletedIds.includes(String(p.id)) &&
-              !deletedIds.includes(Number(p.id))
+              !deletedIds.includes(Number(p.id)) &&
+              !deletedTitles.includes(p.title?.trim().toLowerCase())
           );
           const customPre = localStorage.getItem("bpo_preassessment_custom");
           if (customPre) {
@@ -110,8 +113,10 @@ const ManageParagraphs = () => {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           let deletedIds = [];
+          let deletedTitles = [];
           try {
             deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+            deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_titles") || "[]");
           } catch {}
 
           // Filter out inactive/deleted passages
@@ -122,7 +127,8 @@ const ManageParagraphs = () => {
               p.is_active !== "0" &&
               !deletedIds.includes(p.id) &&
               !deletedIds.includes(String(p.id)) &&
-              !deletedIds.includes(Number(p.id))
+              !deletedIds.includes(Number(p.id)) &&
+              !deletedTitles.includes(p.title?.trim().toLowerCase())
           );
 
           const customPre = localStorage.getItem("bpo_preassessment_custom");
@@ -186,16 +192,26 @@ const ManageParagraphs = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this paragraph?")) return;
+    const target = paragraphs.find((p) => p.id === id);
+    const targetTitle = target?.title?.trim().toLowerCase();
+
     const remaining = paragraphs.filter((p) => p.id !== id);
     setParagraphs(remaining);
     localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(remaining));
 
-    // Persist deleted ID locally so refresh never resurrects it
+    // Persist deleted ID and Title locally so refresh never resurrects it
     try {
       const deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
         localStorage.setItem("bpo_deleted_paragraph_ids", JSON.stringify(deletedIds));
+      }
+      if (targetTitle) {
+        const deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_titles") || "[]");
+        if (!deletedTitles.includes(targetTitle)) {
+          deletedTitles.push(targetTitle);
+          localStorage.setItem("bpo_deleted_paragraph_titles", JSON.stringify(deletedTitles));
+        }
       }
     } catch {}
 
@@ -253,7 +269,8 @@ const ManageParagraphs = () => {
           setMessage("Reading passage updated locally.");
         }
       } else {
-        const newP = { id: Date.now(), ...payload };
+        const tempId = `para-${Date.now()}`;
+        const newP = { id: tempId, ...payload };
         if (formData.difficulty === "pre-assessment") {
           updatedList = [newP, ...paragraphs.filter(p => p.difficulty !== "pre-assessment")];
         } else {
@@ -268,6 +285,27 @@ const ManageParagraphs = () => {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          const created = await res.json();
+          const realId = created.id || created.paragraph?.id;
+          if (realId) {
+            setParagraphs((current) => {
+              const wasDeleted = !current.some((p) => p.id === tempId);
+              if (wasDeleted) {
+                fetch(`${API_BASE}/api/paragraphs/${realId}`, { method: "DELETE" }).catch(() => {});
+                try {
+                  const delIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+                  if (!delIds.includes(realId)) {
+                    delIds.push(realId);
+                    localStorage.setItem("bpo_deleted_paragraph_ids", JSON.stringify(delIds));
+                  }
+                } catch {}
+                return current;
+              }
+              const withRealId = current.map((p) => (p.id === tempId ? { ...p, id: realId } : p));
+              localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(withRealId));
+              return withRealId;
+            });
+          }
           setMessage(formData.difficulty === "pre-assessment"
             ? "New Pre-Assessment reading passage created and activated live!"
             : "New reading passage created and published live! Monitored in Super Admin audit trail.");

@@ -87,9 +87,11 @@ const defaultExercises = [
 const syncPacingStorage = (list) => {
   try {
     let deletedIds = [];
+    let deletedTitles = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
-    } catch {}
+      deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_exercise_titles") || "[]");
+    } catch { }
 
     const pacing = list
       .filter(
@@ -99,6 +101,7 @@ const syncPacingStorage = (list) => {
           !deletedIds.includes(e.id) &&
           !deletedIds.includes(String(e.id)) &&
           !deletedIds.includes(Number(e.id)) &&
+          !deletedTitles.includes(e.title?.trim().toLowerCase()) &&
           !e.title?.toLowerCase().includes("optimal speech pacing practice")
       )
       .map((p, idx) => {
@@ -119,8 +122,10 @@ const ManageExercises = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin", name: "Admin" });
   const [exercises, setExercises] = useState(() => {
     let deletedIds = [];
+    let deletedTitles = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+      deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_exercise_titles") || "[]");
     } catch { }
 
     try {
@@ -135,7 +140,9 @@ const ManageExercises = () => {
               e.is_active !== "0" &&
               !deletedIds.includes(e.id) &&
               !deletedIds.includes(String(e.id)) &&
-              !deletedIds.includes(Number(e.id))
+              !deletedIds.includes(Number(e.id)) &&
+              !deletedTitles.includes(e.title?.trim().toLowerCase()) &&
+              !e.title?.toLowerCase().includes("optimal speech pacing practice")
           );
           if (valid.length > 0) return valid;
         }
@@ -165,8 +172,10 @@ const ManageExercises = () => {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           let deletedIds = [];
+          let deletedTitles = [];
           try {
             deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+            deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_exercise_titles") || "[]");
           } catch { }
 
           const normalized = data
@@ -177,7 +186,9 @@ const ManageExercises = () => {
                 d.is_active !== "0" &&
                 !deletedIds.includes(d.id) &&
                 !deletedIds.includes(String(d.id)) &&
-                !deletedIds.includes(Number(d.id))
+                !deletedIds.includes(Number(d.id)) &&
+                !deletedTitles.includes(d.title?.trim().toLowerCase()) &&
+                !d.title?.toLowerCase().includes("optimal speech pacing practice")
             )
             .map((d) => ({
               ...d,
@@ -189,6 +200,7 @@ const ManageExercises = () => {
           defaultExercises.forEach((def) => {
             if (
               !deletedIds.includes(def.id) &&
+              !deletedTitles.includes(def.title?.trim().toLowerCase()) &&
               !merged.some((m) => m.title === def.title || m.id === def.id)
             ) {
               merged.push(def);
@@ -233,17 +245,27 @@ const ManageExercises = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this exercise drill?")) return;
+    const target = exercises.find((e) => e.id === id);
+    const targetTitle = target?.title?.trim().toLowerCase();
+
     const remaining = exercises.filter((e) => e.id !== id);
     setExercises(remaining);
     localStorage.setItem("bpo_custom_exercises", JSON.stringify(remaining));
     syncPacingStorage(remaining);
 
-    // Track locally deleted ID so it stays deleted on refresh
+    // Track locally deleted ID & Title so it never resurrects on refresh
     try {
       const deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
       if (!deletedIds.includes(id)) {
         deletedIds.push(id);
         localStorage.setItem("bpo_deleted_exercise_ids", JSON.stringify(deletedIds));
+      }
+      if (targetTitle) {
+        const deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_exercise_titles") || "[]");
+        if (!deletedTitles.includes(targetTitle)) {
+          deletedTitles.push(targetTitle);
+          localStorage.setItem("bpo_deleted_exercise_titles", JSON.stringify(deletedTitles));
+        }
       }
     } catch { }
 
@@ -289,7 +311,8 @@ const ManageExercises = () => {
           setMessage("Exercise drill updated locally.");
         }
       } else {
-        const newEx = { id: `drill-${Date.now()}`, ...payload };
+        const tempId = `drill-${Date.now()}`;
+        const newEx = { id: tempId, ...payload };
         updatedList = [...exercises, newEx];
         setExercises(updatedList);
         localStorage.setItem("bpo_custom_exercises", JSON.stringify(updatedList));
@@ -301,6 +324,30 @@ const ManageExercises = () => {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          const created = await res.json();
+          const realId = created.id || created.exercise?.id;
+          if (realId) {
+            // Replace temporary client ID with real database ID
+            setExercises((current) => {
+              const wasDeleted = !current.some((e) => e.id === tempId);
+              if (wasDeleted) {
+                // If user already clicked delete while POST was in flight, delete realId immediately
+                fetch(`${API_BASE}/api/exercises/${realId}`, { method: "DELETE" }).catch(() => {});
+                try {
+                  const delIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+                  if (!delIds.includes(realId)) {
+                    delIds.push(realId);
+                    localStorage.setItem("bpo_deleted_exercise_ids", JSON.stringify(delIds));
+                  }
+                } catch {}
+                return current;
+              }
+              const withRealId = current.map((e) => (e.id === tempId ? { ...e, id: realId } : e));
+              localStorage.setItem("bpo_custom_exercises", JSON.stringify(withRealId));
+              syncPacingStorage(withRealId);
+              return withRealId;
+            });
+          }
           setMessage("New exercise drill created and published live! Synced with candidate practice interface.");
         } else {
           setMessage("New drill saved locally.");
