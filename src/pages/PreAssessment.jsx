@@ -59,7 +59,7 @@ export default function PreAssessment() {
               score: Number(localAssigned.score),
               placed_level: localAssigned.placedLevel || 'easy',
               paragraph_id: 1,
-            }).catch(() => {});
+            }).catch(() => { });
           } else {
             setResult(null);
           }
@@ -319,41 +319,34 @@ export default function PreAssessment() {
                       <span>Weight</span>
                       <span>Contribution</span>
                     </div>
-                    {result.criteria
-                      .filter(criterion => {
-                        const n = (criterion.name || '').toLowerCase();
-                        return n === 'accuracy' || n === 'pronunciation' || n === 'fluency' || n === 'speakingpace';
-                      })
-                      .map((criterion, idx, arr) => {
-                        const factorName = (criterion.name === 'Pronunciation' || criterion.name?.toLowerCase() === 'accuracy')
-                          ? 'Accuracy'
-                          : 'Fluency';
-                        const weight = 50;
-                        const contribution = criterion.contribution != null && criterion.weight === 50
-                          ? criterion.contribution
-                          : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
-                        return (
-                          <div
-                            key={criterion.name}
-                            className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
-                              idx === arr.length - 1 ? 'rounded-b-xl' : ''
-                            }`}
-                          >
-                            <div className="flex items-center">
-                              <p className="font-semibold text-gray-900">{factorName}</p>
-                              <PillarFormulaTooltip pillarName={factorName} />
-                            </div>
-                            <div className="flex flex-col justify-center">
-                              <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
-                                {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
-                              </span>
-                              {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
-                            </div>
-                            <span className="flex items-center text-gray-500 font-semibold">{weight}%</span>
-                            <span className="flex items-center font-bold text-emerald-700">{Number(contribution).toFixed(2)}</span>
+                    {result.criteria?.map((criterion, idx, arr) => {
+                      const factorName = criterion.name === 'Pronunciation' ? 'Accuracy' : criterion.name;
+                      const weight = criterion.weight != null ? criterion.weight : 50;
+                      const contribution = criterion.contribution != null
+                        ? criterion.contribution
+                        : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
+                      return (
+                        <div
+                          key={criterion.name || idx}
+                          className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
+                            idx === arr.length - 1 ? 'rounded-b-xl' : ''
+                          }`}
+                        >
+                          <div className="flex items-center">
+                            <p className="font-semibold text-gray-900">{factorName}</p>
+                            <PillarFormulaTooltip pillarName={factorName} />
                           </div>
-                        );
-                      })}
+                          <div className="flex flex-col justify-center">
+                            <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
+                              {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                            </span>
+                            {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
+                          </div>
+                          <span className="flex items-center text-gray-500 font-semibold">{weight}%</span>
+                          <span className="flex items-center font-bold text-emerald-700">{Number(contribution).toFixed(2)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

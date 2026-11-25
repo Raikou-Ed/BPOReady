@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserActivity, getCurrentUser } from "../utils/userData";
 import { getApplicantHistory, getMockInterviewFeedback } from "../api/adminApi";
+import { getActiveEvaluationCriteria } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const PracticeHistory = () => {
@@ -309,11 +310,14 @@ const PracticeHistory = () => {
                   { name: "Range", weight: "15%", score: Math.min(100, Math.max(45, score)), label: "Customer Service Terms" },
                 ];
               } else if (type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment")) {
-                // Paragraph Reading & Pre-Assessment: 2 Pillars (Accuracy 50%, Fluency 50%)
-                pillars = [
-                  { name: "Accuracy", weight: "50%", score: Math.min(100, Math.max(45, score + 1)), label: "Vowel & Consonant Clarity" },
-                  { name: "Fluency", weight: "50%", score: Math.min(100, Math.max(45, score - 1)), label: "115–145 WPM Cadence" },
-                ];
+                // Paragraph Reading & Pre-Assessment: Dynamic institutional criteria
+                const activeCrit = getActiveEvaluationCriteria();
+                pillars = activeCrit.map((c, idx) => ({
+                  name: c.name,
+                  weight: `${c.weight}%`,
+                  score: idx === 0 ? Math.min(100, Math.max(45, score + 1)) : Math.min(100, Math.max(45, score - 1)),
+                  label: c.detail ? c.detail.split(',')[0].slice(0, 35) : `${c.name} Standard`,
+                }));
               } else {
                 // Communication Drills
                 pillars = [

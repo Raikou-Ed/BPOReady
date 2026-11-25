@@ -13,37 +13,55 @@ class ScoringStandardController extends Controller
     public function index()
     {
         $standards = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
-        return response()->json($standards);
+        $criteria = cache()->get('spoken_reading_criteria', [
+            [
+                'id' => 1,
+                'name' => 'Accuracy',
+                'weight' => 50,
+                'detail' => 'Vowel/consonant enunciation, acoustic clarity, syllable stress intelligibility, and phonetic precision.',
+            ],
+            [
+                'id' => 2,
+                'name' => 'Fluency',
+                'weight' => 50,
+                'detail' => 'Speech rhythm, optimal cadence (115–145 WPM), natural flow, and continuous delivery without unnatural pauses.',
+            ],
+        ]);
+
+        return response()->json([
+            'standards' => $standards,
+            'criteria' => $criteria,
+        ]);
     }
 
     public function update(Request $request)
     {
-        $v = Validator::make($request->all(), [
-            'standards' => 'required|array',
-            'standards.*.level' => 'required|in:easy,medium,hard',
-            'standards.*.min_score' => 'required|numeric|min:0|max:100',
-            'standards.*.max_score' => 'required|numeric|min:0|max:100',
-        ]);
-
-        if ($v->fails()) {
-            return response()->json(['errors' => $v->errors()], 422);
+        if ($request->has('standards') && is_array($request->input('standards'))) {
+            foreach ($request->input('standards') as $item) {
+                if (isset($item['level'])) {
+                    DB::table('scoring_standards')
+                        ->where('level', $item['level'])
+                        ->update([
+                            'min_score' => $item['min_score'] ?? 0,
+                            'max_score' => $item['max_score'] ?? 100,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
         }
 
-        foreach ($request->input('standards') as $item) {
-            DB::table('scoring_standards')
-                ->where('level', $item['level'])
-                ->update([
-                    'min_score' => $item['min_score'],
-                    'max_score' => $item['max_score'],
-                    'updated_at' => now(),
-                ]);
+        if ($request->has('criteria') && is_array($request->input('criteria'))) {
+            cache()->forever('spoken_reading_criteria', $request->input('criteria'));
         }
 
         $updated = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
+        $criteria = cache()->get('spoken_reading_criteria', []);
+
         return response()->json([
             'success' => true,
-            'message' => 'Scoring standards updated successfully.',
+            'message' => 'Scoring standards & evaluation criteria updated successfully.',
             'standards' => $updated,
+            'criteria' => $criteria,
         ]);
     }
 }

@@ -289,28 +289,39 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     (contentScore * 0.70) + (completionScore * 0.30)
   )));
 
-  // CEFR Monologic Reading Weights (Accuracy: 50%, Fluency: 50%)
-  const accuracyWeight = 50;
-  const fluencyWeight = 50;
-  const rangeWeight = 0;
-  const coherenceWeight = 0;
+  const activeCriteria = getActiveEvaluationCriteria();
 
-  // Backward compatibility weights
-  const pronunciationWeight = accuracyWeight;
-  const sentenceMasteryWeight = 0;
-  const vocabularyWeight = 0;
+  const scoreLookup = {
+    accuracy: accuracyScore,
+    pronunciation: accuracyScore,
+    fluency: fluencyScore,
+    pacing: fluencyScore,
+    speakingpace: fluencyScore,
+    range: rangeScore,
+    sentencemastery: rangeScore,
+    coherence: coherenceScore,
+    vocabulary: coherenceScore,
+  };
 
-  const accuracyContribution = Number(((accuracyScore * accuracyWeight) / 100).toFixed(2));
-  const fluencyContribution = Number(((fluencyScore * fluencyWeight) / 100).toFixed(2));
-  const rangeContribution = 0;
-  const coherenceContribution = 0;
+  const calculatedCriteria = activeCriteria.map(c => {
+    const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
+    let val = scoreLookup[key];
+    if (val == null) {
+      val = Math.round((accuracyScore + fluencyScore) / 2);
+    }
+    const weight = Number(c.weight || 0);
+    const contribution = Number(((val * weight) / 100).toFixed(2));
+    return {
+      name: c.name,
+      pillar: c.pillar || `CEFR ${c.name}`,
+      value: Math.round(val),
+      weight,
+      contribution,
+      detail: c.detail || `${Math.round(wordsPerMinute)} WPM cadence`,
+    };
+  });
 
-  const pronunciationContribution = accuracyContribution;
-  const sentenceMasteryContribution = 0;
-  const vocabularyContribution = 0;
-
-  const rawSum = accuracyContribution + fluencyContribution;
-
+  const rawSum = calculatedCriteria.reduce((sum, c) => sum + c.contribution, 0);
   const score = Math.max(0, Math.min(100, Number(rawSum.toFixed(2))));
 
   // Determine placedLevel with progressive advancement & anti-downgrade rules
@@ -370,24 +381,7 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     transcriptAvailable: Boolean(transcriptWords.length),
   };
 
-  const criteria = [
-    {
-      name: 'Accuracy',
-      pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
-      value: metrics.accuracy,
-      weight: accuracyWeight,
-      contribution: accuracyContribution,
-      detail: 'Vowel & consonant articulation clarity',
-    },
-    {
-      name: 'Fluency',
-      pillar: 'Fluency (Speech Rate & Pause Smoothness)',
-      value: metrics.fluency,
-      weight: fluencyWeight,
-      contribution: fluencyContribution,
-      detail: `${Math.round(wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
-    },
-  ];
+  const criteria = calculatedCriteria;
 
   return {
     score,
@@ -397,6 +391,33 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     criteria,
     metrics,
   };
+}
+
+export const DEFAULT_READING_CRITERIA = [
+  {
+    id: 1,
+    name: 'Accuracy',
+    pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
+    weight: 50,
+    detail: 'Vowel & consonant articulation clarity',
+  },
+  {
+    id: 2,
+    name: 'Fluency',
+    pillar: 'Fluency (Speech Rate & Pause Smoothness)',
+    weight: 50,
+    detail: 'Speech rhythm, optimal cadence & pause control',
+  },
+];
+
+export function getActiveEvaluationCriteria() {
+  try {
+    const custom = getUserData('bpoReadyScoringCriteria');
+    if (Array.isArray(custom) && custom.length > 0) {
+      return custom;
+    }
+  } catch {}
+  return DEFAULT_READING_CRITERIA;
 }
 
 export function formatScore(score) {
@@ -409,46 +430,27 @@ export function formatScore(score) {
 export function generatePreAssessmentCriteria(score, placedLevel = 'easy', wordsPerMinute = null) {
   const numScore = Number(score) || 70;
   const lvl = String(placedLevel || 'easy').toLowerCase();
-
-  // Baseline calibration per level so weighted sum matches composite score
-  // Weights: Accuracy: 50%, Fluency: 50%
-  let pron = Math.round(numScore);
-  let fluency = Math.round(numScore);
-
-  if (lvl === 'hard') {
-    pron = Math.min(100, Math.round(numScore + 1));
-    fluency = Math.max(0, Math.round(numScore - 1));
-  } else if (lvl === 'medium') {
-    pron = Math.round(numScore);
-    fluency = Math.round(numScore);
-  } else {
-    pron = Math.min(100, Math.round(numScore + 1));
-    fluency = Math.max(0, Math.round(numScore - 1));
-  }
-
-  const pContrib = Number((pron * 0.50).toFixed(2));
-  const fContrib = Number((fluency * 0.50).toFixed(2));
-
   const wpm = wordsPerMinute || (lvl === 'hard' ? 145 : lvl === 'medium' ? 135 : 115);
+  const activeCriteria = getActiveEvaluationCriteria();
 
-  return [
-    {
-      name: 'Accuracy',
-      pillar: 'CEFR Accuracy (Pronunciation & Articulation)',
-      value: pron,
-      weight: 50,
-      contribution: pContrib,
-      detail: 'Vowel & consonant articulation clarity',
-    },
-    {
-      name: 'Fluency',
-      pillar: 'CEFR Fluency (Speech Rate & Pause Smoothness)',
-      value: fluency,
-      weight: 50,
-      contribution: fContrib,
-      detail: `${wpm} WPM • Flow & pause control`,
-    },
-  ];
+  return activeCriteria.map((c, idx) => {
+    const weight = Number(c.weight || 0);
+    let val = Math.round(numScore);
+    if (idx === 0) {
+      val = lvl === 'hard' ? Math.min(100, Math.round(numScore + 1)) : Math.round(numScore);
+    } else {
+      val = lvl === 'hard' ? Math.max(0, Math.round(numScore - 1)) : Math.round(numScore);
+    }
+    const contribution = Number(((val * weight) / 100).toFixed(2));
+    return {
+      name: c.name,
+      pillar: c.pillar || `CEFR ${c.name} Standard`,
+      value: val,
+      weight,
+      contribution,
+      detail: c.detail || (c.name.toLowerCase().includes('fluency') ? `${wpm} WPM • Flow & pause control` : 'Vowel & consonant articulation clarity'),
+    };
+  });
 }
 
 export function getAssignedLevel() {
@@ -457,10 +459,11 @@ export function getAssignedLevel() {
     let num = Number(data.score);
     data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
     const lvl = String(data.placedLevel || 'easy').toLowerCase();
+    const activeCount = getActiveEvaluationCriteria().length;
 
-    // Check if criteria is missing, invalid, or using legacy names or more than 2 factors
-    const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length !== 2 ||
-      data.criteria.some(c => c.name === 'Pronunciation' || c.name === 'Sentence Mastery' || c.name === 'Vocabulary' || c.name === 'Range' || c.name === 'Coherence' || String(c.detail || '').includes('words matched')) ||
+    // Check if criteria is missing, invalid, or length does not match active factors
+    const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length !== activeCount ||
+      data.criteria.some(c => c.name === 'Pronunciation' || c.name === 'Sentence Mastery' || c.name === 'Vocabulary' || String(c.detail || '').includes('words matched')) ||
       Math.abs(data.criteria.reduce((sum, c) => sum + (Number(c.contribution) || 0), 0) - data.score) > 3;
 
     if (hasCorruptOrLegacyCriteria) {

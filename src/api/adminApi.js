@@ -119,7 +119,7 @@ export async function deleteInterviewQuestion(id) {
   return res.json();
 }
 
-// Scoring Standards
+// Scoring Standards & Criteria
 export async function getScoringStandards() {
   try {
     const res = await fetch(`${API_BASE}/api/scoring-standards`);
@@ -127,19 +127,23 @@ export async function getScoringStandards() {
     return res.json();
   } catch (err) {
     console.warn('getScoringStandards failed:', err);
-    return [
-      { level: 'easy', min_score: 0, max_score: 75 },
-      { level: 'medium', min_score: 76, max_score: 89 },
-      { level: 'hard', min_score: 90, max_score: 100 },
-    ];
+    return {
+      standards: [
+        { level: 'easy', min_score: 0, max_score: 75 },
+        { level: 'medium', min_score: 76, max_score: 89 },
+        { level: 'hard', min_score: 90, max_score: 100 },
+      ],
+      criteria: null,
+    };
   }
 }
 
-export async function updateScoringStandards(standards) {
+export async function updateScoringStandards(payload) {
+  const body = Array.isArray(payload) ? { standards: payload } : payload;
   const res = await fetch(`${API_BASE}/api/scoring-standards`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ standards }),
+    body: JSON.stringify(body),
   });
   return res.json();
 }
