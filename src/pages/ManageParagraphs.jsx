@@ -6,10 +6,17 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const defaultParagraphs = [
   {
+    id: "pre-assessment-001",
+    title: "Spoken English Diagnostic Assessment",
+    difficulty: "pre-assessment",
+    word_count: 77,
+    approval_status: "approved",
+    content: "Effective communication begins with clarity of thought and the ability to articulate ideas with confidence. When speaking, maintaining a steady pace and pronouncing words accurately allows listeners to understand the intended message without confusion. Genuine listening is equally essential, as it fosters constructive dialogue and mutual respect. Cultivating strong spoken language skills enables individuals to connect thoughtfully with others, navigate diverse conversations, and express viewpoints with poise and professional credibility."
+  },
+  {
     id: 1,
     title: "The Value of Daily Speaking Practice",
     difficulty: "easy",
-    category: "Communication Foundations",
     word_count: 48,
     approval_status: "approved",
     content: "Speaking English clearly takes time, patience, and regular practice. When you read aloud every day, you improve your voice, rhythm, and confidence. Using simple words helps everyone understand your message right away. Staying calm and breathing properly allows you to speak smoothly and share your thoughts with ease."
@@ -18,7 +25,6 @@ const defaultParagraphs = [
     id: 2,
     title: "Effective Communication in the Workplace",
     difficulty: "medium",
-    category: "Workplace Communication",
     word_count: 60,
     approval_status: "approved",
     content: "Effective communication is an essential skill in every modern workplace. When people share their ideas clearly and listen with respect, teams solve problems faster and achieve better results. Practicing structured speech techniques helps individuals build vocal confidence, control their speaking pace, and adapt comfortably to different professional conversations. Over time, consistent practice transforms everyday spoken interactions into meaningful professional relationships."
@@ -27,7 +33,6 @@ const defaultParagraphs = [
     id: 3,
     title: "Mastering Advanced Verbal Precision",
     difficulty: "hard",
-    category: "Advanced Speech Mastery",
     word_count: 61,
     approval_status: "approved",
     content: "Mastering advanced verbal communication requires cognitive adaptability, precise phonetic articulation, and disciplined breath management. Professionals who articulate intricate concepts clearly can navigate high-pressure discussions with authority and composure. Developing these capabilities demands sustained linguistic awareness, critical self-evaluation, and continuous refinement across demanding professional environments. Ultimately, achieving vocal excellence empowers individuals to deliver persuasive arguments, project executive presence, and influence organizational outcomes."
@@ -36,7 +41,33 @@ const defaultParagraphs = [
 
 const ManageParagraphs = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin", name: "Admin" });
-  const [paragraphs, setParagraphs] = useState(defaultParagraphs);
+  const [paragraphs, setParagraphs] = useState(() => {
+    try {
+      const cached = localStorage.getItem("bpo_custom_paragraphs");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const customPre = localStorage.getItem("bpo_preassessment_custom");
+          if (customPre) {
+            const preObj = JSON.parse(customPre);
+            return parsed.map(p => p.difficulty === "pre-assessment" ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content } : p);
+          }
+          return parsed;
+        }
+      }
+    } catch {}
+
+    try {
+      const customPre = localStorage.getItem("bpo_preassessment_custom");
+      if (customPre) {
+        const preObj = JSON.parse(customPre);
+        return defaultParagraphs.map(p => p.difficulty === "pre-assessment" ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content } : p);
+      }
+    } catch {}
+
+    return defaultParagraphs;
+  });
+
   const [loading, setLoading] = useState(true);
   const [filterLevel, setFilterLevel] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,7 +75,6 @@ const ManageParagraphs = () => {
   const [formData, setFormData] = useState({
     title: "",
     difficulty: "easy",
-    category: "Customer Service",
     content: "",
   });
   const [message, setMessage] = useState("");
@@ -57,7 +87,23 @@ const ManageParagraphs = () => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setParagraphs(data);
+          let merged = [...data];
+          const customPre = localStorage.getItem("bpo_preassessment_custom");
+          let preParsed = null;
+          if (customPre) {
+            try { preParsed = JSON.parse(customPre); } catch {}
+          }
+
+          if (!merged.some(p => p.difficulty?.toLowerCase() === "pre-assessment")) {
+            const preItem = defaultParagraphs.find(p => p.difficulty === "pre-assessment");
+            if (preItem) {
+              merged.unshift(preParsed ? { ...preItem, title: preParsed.title || preItem.title, content: preParsed.content || preItem.content } : preItem);
+            }
+          } else if (preParsed) {
+            merged = merged.map(p => p.difficulty?.toLowerCase() === "pre-assessment" ? { ...p, title: preParsed.title || p.title, content: preParsed.content || p.content } : p);
+          }
+          setParagraphs(merged);
+          localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(merged));
         }
       }
     } catch (err) {
@@ -76,7 +122,6 @@ const ManageParagraphs = () => {
     setFormData({
       title: "",
       difficulty: "easy",
-      category: "Customer Service",
       content: "",
     });
     setIsModalOpen(true);
@@ -87,7 +132,6 @@ const ManageParagraphs = () => {
     setFormData({
       title: p.title,
       difficulty: p.difficulty,
-      category: p.category || "General",
       content: p.content,
     });
     setIsModalOpen(true);
@@ -95,17 +139,18 @@ const ManageParagraphs = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this paragraph?")) return;
+    const remaining = paragraphs.filter((p) => p.id !== id);
+    setParagraphs(remaining);
+    localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(remaining));
+
     try {
       const res = await fetch(`${API_BASE}/api/paragraphs/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setParagraphs(paragraphs.filter((p) => p.id !== id));
         setMessage("Paragraph deleted successfully.");
       } else {
-        setParagraphs(paragraphs.filter((p) => p.id !== id));
         setMessage("Paragraph removed from view.");
       }
     } catch {
-      setParagraphs(paragraphs.filter((p) => p.id !== id));
       setMessage("Paragraph removed locally.");
     }
     setTimeout(() => setMessage(""), 3500);
@@ -122,43 +167,59 @@ const ManageParagraphs = () => {
       created_by_user_id: currentUser?.id,
     };
 
+    let updatedList = paragraphs;
+
+    // If pre-assessment, also persist to dedicated pre-assessment storage for candidate view
+    if (formData.difficulty === "pre-assessment") {
+      localStorage.setItem("bpo_preassessment_custom", JSON.stringify({
+        id: editingId || "pre-assessment-custom",
+        title: formData.title,
+        content: formData.content,
+      }));
+    }
+
     try {
       if (editingId) {
+        updatedList = paragraphs.map((p) => (p.id === editingId ? { ...p, ...payload } : p));
+        setParagraphs(updatedList);
+        localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(updatedList));
+
         const res = await fetch(`${API_BASE}/api/paragraphs/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          const updated = await res.json();
-          setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...(updated.paragraph || updated), approval_status: "approved" } : p)));
-          setMessage("Reading passage updated and published live! Monitored in Super Admin audit trail.");
+          setMessage(formData.difficulty === "pre-assessment"
+            ? "Pre-Assessment reading passage updated and published live!"
+            : "Reading passage updated and published live! Monitored in Super Admin audit trail.");
         } else {
-          setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...p, ...payload } : p)));
           setMessage("Reading passage updated locally.");
         }
       } else {
+        const newP = { id: Date.now(), ...payload };
+        if (formData.difficulty === "pre-assessment") {
+          updatedList = [newP, ...paragraphs.filter(p => p.difficulty !== "pre-assessment")];
+        } else {
+          updatedList = [...paragraphs, newP];
+        }
+        setParagraphs(updatedList);
+        localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(updatedList));
+
         const res = await fetch(`${API_BASE}/api/paragraphs`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          const created = await res.json();
-          setParagraphs([...paragraphs, created.paragraph || created]);
-          setMessage("New reading passage created and published live! Monitored in Super Admin audit trail.");
+          setMessage(formData.difficulty === "pre-assessment"
+            ? "New Pre-Assessment reading passage created and activated live!"
+            : "New reading passage created and published live! Monitored in Super Admin audit trail.");
         } else {
-          const newP = { id: Date.now(), ...payload };
-          setParagraphs([...paragraphs, newP]);
           setMessage("New reading passage saved locally.");
         }
       }
     } catch {
-      if (editingId) {
-        setParagraphs(paragraphs.map((p) => (p.id === editingId ? { ...p, ...payload } : p)));
-      } else {
-        setParagraphs([...paragraphs, { id: Date.now(), ...payload }]);
-      }
       setMessage("Saved locally.");
     }
 
@@ -199,8 +260,8 @@ const ManageParagraphs = () => {
               </h1>
               <p className="text-xs text-gray-500 mt-1">
                 {isSuperAdmin
-                  ? "View-only audit of all reading passages. Content is authored and managed directly by BPO Company Admins."
-                  : "Create and update reading passages for candidate assessments. Changes are published immediately."}
+                  ? "View-only audit of all reading passages, including Pre-Assessment diagnostic scripts and difficulty training modules."
+                  : "Create and update reading passages for candidate assessments and diagnostic Pre-Assessment. Changes are published immediately."}
               </p>
             </div>
 
@@ -221,7 +282,7 @@ const ManageParagraphs = () => {
               ) : (
                 <button
                   onClick={handleOpenAdd}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs shadow-sm transition flex items-center gap-2 shrink-0 cursor-pointer"
                 >
                   + Add Reading Passage
                 </button>
@@ -255,18 +316,24 @@ const ManageParagraphs = () => {
           )}
 
           {/* Filter Bar */}
-          <div className="flex gap-2">
-            {["all", "easy", "medium", "hard"].map((lvl) => (
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: "all", label: "All Passages" },
+              { key: "pre-assessment", label: "★ Pre-Assessment" },
+              { key: "easy", label: "Easy Level" },
+              { key: "medium", label: "Medium Level" },
+              { key: "hard", label: "Hard Level" },
+            ].map((f) => (
               <button
-                key={lvl}
-                onClick={() => setFilterLevel(lvl)}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl capitalize transition ${
-                  filterLevel === lvl
+                key={f.key}
+                onClick={() => setFilterLevel(f.key)}
+                className={`px-4 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
+                  filterLevel === f.key
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
-                {lvl} Passages ({lvl === "all" ? paragraphs.length : paragraphs.filter((p) => p.difficulty?.toLowerCase() === lvl).length})
+                {f.label} ({f.key === "all" ? paragraphs.length : paragraphs.filter((p) => p.difficulty?.toLowerCase() === f.key).length})
               </button>
             ))}
           </div>
@@ -274,24 +341,27 @@ const ManageParagraphs = () => {
           {/* Passages List */}
           <div className="space-y-4">
             {filtered.map((p) => {
+              const isPre = p.difficulty?.toLowerCase() === "pre-assessment";
               const badgeBg =
-                p.difficulty === "easy"
+                isPre
+                  ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                  : p.difficulty === "easy"
                   ? "bg-green-100 text-green-800"
                   : p.difficulty === "medium"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-purple-100 text-purple-800";
 
-              const status = p.approval_status || "approved";
-
               return (
                 <div
                   key={p.id}
-                  className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-3"
+                  className={`bg-white rounded-2xl border p-5 shadow-sm space-y-3 ${
+                    isPre ? "border-amber-300 bg-amber-50/30 ring-1 ring-amber-200" : "border-gray-200"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${badgeBg}`}>
-                        {p.difficulty} Level
+                        {isPre ? "★ Active Pre-Assessment Diagnostic" : `${p.difficulty} Level`}
                       </span>
 
                       {/* Status & Change Badges */}
@@ -306,7 +376,7 @@ const ManageParagraphs = () => {
 
                       <h3 className="text-sm font-bold text-gray-900">{p.title}</h3>
                       <span className="text-xs text-gray-400">
-                        ({p.category || "General"} • ~{p.word_count || p.content.split(/\s+/).length} words)
+                        (~{p.word_count || p.content.split(/\s+/).length} words)
                       </span>
                     </div>
 
@@ -314,19 +384,30 @@ const ManageParagraphs = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleOpenEdit(p)}
-                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition"
+                          className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition cursor-pointer"
                         >
                           Edit
                         </button>
-                        <button
-                          onClick={() => handleDelete(p.id)}
-                          className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition"
-                        >
-                          Delete
-                        </button>
+                        {!isPre && (
+                          <button
+                            onClick={() => handleDelete(p.id)}
+                            className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
+
+                  {isPre && (
+                    <div className="p-3 bg-amber-100/70 border border-amber-300/80 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                      <span className="text-base shrink-0">🎯</span>
+                      <span>
+                        <strong>Current Active Pre-Assessment Diagnostic Paragraph:</strong> Candidates reading this passage during their initial diagnostic test will be evaluated and placed into their training difficulty tier (Easy, Medium, or Hard).
+                      </span>
+                    </div>
+                  )}
 
                   {p.reviewer_notes && (
                     <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
@@ -347,7 +428,7 @@ const ManageParagraphs = () => {
         </div>
       </div>
 
-      {/* Modal Dialog */}
+      {/* Modal Dialog (Category Removed, Pre-Assessment Added) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
@@ -357,7 +438,7 @@ const ManageParagraphs = () => {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -373,38 +454,25 @@ const ManageParagraphs = () => {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Customer Care Billing Assurance"
+                  placeholder="e.g. Spoken English Diagnostic Assessment"
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Difficulty Level
-                  </label>
-                  <select
-                    value={formData.difficulty}
-                    onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="e.g. Technical Support"
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Difficulty Level / Assessment Track
+                </label>
+                <select
+                  value={formData.difficulty}
+                  onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                >
+                  <option value="pre-assessment">★ Pre-Assessment (Diagnostic Baseline)</option>
+                  <option value="easy">Easy Level</option>
+                  <option value="medium">Medium Level</option>
+                  <option value="hard">Hard Level</option>
+                </select>
               </div>
 
               <div>
@@ -412,7 +480,7 @@ const ManageParagraphs = () => {
                   Passage Text Content
                 </label>
                 <textarea
-                  rows="5"
+                  rows="6"
                   required
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -428,13 +496,13 @@ const ManageParagraphs = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition shadow-sm"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition shadow-sm cursor-pointer"
                 >
                   {editingId ? "Update Passage" : "Save Passage"}
                 </button>

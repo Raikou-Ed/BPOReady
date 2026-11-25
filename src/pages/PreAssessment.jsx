@@ -15,6 +15,7 @@ import { submitPreAssessmentAudio, getUserPreAssessment, savePreAssessmentResult
 import { addUserActivity, getCurrentUser } from '../utils/userData';
 import PillarFormulaTooltip from '../components/PillarFormulaTooltip';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const levelLabels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 const scoreCriteria = new Set(['pronunciation', 'fluency', 'accuracy', 'speakingPace']);
 const visibleCriteria = new Set(['pronunciation', 'fluency', 'accuracy']);
@@ -28,7 +29,54 @@ export default function PreAssessment() {
   const [isRetaking, setIsRetaking] = useState(false);
   const [recording, setRecording] = useState(null);
   const [error, setError] = useState('');
-  const wordCount = useMemo(() => preAssessment.content.trim().split(/\s+/).length, []);
+
+  const [activePassage, setActivePassage] = useState(() => {
+    try {
+      const custom = localStorage.getItem("bpo_preassessment_custom");
+      if (custom) {
+        const parsed = JSON.parse(custom);
+        if (parsed?.content) {
+          return {
+            ...preAssessment,
+            id: parsed.id || preAssessment.id,
+            title: parsed.title || preAssessment.title,
+            content: parsed.content,
+          };
+        }
+      }
+    } catch {}
+    return preAssessment;
+  });
+
+  const wordCount = useMemo(() => activePassage.content.trim().split(/\s+/).length, [activePassage]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/paragraphs`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const preInDb = data.find((p) => p.difficulty?.toLowerCase() === "pre-assessment");
+          if (preInDb && preInDb.content) {
+            const updated = {
+              ...preAssessment,
+              id: preInDb.id,
+              title: preInDb.title || preAssessment.title,
+              content: preInDb.content,
+            };
+            setActivePassage(updated);
+            localStorage.setItem(
+              "bpo_preassessment_custom",
+              JSON.stringify({
+                id: preInDb.id,
+                title: preInDb.title,
+                content: preInDb.content,
+              })
+            );
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const cur = getCurrentUser();
@@ -99,7 +147,7 @@ export default function PreAssessment() {
     try {
       const apiResult = await submitPreAssessmentAudio({
         audio: recording.blob,
-        expectedText: preAssessment.content,
+        expectedText: activePassage.content,
         durationSeconds: recording.durationSeconds,
         transcript: recording.transcript,
       });
@@ -108,7 +156,7 @@ export default function PreAssessment() {
         durationSeconds: recording.durationSeconds,
         wordCount,
         transcript: recording.transcript,
-        expectedText: preAssessment.content,
+        expectedText: activePassage.content,
         audioMetrics: recording.audioMetrics,
       });
 
@@ -189,7 +237,7 @@ export default function PreAssessment() {
       const assessmentResult = {
         ...score,
         isPreAssessment: true,
-        assessmentId: preAssessment.id,
+        assessmentId: activePassage.id || preAssessment.id,
         completedAt: new Date().toISOString(),
       };
       saveAssessmentResult(assessmentResult);
@@ -199,7 +247,7 @@ export default function PreAssessment() {
           applicant_id: Number(curUser.id),
           score: Number(assessmentResult.score),
           placed_level: assessmentResult.placedLevel,
-          paragraph_id: preAssessment.id || 1,
+          paragraph_id: activePassage.id || 1,
         });
       }
       addUserActivity({
@@ -216,7 +264,7 @@ export default function PreAssessment() {
         durationSeconds: recording.durationSeconds,
         wordCount,
         transcript: recording.transcript,
-        expectedText: preAssessment.content,
+        expectedText: activePassage.content,
         audioMetrics: recording.audioMetrics,
       });
 
@@ -234,7 +282,7 @@ export default function PreAssessment() {
       const assessmentResult = {
         ...fallbackScore,
         isPreAssessment: true,
-        assessmentId: preAssessment.id,
+        assessmentId: activePassage.id || preAssessment.id,
         completedAt: new Date().toISOString(),
       };
       saveAssessmentResult(assessmentResult);
@@ -244,7 +292,7 @@ export default function PreAssessment() {
           applicant_id: Number(curUser.id),
           score: Number(assessmentResult.score),
           placed_level: assessmentResult.placedLevel,
-          paragraph_id: preAssessment.id || 1,
+          paragraph_id: activePassage.id || 1,
         });
       }
       addUserActivity({
@@ -436,13 +484,13 @@ export default function PreAssessment() {
 
             <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between pb-3 border-b">
-                <h2 className="text-sm font-bold text-gray-800">{preAssessment.title}</h2>
+                <h2 className="text-sm font-bold text-gray-800">{activePassage.title}</h2>
                 <span className="text-xs text-gray-400">~{wordCount} words</span>
               </div>
-              <p className="text-xs text-gray-500">{preAssessment.instructions}</p>
+              <p className="text-xs text-gray-500">{activePassage.instructions || preAssessment.instructions}</p>
 
               <div className="p-5 rounded-xl border border-blue-100 bg-blue-50/60 text-sm leading-relaxed text-gray-800 font-medium">
-                "{preAssessment.content}"
+                "{activePassage.content}"
               </div>
 
               <div className="pt-2">
@@ -450,7 +498,7 @@ export default function PreAssessment() {
                   Click Start Recording and speak clearly into your microphone:
                 </p>
                 <AudioRecorder
-                  expectedText={preAssessment.content}
+                  expectedText={activePassage.content}
                   onRecordingComplete={(blob, duration, transcript, metrics) => handleRecording(blob, duration, transcript, metrics)}
                 />
                 {recording && (

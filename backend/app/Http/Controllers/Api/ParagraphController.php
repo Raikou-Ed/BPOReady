@@ -43,7 +43,7 @@ class ParagraphController extends Controller
         $v = Validator::make($request->all(), [
             'title' => 'nullable|string',
             'content' => 'required|string',
-            'difficulty' => 'required|in:easy,medium,hard',
+            'difficulty' => 'required|in:easy,medium,hard,pre-assessment',
             'created_by_user_id' => 'nullable|integer',
             'approval_status' => 'nullable|in:pending,approved,rejected',
         ]);
