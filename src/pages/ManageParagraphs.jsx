@@ -6,14 +6,6 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 const defaultParagraphs = [
   {
-    id: "pre-assessment-001",
-    title: "Spoken English Diagnostic Assessment",
-    difficulty: "pre-assessment",
-    word_count: 77,
-    approval_status: "approved",
-    content: "Effective communication begins with clarity of thought and the ability to articulate ideas with confidence. When speaking, maintaining a steady pace and pronouncing words accurately allows listeners to understand the intended message without confusion. Genuine listening is equally essential, as it fosters constructive dialogue and mutual respect. Cultivating strong spoken language skills enables individuals to connect thoughtfully with others, navigate diverse conversations, and express viewpoints with poise and professional credibility."
-  },
-  {
     id: 1,
     title: "The Value of Daily Speaking Practice",
     difficulty: "easy",
@@ -56,6 +48,7 @@ const ManageParagraphs = () => {
         if (Array.isArray(parsed) && parsed.length > 0) {
           const valid = parsed.filter(
             (p) =>
+              p.difficulty?.toLowerCase() !== "pre-assessment" &&
               p.is_active !== false &&
               p.is_active !== 0 &&
               p.is_active !== "0" &&
@@ -64,29 +57,8 @@ const ManageParagraphs = () => {
               !deletedIds.includes(Number(p.id)) &&
               !deletedTitles.includes(p.title?.trim().toLowerCase())
           );
-          const customPre = localStorage.getItem("bpo_preassessment_custom");
-          if (customPre) {
-            const preObj = JSON.parse(customPre);
-            return valid.map((p) =>
-              p.difficulty === "pre-assessment"
-                ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content }
-                : p
-            );
-          }
-          return valid;
+          if (valid.length > 0) return valid;
         }
-      }
-    } catch {}
-
-    try {
-      const customPre = localStorage.getItem("bpo_preassessment_custom");
-      if (customPre) {
-        const preObj = JSON.parse(customPre);
-        return defaultParagraphs.map((p) =>
-          p.difficulty === "pre-assessment"
-            ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content }
-            : p
-        );
       }
     } catch {}
 
@@ -119,9 +91,10 @@ const ManageParagraphs = () => {
             deletedTitles = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_titles") || "[]");
           } catch {}
 
-          // Filter out inactive/deleted passages
+          // Filter out inactive/deleted and pre-assessment passages
           let merged = data.filter(
             (p) =>
+              p.difficulty?.toLowerCase() !== "pre-assessment" &&
               p.is_active !== false &&
               p.is_active !== 0 &&
               p.is_active !== "0" &&
@@ -131,30 +104,37 @@ const ManageParagraphs = () => {
               !deletedTitles.includes(p.title?.trim().toLowerCase())
           );
 
-          const customPre = localStorage.getItem("bpo_preassessment_custom");
-          let preParsed = null;
-          if (customPre) {
-            try {
-              preParsed = JSON.parse(customPre);
-            } catch {}
-          }
-
-          if (!merged.some((p) => p.difficulty?.toLowerCase() === "pre-assessment")) {
-            const preItem = defaultParagraphs.find((p) => p.difficulty === "pre-assessment");
-            if (preItem) {
-              merged.unshift(
-                preParsed
-                  ? { ...preItem, title: preParsed.title || preItem.title, content: preParsed.content || preItem.content }
-                  : preItem
+          // Merge local custom passages for easy/medium/hard
+          try {
+            const raw = localStorage.getItem("bpo_custom_paragraphs");
+            if (raw) {
+              const localList = JSON.parse(raw).filter(
+                (p) =>
+                  p.difficulty?.toLowerCase() !== "pre-assessment" &&
+                  p.is_active !== false &&
+                  !deletedIds.includes(p.id) &&
+                  !deletedIds.includes(String(p.id)) &&
+                  !deletedIds.includes(Number(p.id)) &&
+                  !deletedTitles.includes(p.title?.trim().toLowerCase())
               );
+              localList.forEach((lp) => {
+                if (!merged.some((mp) => String(mp.id) === String(lp.id) || mp.title?.trim().toLowerCase() === lp.title?.trim().toLowerCase())) {
+                  merged.push(lp);
+                }
+              });
             }
-          } else if (preParsed) {
-            merged = merged.map((p) =>
-              p.difficulty?.toLowerCase() === "pre-assessment"
-                ? { ...p, title: preParsed.title || p.title, content: preParsed.content || p.content }
-                : p
-            );
-          }
+          } catch {}
+
+          defaultParagraphs.forEach((def) => {
+            if (
+              !deletedIds.includes(def.id) &&
+              !deletedTitles.includes(def.title?.trim().toLowerCase()) &&
+              !merged.some((m) => String(m.id) === String(def.id) || m.title?.trim().toLowerCase() === def.title?.trim().toLowerCase())
+            ) {
+              merged.push(def);
+            }
+          });
+
           setParagraphs(merged);
           localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(merged));
         }
@@ -241,15 +221,6 @@ const ManageParagraphs = () => {
 
     let updatedList = paragraphs;
 
-    // If pre-assessment, also persist to dedicated pre-assessment storage for candidate view
-    if (formData.difficulty === "pre-assessment") {
-      localStorage.setItem("bpo_preassessment_custom", JSON.stringify({
-        id: editingId || "pre-assessment-custom",
-        title: formData.title,
-        content: formData.content,
-      }));
-    }
-
     try {
       if (editingId) {
         updatedList = paragraphs.map((p) => (p.id === editingId ? { ...p, ...payload } : p));
@@ -262,20 +233,14 @@ const ManageParagraphs = () => {
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          setMessage(formData.difficulty === "pre-assessment"
-            ? "Pre-Assessment reading passage updated and published live!"
-            : "Reading passage updated and published live! Monitored in Super Admin audit trail.");
+          setMessage("Reading passage updated and published live! Monitored in Super Admin audit trail.");
         } else {
           setMessage("Reading passage updated locally.");
         }
       } else {
         const tempId = `para-${Date.now()}`;
         const newP = { id: tempId, ...payload };
-        if (formData.difficulty === "pre-assessment") {
-          updatedList = [newP, ...paragraphs.filter(p => p.difficulty !== "pre-assessment")];
-        } else {
-          updatedList = [...paragraphs, newP];
-        }
+        updatedList = [...paragraphs, newP];
         setParagraphs(updatedList);
         localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(updatedList));
 
@@ -306,9 +271,7 @@ const ManageParagraphs = () => {
               return withRealId;
             });
           }
-          setMessage(formData.difficulty === "pre-assessment"
-            ? "New Pre-Assessment reading passage created and activated live!"
-            : "New reading passage created and published live! Monitored in Super Admin audit trail.");
+          setMessage("New reading passage created and published live! Monitored in Super Admin audit trail.");
         } else {
           setMessage("New reading passage saved locally.");
         }
@@ -354,8 +317,8 @@ const ManageParagraphs = () => {
               </h1>
               <p className="text-xs text-gray-500 mt-1">
                 {isSuperAdmin
-                  ? "View-only audit of all reading passages, including Pre-Assessment diagnostic scripts and difficulty training modules."
-                  : "Create and update reading passages for candidate assessments and diagnostic Pre-Assessment. Changes are published immediately."}
+                  ? "View-only audit of all reading passages across Easy, Medium, and Hard training modules."
+                  : "Create and update reading passages for candidate difficulty-tiered paragraph reading practice. Changes are published immediately."}
               </p>
             </div>
 
@@ -413,7 +376,6 @@ const ManageParagraphs = () => {
           <div className="flex flex-wrap gap-2">
             {[
               { key: "all", label: "All Passages" },
-              { key: "pre-assessment", label: "Pre-Assessment" },
               { key: "easy", label: "Easy Level" },
               { key: "medium", label: "Medium Level" },
               { key: "hard", label: "Hard Level" },
@@ -435,11 +397,8 @@ const ManageParagraphs = () => {
           {/* Passages List */}
           <div className="space-y-4">
             {filtered.map((p) => {
-              const isPre = p.difficulty?.toLowerCase() === "pre-assessment";
               const badgeBg =
-                isPre
-                  ? "bg-indigo-100 text-indigo-800"
-                  : p.difficulty === "easy"
+                p.difficulty === "easy"
                   ? "bg-green-100 text-green-800"
                   : p.difficulty === "medium"
                   ? "bg-blue-100 text-blue-800"
@@ -453,7 +412,7 @@ const ManageParagraphs = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${badgeBg}`}>
-                        {isPre ? "Pre-Assessment" : `${p.difficulty} Level`}
+                        {p.difficulty} Level
                       </span>
 
                       {/* Status & Change Badges */}
@@ -480,14 +439,12 @@ const ManageParagraphs = () => {
                         >
                           Edit
                         </button>
-                        {!isPre && (
-                          <button
-                            onClick={() => handleDelete(p.id)}
-                            className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition cursor-pointer"
+                        >
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
@@ -511,7 +468,7 @@ const ManageParagraphs = () => {
         </div>
       </div>
 
-      {/* Modal Dialog (Category Removed, Pre-Assessment Added) */}
+      {/* Modal Dialog */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
@@ -537,7 +494,7 @@ const ManageParagraphs = () => {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Spoken English Diagnostic Assessment"
+                  placeholder="e.g. Customer Care Billing Assurance"
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
@@ -551,7 +508,6 @@ const ManageParagraphs = () => {
                   onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 >
-                  <option value="pre-assessment">Pre-Assessment</option>
                   <option value="easy">Easy Level</option>
                   <option value="medium">Medium Level</option>
                   <option value="hard">Hard Level</option>
