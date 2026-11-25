@@ -375,7 +375,7 @@ const ManageParagraphs = () => {
           <div className="flex flex-wrap gap-2">
             {[
               { key: "all", label: "All Passages" },
-              { key: "pre-assessment", label: "★ Pre-Assessment" },
+              { key: "pre-assessment", label: "Pre-Assessment" },
               { key: "easy", label: "Easy Level" },
               { key: "medium", label: "Medium Level" },
               { key: "hard", label: "Hard Level" },
@@ -400,7 +400,7 @@ const ManageParagraphs = () => {
               const isPre = p.difficulty?.toLowerCase() === "pre-assessment";
               const badgeBg =
                 isPre
-                  ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                  ? "bg-indigo-100 text-indigo-800"
                   : p.difficulty === "easy"
                   ? "bg-green-100 text-green-800"
                   : p.difficulty === "medium"
@@ -410,14 +410,12 @@ const ManageParagraphs = () => {
               return (
                 <div
                   key={p.id}
-                  className={`bg-white rounded-2xl border p-5 shadow-sm space-y-3 ${
-                    isPre ? "border-amber-300 bg-amber-50/30 ring-1 ring-amber-200" : "border-gray-200"
-                  }`}
+                  className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${badgeBg}`}>
-                        {isPre ? "★ Active Pre-Assessment Diagnostic" : `${p.difficulty} Level`}
+                        {isPre ? "Pre-Assessment" : `${p.difficulty} Level`}
                       </span>
 
                       {/* Status & Change Badges */}
@@ -455,15 +453,6 @@ const ManageParagraphs = () => {
                       </div>
                     )}
                   </div>
-
-                  {isPre && (
-                    <div className="p-3 bg-amber-100/70 border border-amber-300/80 rounded-xl text-xs text-amber-900 flex items-center gap-2">
-                      <span className="text-base shrink-0">🎯</span>
-                      <span>
-                        <strong>Current Active Pre-Assessment Diagnostic Paragraph:</strong> Candidates reading this passage during their initial diagnostic test will be evaluated and placed into their training difficulty tier (Easy, Medium, or Hard).
-                      </span>
-                    </div>
-                  )}
 
                   {p.reviewer_notes && (
                     <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
@@ -517,14 +506,14 @@ const ManageParagraphs = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Difficulty Level / Assessment Track
+                  Difficulty Level
                 </label>
                 <select
                   value={formData.difficulty}
                   onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 >
-                  <option value="pre-assessment">★ Pre-Assessment (Diagnostic Baseline)</option>
+                  <option value="pre-assessment">Pre-Assessment</option>
                   <option value="easy">Easy Level</option>
                   <option value="medium">Medium Level</option>
                   <option value="hard">Hard Level</option>
