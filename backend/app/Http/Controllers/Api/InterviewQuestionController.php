@@ -26,7 +26,10 @@ class InterviewQuestionController extends Controller
             $query->where('interview_type', $type);
         }
 
-        $questions = $query->orderBy('id')->get();
+        $questions = $query
+            ->orderByRaw("CASE WHEN LOWER(question_text) LIKE '%tell me about yourself%' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->get();
         return response()->json($questions);
     }
 

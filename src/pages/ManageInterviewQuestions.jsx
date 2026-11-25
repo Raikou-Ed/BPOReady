@@ -45,6 +45,29 @@ const getQuestionType = (q) => {
   return (q.interview_type || q.question_type || "initial").toLowerCase();
 };
 
+const sortQuestions = (list) => {
+  return [...list].sort((a, b) => {
+    const typeA = (a.interview_type || a.question_type || "initial").toLowerCase();
+    const typeB = (b.interview_type || b.question_type || "initial").toLowerCase();
+
+    // Group initial questions before final questions
+    if (typeA !== typeB) {
+      return typeA === "initial" ? -1 : 1;
+    }
+
+    const textA = (a.question_text || a.question || "").toLowerCase();
+    const textB = (b.question_text || b.question || "").toLowerCase();
+    const isIntroA = textA.includes("tell me about yourself");
+    const isIntroB = textB.includes("tell me about yourself");
+
+    // "Tell me about yourself" always comes first in initial interview
+    if (isIntroA && !isIntroB) return -1;
+    if (!isIntroA && isIntroB) return 1;
+
+    return (Number(a.id) || 0) - (Number(b.id) || 0);
+  });
+};
+
 const normalizeQuestion = (q) => {
   const type = getQuestionType(q);
   return {
@@ -81,12 +104,12 @@ const ManageInterviewQuestions = () => {
                 !deletedIds.includes(Number(q.id))
             )
             .map(normalizeQuestion);
-          if (valid.length > 0) return valid;
+          if (valid.length > 0) return sortQuestions(valid);
         }
       }
     } catch {}
 
-    return defaultQuestions.map(normalizeQuestion);
+    return sortQuestions(defaultQuestions.map(normalizeQuestion));
   });
 
   const [loading, setLoading] = useState(true);
@@ -167,7 +190,7 @@ const ManageInterviewQuestions = () => {
           });
         }
 
-        const merged = Array.from(map.values()).map(normalizeQuestion);
+        const merged = sortQuestions(Array.from(map.values()).map(normalizeQuestion));
         setQuestions(merged);
         localStorage.setItem("bpo_custom_questions", JSON.stringify(merged));
       }
@@ -256,7 +279,7 @@ const ManageInterviewQuestions = () => {
     // Adding new question:
     const tempId = `q-${Date.now()}`;
     const newQ = normalizeQuestion({ id: tempId, ...payload });
-    const updatedList = [...questions, newQ];
+    const updatedList = sortQuestions([...questions, newQ]);
     setQuestions(updatedList);
     localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
     setIsModalOpen(false);
@@ -277,8 +300,10 @@ const ManageInterviewQuestions = () => {
             } catch {}
             return current;
           }
-          const withRealId = current.map((q) =>
-            q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
+          const withRealId = sortQuestions(
+            current.map((q) =>
+              q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
+            )
           );
           localStorage.setItem("bpo_custom_questions", JSON.stringify(withRealId));
           return withRealId;
@@ -292,10 +317,12 @@ const ManageInterviewQuestions = () => {
     setTimeout(() => setMessage(""), 3500);
   };
 
-  const filtered = questions.filter((q) => {
-    if (filterType === "all") return true;
-    return getQuestionType(q) === filterType;
-  });
+  const filtered = sortQuestions(
+    questions.filter((q) => {
+      if (filterType === "all") return true;
+      return getQuestionType(q) === filterType;
+    })
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins text-gray-900">

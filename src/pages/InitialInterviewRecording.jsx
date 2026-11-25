@@ -13,9 +13,23 @@ const defaultQuestions = [
   { id: 5, question_text: "Why should our company hire you, and what makes you a dependable team player?" },
 ];
 
+const sortInitialQuestions = (list) => {
+  return [...list].sort((a, b) => {
+    const textA = (a.question_text || a.question || "").toLowerCase();
+    const textB = (b.question_text || b.question || "").toLowerCase();
+    const isIntroA = textA.includes("tell me about yourself");
+    const isIntroB = textB.includes("tell me about yourself");
+
+    if (isIntroA && !isIntroB) return -1;
+    if (!isIntroA && isIntroB) return 1;
+
+    return (Number(a.id) || 0) - (Number(b.id) || 0);
+  });
+};
+
 const InitialInterviewRecording = () => {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState(defaultQuestions);
+  const [questions, setQuestions] = useState(() => sortInitialQuestions(defaultQuestions));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [currentRecording, setCurrentRecording] = useState(null);
@@ -59,13 +73,13 @@ const InitialInterviewRecording = () => {
           }
         } catch {}
         if (validList.length > 0) {
-          setQuestions(validList);
+          setQuestions(sortInitialQuestions(validList));
         } else {
-          setQuestions(filterValid(defaultQuestions));
+          setQuestions(sortInitialQuestions(filterValid(defaultQuestions)));
         }
       })
       .catch(() => {
-        setQuestions(filterValid(defaultQuestions));
+        setQuestions(sortInitialQuestions(filterValid(defaultQuestions)));
       });
   }, []);
 

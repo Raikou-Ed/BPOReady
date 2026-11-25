@@ -22,6 +22,7 @@ class MockInterviewController extends Controller
             ->where(function ($q) {
                 $q->where('approval_status', 'approved')->orWhereNull('approval_status');
             })
+            ->orderByRaw("CASE WHEN LOWER(question_text) LIKE '%tell me about yourself%' THEN 0 ELSE 1 END")
             ->orderBy('id')
             ->limit(5)
             ->get();
