@@ -238,7 +238,7 @@ class BpoReadySeeder extends Seeder
                     'created_by_user_id' => $superAdminId,
                     'target_flaw' => 'speech_pacing',
                     'exercise_type' => 'pacing_meter',
-                    'title' => 'Optimal Speech Pacing Practice (130-145 WPM)',
+                    'title' => 'Optimal Speech Pacing Practice (125-150 WPM)',
                     'exercise_content' => 'Speak this passage at an even, controlled tempo. Aim for approximately 25 seconds of clear, composed delivery: "Good day, and welcome to Premium Cardholder Concierge. My name is Alex. Today I will be assisting you with booking your travel reservation, verifying your reward points, and confirming your hotel itinerary. Please allow me a moment while I pull up your travel profile."',
                     'difficulty' => 'easy',
                     'is_active' => true,

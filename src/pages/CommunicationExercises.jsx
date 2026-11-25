@@ -46,7 +46,7 @@ const CommunicationExercises = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-1">Speech Pacing Drill</h3>
                 <p className="text-xs font-semibold text-blue-600 mb-2">CEFR Spoken Fluency Dimension</p>
                 <p className="text-xs text-gray-600 leading-relaxed mb-4">
-                  Train your speaking rhythm to hit the industry sweet spot of 115 to 145 words per minute with smooth breath timing and natural pauses.
+                  Train your speaking rhythm to hit the industry sweet spot of 125 to 150 words per minute with smooth breath timing and natural pauses.
                 </p>
                 <div className="text-xs text-gray-500 space-y-1 mb-6">
                   <p>• Visual WPM tempo gauge</p>

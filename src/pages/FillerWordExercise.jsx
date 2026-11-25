@@ -1,12 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AudioRecorder from "../components/AudioRecorder";
-import { submitExerciseAttempt, evaluateFillerExercise } from "../api/adminApi";
+import { submitExerciseAttempt, evaluateFillerExercise, listExercises } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
-const prompts = [
+const defaultPrompts = [
   {
+    id: "admin_filler_1",
+    title: "Billing Adjustment Clarity",
+    customer: "Frustrated Subscriber",
+    situation: "Good day! I have thoroughly reviewed your account records. The promotional discount of twenty dollars has now been applied to your monthly invoice, and your updated balance will be visible on your portal within the hour.",
+    objectives: [
+      "Acknowledge the customer's billing inquiry promptly and with composure.",
+      "Explain the applied 20-dollar promotional discount clearly.",
+      "Confirm their updated balance without using filler words.",
+      "Ask if there is anything else you can assist them with before ending the call.",
+    ],
+    hint: "Avoid 'um' or 'ah' when checking records. Take a 1-second silent pause instead.",
+    promptText: "Good day! I have thoroughly reviewed your account records. The promotional discount of twenty dollars has now been applied to your monthly invoice, and your updated balance will be visible on your portal within the hour.",
+  },
+  {
+    id: 1,
     title: "Billing Dispute: Unexpected Late Fee",
     customer: "Frustrated Subscriber",
     situation: "A customer calls furiously demanding to know why their monthly internet invoice has an unexpected $25 fee when they always pay on time.",
@@ -20,6 +35,7 @@ const prompts = [
     promptText: "Customer dispute regarding unexpected $25 fee. Agent must empathize, verify on-time payment, waive fee, and confirm updated balance.",
   },
   {
+    id: 2,
     title: "Service Outage: Urgent Remote Work",
     customer: "Panicked Remote Worker",
     situation: "A customer calls in a panic because their home fiber internet suddenly disconnected 15 minutes before an executive video presentation.",
@@ -33,6 +49,7 @@ const prompts = [
     promptText: "Customer fiber internet outage before important meeting. Agent must validate urgency, explain technical repair, provide 2-hour ETA, and offer backup hotspot data.",
   },
   {
+    id: 3,
     title: "Travel Disruption: Flight Delay & Meal Voucher",
     customer: "Stranded Airport Passenger",
     situation: "A passenger at the terminal is visibly anxious because their connecting flight was delayed by 3 hours due to severe weather along the flight corridor.",
@@ -66,6 +83,7 @@ const FILLER_LIST = [
 const fillerRegex = /\b(um+|uh+|uhm+|ah+|ahh+|er+|erm+|hmm+|mhm|like|you\s+know|actually|basically|literally|honestly|i\s+mean)\b/gi;
 
 const FillerWordExercise = () => {
+  const [prompts, setPrompts] = useState(defaultPrompts);
   const [promptIndex, setPromptIndex] = useState(0);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -74,7 +92,55 @@ const FillerWordExercise = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
-  const currentPrompt = prompts[promptIndex];
+
+  useEffect(() => {
+    const loadAdminFillerDrills = async () => {
+      try {
+        let apiDrills = await listExercises("filler_words", false);
+        if (!Array.isArray(apiDrills) || apiDrills.length === 0) {
+          const cached = localStorage.getItem("bpo_custom_exercises");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            apiDrills = parsed.filter(e => e.target_flaw === "filler_words");
+          }
+        }
+
+        if (Array.isArray(apiDrills) && apiDrills.length > 0) {
+          const customPrompts = apiDrills.map((ex, idx) => {
+            const text = (ex.prompt_text || ex.exercise_content || "").trim();
+            return {
+              id: ex.id || `custom_filler_${idx}`,
+              title: ex.title,
+              customer: "Customer Inquiry",
+              situation: text,
+              objectives: [
+                "Acknowledge the caller's request with professional warmth.",
+                "Deliver the required solution clearly and smoothly.",
+                "Avoid hesitation sounds like 'um', 'uh', 'you know', or 'basically'.",
+                "Maintain natural 1-second silent pauses to structure your thoughts.",
+              ],
+              hint: "Pause silently instead of using crutch words when transitioning between sentences.",
+              promptText: text,
+            };
+          });
+
+          const merged = [...customPrompts];
+          defaultPrompts.forEach(def => {
+            if (!merged.some(m => m.title.toLowerCase() === def.title.toLowerCase())) {
+              merged.push(def);
+            }
+          });
+          setPrompts(merged);
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic filler drills:", err);
+      }
+    };
+
+    loadAdminFillerDrills();
+  }, []);
+
+  const currentPrompt = prompts[promptIndex] || prompts[0];
 
   const handleRecorded = async (blob, durationSeconds, transcript, audioMetrics) => {
     const text = (transcript || "").trim();
