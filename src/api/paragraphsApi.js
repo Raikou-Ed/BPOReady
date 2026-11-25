@@ -46,14 +46,10 @@ export async function getParagraphs(level = 'easy') {
       const data = await res.json();
       const validApi = filterValid(data);
       if (validApi.length > 0) {
-        // Merge API with any newly created local passages that might have temporary IDs
+        // Merge API with local custom passages, ensuring latest local admin edits take priority
         const map = new Map();
         validApi.forEach((p) => map.set(String(p.id), p));
-        localList.forEach((p) => {
-          if (!map.has(String(p.id))) {
-            map.set(String(p.id), p);
-          }
-        });
+        localList.forEach((p) => map.set(String(p.id), p));
         return Array.from(map.values());
       }
     }

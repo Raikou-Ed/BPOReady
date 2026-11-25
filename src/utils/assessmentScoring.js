@@ -118,10 +118,8 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 30, contribution: 0, detail: 'No speech detected' },
-        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 30, contribution: 0, detail: 'No speech detected' },
-        { name: 'Range', pillar: 'Range (Passage Lexical Coverage)', value: 0, weight: 20, contribution: 0, detail: 'No speech detected' },
-        { name: 'Coherence', pillar: 'Coherence (Sentence Flow & Discourse)', value: 0, weight: 20, contribution: 0, detail: 'No speech detected' },
+        { name: 'Accuracy', pillar: 'Accuracy (Acoustic & Phonetic Articulation)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
+        { name: 'Fluency', pillar: 'Fluency (Speech Rate & Pause Smoothness)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
       ],
       metrics: {
         accuracy: 0,
@@ -429,11 +427,89 @@ export const DEFAULT_READING_CRITERIA = [
 export function getActiveEvaluationCriteria() {
   try {
     const custom = getUserData('bpoReadyScoringCriteria');
-    if (Array.isArray(custom) && custom.length > 0) {
-      return custom;
+    if (Array.isArray(custom) && custom.length === 2) {
+      const isValid = custom.every(
+        (c) =>
+          (c.name === 'Accuracy' || c.name === 'Fluency') &&
+          Number(c.weight) === 50
+      );
+      if (isValid) return custom;
     }
   } catch {}
+  try {
+    saveUserData('bpoReadyScoringCriteria', DEFAULT_READING_CRITERIA);
+  } catch {}
   return DEFAULT_READING_CRITERIA;
+}
+
+export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
+  if (!raw) return null;
+  const numScore = Number(raw.score || 0);
+  const activeCriteria = getActiveEvaluationCriteria();
+  const activeCount = activeCriteria.length;
+
+  const hasLegacyCriteria =
+    !Array.isArray(raw.criteria) ||
+    raw.criteria.length !== activeCount ||
+    raw.criteria.some(
+      (c) =>
+        c.name === 'Pronunciation' ||
+        c.name === 'Sentence Mastery' ||
+        c.name === 'Vocabulary' ||
+        c.name === 'Range' ||
+        c.name === 'Coherence' ||
+        Number(c.weight) !== 50
+    );
+
+  let criteria = raw.criteria;
+  if (hasLegacyCriteria) {
+    if (numScore === 0) {
+      criteria = [
+        {
+          name: 'Accuracy',
+          pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
+          value: 0,
+          weight: 50,
+          contribution: 0,
+          detail: 'Passage not read',
+        },
+        {
+          name: 'Fluency',
+          pillar: 'Fluency (Speech Rate & Pause Smoothness)',
+          value: 0,
+          weight: 50,
+          contribution: 0,
+          detail: 'Passage not read',
+        },
+      ];
+    } else {
+      criteria = generatePreAssessmentCriteria(numScore, raw.placedLevel || defaultLevel, raw.wordsPerMinute);
+    }
+  }
+
+  // Determine correct placedLevel for this practice attempt according to level rules:
+  // 1–75 Easy · 76–89 Medium · 90–100 Hard
+  let placedLevel = defaultLevel;
+  if (defaultLevel === 'medium') {
+    placedLevel = numScore >= 90 ? 'hard' : 'medium';
+  } else if (defaultLevel === 'easy') {
+    placedLevel = numScore >= 76 ? 'medium' : 'easy';
+  } else if (defaultLevel === 'hard') {
+    placedLevel = 'hard';
+  }
+
+  const sanitized = {
+    ...raw,
+    score: numScore,
+    placedLevel,
+    criteria,
+  };
+
+  try {
+    saveUserData('bpoReadyLastParagraphResult', sanitized);
+  } catch {}
+
+  return sanitized;
 }
 
 export const DEFAULT_MOCK_INTERVIEW_CRITERIA = [

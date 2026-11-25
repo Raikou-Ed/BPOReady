@@ -63,7 +63,10 @@ export default function AppRoutes() {
       <Route path="/medium-level-paragraph-reading" element={<MediumLevelParagraphReading />} />
       <Route path="/hard-level-paragraph-reading" element={<HardLevelParagraphReading />} />
       <Route path="/EasyLevelResult" element={<EasyLevelResult />} />
+      <Route path="/easy-level-result" element={<EasyLevelResult />} />
+      <Route path="/MediumLevelResult" element={<MediumLevelResult />} />
       <Route path="/medium-level-result" element={<MediumLevelResult />} />
+      <Route path="/HardLevelResult" element={<HardLevelResult />} />
       <Route path="/hard-level-result" element={<HardLevelResult />} />
 
       {/* Mock Interview Module */}

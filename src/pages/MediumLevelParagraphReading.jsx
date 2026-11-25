@@ -210,7 +210,7 @@ const MediumLevelParagraphReading = () => {
                     if (apiResponse && apiResponse.success) {
                       finalResult = {
                         score: apiResponse.score,
-                        placedLevel: apiResponse.placedLevel || apiResponse.assigned_level || localScore.placedLevel,
+                        placedLevel: Number(apiResponse.score) >= 90 ? 'hard' : 'medium',
                         wordsPerMinute: localScore.wordsPerMinute,
                         criteria: apiResponse.criteria || localScore.criteria,
                         feedbackText: apiResponse.feedbackText || apiResponse?.feedback?.feedback_text || getScoreTieredFeedback(apiResponse.score).feedbackText,

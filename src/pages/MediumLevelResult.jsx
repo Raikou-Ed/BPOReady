@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { formatScore, getAssignedLevel, getScoreTieredFeedback } from "../utils/assessmentScoring";
+import { formatScore, getAssignedLevel, getScoreTieredFeedback, sanitizeReadingResult } from "../utils/assessmentScoring";
 import { getUserData } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
@@ -8,9 +8,10 @@ import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
 
 const MediumLevelResult = () => {
   const location = useLocation();
-  const result = location.state?.result || getUserData('bpoReadyLastParagraphResult') || getAssignedLevel();
-  const canProceedToHard = Number(result?.score ?? 0) >= 90;
+  const rawResult = location.state?.result || getUserData('bpoReadyLastParagraphResult') || getAssignedLevel();
+  const result = sanitizeReadingResult(rawResult, 'medium');
   const numScore = Number(result?.score ?? 0);
+  const canProceedToHard = numScore >= 90;
   const tiered = getScoreTieredFeedback(numScore);
 
   return (

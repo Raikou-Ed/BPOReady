@@ -229,6 +229,16 @@ class ParagraphController extends Controller
             $currentRank = max($currentRank, $dbRank);
         }
 
+        // Determine level achieved by this specific reading session attempt:
+        $attemptLevel = $currentLevel;
+        if ($currentLevel === 'easy') {
+            $attemptLevel = $score >= 76 ? 'medium' : 'easy';
+        } elseif ($currentLevel === 'medium') {
+            $attemptLevel = $score >= 90 ? 'hard' : 'medium';
+        } elseif ($currentLevel === 'hard') {
+            $attemptLevel = 'hard';
+        }
+
         $newLevel = null;
         if ($currentRank === 1 && $score >= 76) {
             $newLevel = 'medium';
@@ -268,8 +278,9 @@ class ParagraphController extends Controller
             'aiEvaluated' => $aiEvaluated,
             'session_id' => $session->id,
             'score' => round($score, 2),
-            'placedLevel' => $newLevel,
-            'assigned_level' => $newLevel,
+            'placedLevel' => $attemptLevel,
+            'assigned_level' => $attemptLevel,
+            'unlockedLevel' => $newLevel,
             'transcript' => $transcript,
             'feedbackText' => $feedbackText,
             'suggestions' => is_array($evalResult['suggestions'] ?? null)
