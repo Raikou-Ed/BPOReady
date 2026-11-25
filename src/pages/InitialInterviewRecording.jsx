@@ -13,23 +13,61 @@ const defaultQuestions = [
   { id: 5, question_text: "Why should our company hire you, and what makes you a dependable team player?" },
 ];
 
-const sortInitialQuestions = (list) => {
-  return [...list].sort((a, b) => {
-    const textA = (a.question_text || a.question || "").toLowerCase();
-    const textB = (b.question_text || b.question || "").toLowerCase();
-    const isIntroA = textA.includes("tell me about yourself");
-    const isIntroB = textB.includes("tell me about yourself");
+const isSelfIntroQuestion = (q) => {
+  const text = (q.question_text || q.question || "").toLowerCase();
+  return (
+    text.includes("tell me about yourself") ||
+    text.includes("tell us about yourself") ||
+    text.includes("about yourself") ||
+    text.includes("introduce yourself") ||
+    text.includes("introduction") ||
+    text.includes("walk me through")
+  );
+};
 
-    if (isIntroA && !isIntroB) return -1;
-    if (!isIntroA && isIntroB) return 1;
-
-    return (Number(a.id) || 0) - (Number(b.id) || 0);
-  });
+const prioritizeIntroQuestion = (list) => {
+  if (!Array.isArray(list) || list.length === 0) return list;
+  const copy = [...list];
+  const introIndex = copy.findIndex(isSelfIntroQuestion);
+  if (introIndex > 0) {
+    const [introQ] = copy.splice(introIndex, 1);
+    return [introQ, ...copy];
+  }
+  return copy;
 };
 
 const InitialInterviewRecording = () => {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState(() => sortInitialQuestions(defaultQuestions));
+  const [questions, setQuestions] = useState(() => {
+    let deletedIds = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+    } catch {}
+
+    const filterValid = (arr) =>
+      arr.filter(
+        (q) =>
+          q.is_active !== false &&
+          !deletedIds.includes(q.id) &&
+          !deletedIds.includes(String(q.id)) &&
+          !deletedIds.includes(Number(q.id))
+      );
+
+    try {
+      const raw = localStorage.getItem("bpo_custom_questions");
+      if (raw) {
+        const custom = JSON.parse(raw);
+        const initialCustom = filterValid(
+          custom.filter((q) => (q.interview_type || q.question_type) === "initial")
+        );
+        if (initialCustom.length > 0) {
+          return prioritizeIntroQuestion(initialCustom);
+        }
+      }
+    } catch {}
+
+    return prioritizeIntroQuestion(filterValid(defaultQuestions));
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [currentRecording, setCurrentRecording] = useState(null);
@@ -73,13 +111,13 @@ const InitialInterviewRecording = () => {
           }
         } catch {}
         if (validList.length > 0) {
-          setQuestions(sortInitialQuestions(validList));
+          setQuestions(prioritizeIntroQuestion(validList));
         } else {
-          setQuestions(sortInitialQuestions(filterValid(defaultQuestions)));
+          setQuestions(prioritizeIntroQuestion(filterValid(defaultQuestions)));
         }
       })
       .catch(() => {
-        setQuestions(sortInitialQuestions(filterValid(defaultQuestions)));
+        setQuestions(prioritizeIntroQuestion(filterValid(defaultQuestions)));
       });
   }, []);
 
@@ -294,7 +332,7 @@ const InitialInterviewRecording = () => {
           <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-6 text-center mb-8">
             <p className="text-xs uppercase tracking-wider text-blue-600 font-bold mb-2">Interviewer Asks:</p>
             <h3 className="text-xl font-bold text-gray-800 leading-snug">
-              "{currentQ.question_text}"
+              "{currentQ.question_text || currentQ.question}"
             </h3>
             <p className="text-xs text-gray-500 mt-3">
               Press record, answer clearly and concisely, then press stop before continuing.

@@ -45,6 +45,18 @@ const getQuestionType = (q) => {
   return (q.interview_type || q.question_type || "initial").toLowerCase();
 };
 
+const isSelfIntroQuestion = (q) => {
+  const text = (q.question_text || q.question || "").toLowerCase();
+  return (
+    text.includes("tell me about yourself") ||
+    text.includes("tell us about yourself") ||
+    text.includes("about yourself") ||
+    text.includes("introduce yourself") ||
+    text.includes("introduction") ||
+    text.includes("walk me through")
+  );
+};
+
 const sortQuestions = (list) => {
   return [...list].sort((a, b) => {
     const typeA = (a.interview_type || a.question_type || "initial").toLowerCase();
@@ -55,10 +67,8 @@ const sortQuestions = (list) => {
       return typeA === "initial" ? -1 : 1;
     }
 
-    const textA = (a.question_text || a.question || "").toLowerCase();
-    const textB = (b.question_text || b.question || "").toLowerCase();
-    const isIntroA = textA.includes("tell me about yourself");
-    const isIntroB = textB.includes("tell me about yourself");
+    const isIntroA = isSelfIntroQuestion(a);
+    const isIntroB = isSelfIntroQuestion(b);
 
     // "Tell me about yourself" always comes first in initial interview
     if (isIntroA && !isIntroB) return -1;
@@ -66,6 +76,20 @@ const sortQuestions = (list) => {
 
     return (Number(a.id) || 0) - (Number(b.id) || 0);
   });
+};
+
+const prioritizeQuestions = (list) => {
+  const sorted = sortQuestions(list);
+  const initialQuestions = sorted.filter((q) => (q.interview_type || q.question_type) === "initial");
+  const finalQuestions = sorted.filter((q) => (q.interview_type || q.question_type) !== "initial");
+
+  const introIdx = initialQuestions.findIndex(isSelfIntroQuestion);
+  if (introIdx > 0) {
+    const [introQ] = initialQuestions.splice(introIdx, 1);
+    initialQuestions.unshift(introQ);
+  }
+
+  return [...initialQuestions, ...finalQuestions];
 };
 
 const normalizeQuestion = (q) => {
@@ -104,12 +128,12 @@ const ManageInterviewQuestions = () => {
                 !deletedIds.includes(Number(q.id))
             )
             .map(normalizeQuestion);
-          if (valid.length > 0) return sortQuestions(valid);
+          if (valid.length > 0) return prioritizeQuestions(valid);
         }
       }
     } catch {}
 
-    return sortQuestions(defaultQuestions.map(normalizeQuestion));
+    return prioritizeQuestions(defaultQuestions.map(normalizeQuestion));
   });
 
   const [loading, setLoading] = useState(true);
@@ -190,7 +214,7 @@ const ManageInterviewQuestions = () => {
           });
         }
 
-        const merged = sortQuestions(Array.from(map.values()).map(normalizeQuestion));
+        const merged = prioritizeQuestions(Array.from(map.values()).map(normalizeQuestion));
         setQuestions(merged);
         localStorage.setItem("bpo_custom_questions", JSON.stringify(merged));
       }
@@ -259,8 +283,8 @@ const ManageInterviewQuestions = () => {
     };
 
     if (editingId) {
-      const updatedList = questions.map((q) =>
-        q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q
+      const updatedList = prioritizeQuestions(
+        questions.map((q) => (q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q))
       );
       setQuestions(updatedList);
       localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
@@ -279,7 +303,7 @@ const ManageInterviewQuestions = () => {
     // Adding new question:
     const tempId = `q-${Date.now()}`;
     const newQ = normalizeQuestion({ id: tempId, ...payload });
-    const updatedList = sortQuestions([...questions, newQ]);
+    const updatedList = prioritizeQuestions([...questions, newQ]);
     setQuestions(updatedList);
     localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
     setIsModalOpen(false);
@@ -300,7 +324,7 @@ const ManageInterviewQuestions = () => {
             } catch {}
             return current;
           }
-          const withRealId = sortQuestions(
+          const withRealId = prioritizeQuestions(
             current.map((q) =>
               q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
             )
@@ -317,7 +341,7 @@ const ManageInterviewQuestions = () => {
     setTimeout(() => setMessage(""), 3500);
   };
 
-  const filtered = sortQuestions(
+  const filtered = prioritizeQuestions(
     questions.filter((q) => {
       if (filterType === "all") return true;
       return getQuestionType(q) === filterType;
