@@ -105,39 +105,39 @@ export const CALL_SCENARIOS = [
     comprehension_quiz: [
       {
         id: "c1_q1",
-        question: "What was the customer's primary technical problem reported at the beginning of the call?",
+        question: "What was the customer's main concern?",
         options: [
-          "DSL light on the modem was flashing red and she could not access her email",
-          "Her computer power supply was completely dead",
-          "She forgot her account username and email password",
-          "Her monthly internet billing payment was declined"
+          "She cannot access her work email because her DSL internet is completely down",
+          "Her computer power cord was damaged during a storm",
+          "She wanted to dispute an overcharged monthly internet bill",
+          "She forgot her account username and email password"
         ],
         correctAnswer: 0,
-        explanation: "The customer stated that her DSL internet was down for almost a week and the DSL light was flashing red."
+        explanation: "The customer stated that her DSL internet was down for almost a week and she cannot access her work email."
       },
       {
         id: "c1_q2",
-        question: "What telephone or account number did the customer verify for the account?",
+        question: "What critical detail did the customer mention during the call?",
         options: [
-          "860-995-1234",
-          "800-555-0199",
-          "213-897-0362",
-          "805-7845-389"
+          "The 3rd light on her modem (DSL light) was flashing red while Power and Ethernet were green",
+          "Her telephone service had been disconnected due to non-payment",
+          "She had already bought a brand new replacement router at the store",
+          "Her entire apartment building was experiencing a total power blackout"
         ],
         correctAnswer: 0,
-        explanation: "Ms. Sarah Sky verified her account and callback number as 860-995-1234."
+        explanation: "Ms. Sky reported that Power and Ethernet lights were green, but the 3rd light (DSL) was flashing red."
       },
       {
         id: "c1_q3",
-        question: "What physical troubleshooting step resolved the customer's internet issue over the phone?",
+        question: "What was the agreed next step or resolution timeline?",
         options: [
-          "Plugging in the loose gray phone cord at the back of the modem",
-          "Dispatching a field technician with an on-site service charge",
-          "Purchasing a brand new wireless modem at the store",
-          "Reinstalling the operating system on her computer"
+          "Plug in the loose gray phone cord at the back of the modem to immediately restore internet access",
+          "Dispatch an on-site technician within 2 to 3 business days with a service fee",
+          "Replace the modem hardware at the nearest retail store next week",
+          "Disconnect the internet line and process an immediate refund"
         ],
         correctAnswer: 0,
-        explanation: "The customer checked behind her desk and plugged in the loose gray DSL line cord, restoring a steady green light."
+        explanation: "The customer reconnected the loose gray phone cord behind her modem, restoring a steady green DSL light and resolving the issue."
       }
     ]
   },
@@ -193,39 +193,39 @@ export const CALL_SCENARIOS = [
     comprehension_quiz: [
       {
         id: "c2_q1",
-        question: "What was the customer's verified remaining checking account balance?",
+        question: "What was the customer's main concern?",
         options: [
-          "$84,000.65 (84 thousand and 65 cents)",
-          "$12,450.00",
-          "$500.25",
-          "$184,000.00"
+          "Checking her remaining account balance and inquiring about an international wire transfer timeline",
+          "Reporting an unauthorized debit card transaction at an ATM",
+          "Applying for an emergency personal bank loan with low interest",
+          "Closing her bank account and requesting a cashier's check"
         ],
         correctAnswer: 0,
-        explanation: "The agent verified the remaining funds in the customer's account as 84 thousand and 65 cents ($84,000.65)."
+        explanation: "The customer called to check her remaining balance and ask how long a wire transfer to Lloyds of London would take."
       },
       {
         id: "c2_q2",
-        question: "What were the last four digits of the customer's Social Security ID verified on the call?",
+        question: "What critical detail did the customer mention during the call?",
         options: [
-          "1234",
-          "5678",
-          "9876",
-          "4321"
+          "Her account number is 805-7845-3895-061 and her verified SSN ending is 1234",
+          "She lost her physical checkbook during an international flight",
+          "Her total checking balance had fallen below zero dollars",
+          "She was transferring money to buy an apartment in London"
         ],
         correctAnswer: 0,
-        explanation: "The customer clearly verified 'It is 1234' for security validation."
+        explanation: "Ms. Claudin D. verified her account number as 805-7845-3895-061 and the last 4 digits of her Social Security ID as 1234."
       },
       {
         id: "c2_q3",
-        question: "How long does the international wire transfer to Lloyds of London typically take?",
+        question: "What was the agreed next step or resolution timeline?",
         options: [
-          "2 to 3 business days",
-          "Instant transfer within seconds",
-          "2 to 3 weeks",
-          "Over 30 calendar days"
+          "The customer decided to do the wire transfer after the holidays (wire transfers take 2 to 3 business days)",
+          "An immediate emergency wire transfer was scheduled for 5:00 PM today",
+          "A branch manager will call back in 30 minutes to finalize the wire",
+          "The account was placed on temporary security hold until next month"
         ],
         correctAnswer: 0,
-        explanation: "The agent informed the customer that online/phone wire transactions take 2-3 business days after security verification."
+        explanation: "After learning the transfer takes 2-3 business days with phone verification, the customer chose to wait until after the holidays."
       }
     ]
   },
@@ -281,39 +281,39 @@ export const CALL_SCENARIOS = [
     comprehension_quiz: [
       {
         id: "c3_q1",
-        question: "How long has Ms. Anastasia Robinson been a valued cardholder with Deluxe Credit Card?",
+        question: "What was the customer's main concern?",
         options: [
-          "8 years",
-          "6 months",
-          "2 years",
-          "15 years"
+          "Inquiring about the specific benefits and perks included with the Platinum MasterCard upgrade",
+          "Disputing an unexpected annual membership fee on her statement",
+          "Reporting her current credit card as lost or stolen",
+          "Requesting a temporary reduction in her interest rate"
         ],
         correctAnswer: 0,
-        explanation: "The agent explicitly acknowledged her loyalty: 'We appreciate your 8 years as a valued cardholder!'"
+        explanation: "The customer listened to the outbound offer and asked: 'So, what do I get from that platinum?'"
       },
       {
         id: "c3_q2",
-        question: "Which of the following exclusive benefits is included with the Platinum MasterCard upgrade?",
+        question: "What critical detail did the customer mention during the call?",
         options: [
-          "Lifetime waived annual fee, $20,000 complimentary travel insurance & airport Sky View lounge access",
-          "Free luxury sports car upon approval",
-          "Zero percent interest on all cash advances forever",
-          "Free monthly international flights to London"
+          "Her billing address is Apartment 152, Emerald Building, Rock Street, Los Angeles, California",
+          "She was planning to cancel all of her credit cards next week",
+          "She needed an immediate cash advance of $20,000 for medical travel",
+          "Her phone number had recently changed to an overseas area code"
         ],
         correctAnswer: 0,
-        explanation: "The agent outlined non-expiring points, waived lifetime fee, $20,000 travel insurance, and worldwide Sky View lounge access."
+        explanation: "Ms. Anastasia Robinson verified her billing address at Apt 152, Emerald Building, Rock St, LA, CA along with her email."
       },
       {
         id: "c3_q3",
-        question: "What is the expected delivery timeframe for the newly processed Platinum card?",
+        question: "What was the agreed next step or resolution timeline?",
         options: [
-          "10 business days",
-          "Same day delivery within 4 hours",
-          "3 to 4 weeks",
-          "60 calendar days"
+          "The Platinum card was successfully submitted and will arrive in 10 business days",
+          "The customer must visit a branch within 24 hours to present two valid photo IDs",
+          "A credit review committee will follow up within 3 to 4 weeks",
+          "The new card will be delivered via overnight courier tomorrow morning"
         ],
         correctAnswer: 0,
-        explanation: "The agent closed the call confirming: 'Your card has been submitted and will arrive in 10 business days.'"
+        explanation: "The agent confirmed that the pre-approved card was submitted and will arrive in 10 business days."
       }
     ]
   },
@@ -471,39 +471,39 @@ export const CALL_SCENARIOS = [
     comprehension_quiz: [
       {
         id: "c4_q1",
-        question: "What main technical issue was Vanessa Roberts experiencing on her home connection?",
+        question: "What was the customer's main concern?",
         options: [
-          "Lagging and freezing whenever streaming videos in 4K resolution on her new TV",
-          "Her home telephone landline was making loud static noises",
-          "Her computer was infected with malicious ransomware",
-          "Her neighborhood had an unexpected fiber blackout"
+          "Buffering and freezing whenever streaming videos in 4K resolution on her new TV",
+          "A complete telephone landline outage with loud background static",
+          "An unauthorized international roaming charge on her monthly bill",
+          "Defective television HDMI hardware requiring manufacturer warranty"
         ],
         correctAnswer: 0,
-        explanation: "The customer explained that every time they watch in 4K, videos freeze and buffer like clockwork."
+        explanation: "Vanessa Roberts explained that whenever watching videos in 4K on their new TV, the stream freezes and lags like clockwork."
       },
       {
         id: "c4_q2",
-        question: "What download speed was revealed when the customer ran the live Speedtest?",
+        question: "What critical detail did the customer mention during the call?",
         options: [
-          "8.19 Mbps (well below the 25 Mbps required for 4K streaming)",
-          "500 Mbps",
-          "100 Mbps",
-          "0.5 Mbps"
+          "Her live Speedtest download speed was only 8.19 Mbps with current provider BC&C",
+          "She had already signed an unbreakable 3-year contract with BC&C",
+          "Her household required at least 2,000 Mbps to operate basic appliances",
+          "She was unwilling to spend more than $10 per month on internet"
         ],
         correctAnswer: 0,
-        explanation: "Vanessa read out 8.19 Mbps download and 17.43 Mbps upload, which explains the 4K streaming lag."
+        explanation: "During the live speed test, Vanessa revealed her download speed was only 8.19 Mbps from BC&C, below the 25 Mbps needed for 4K."
       },
       {
         id: "c4_q3",
-        question: "What fiber plan did the agent successfully present to match Vanessa's budget and resolve her buffering?",
+        question: "What was the agreed next step or resolution timeline?",
         options: [
-          "100 Mbps fiber for only $25/month with free installation",
-          "800 Mbps fiber for $150/month with a 2-year lock-in",
-          "Dial-up backup package for $15/month",
-          "A free antenna without internet service"
+          "The agent will call back at 7:00 PM this evening so she can discuss the $25/month 100 Mbps fiber plan with her husband",
+          "A field technician will install fiber tomorrow morning at 8:00 AM",
+          "The customer will cancel her BC&C service immediately via email",
+          "A printed fiber promotional brochure will be sent by mail in 2 weeks"
         ],
         correctAnswer: 0,
-        explanation: "The agent offered 100 Mbps for $25/month with free installation fee, fitting under her $30-$33 budget."
+        explanation: "Vanessa asked for an evening callback to speak with her husband, and the agent agreed to call back at 7:00 PM today."
       }
     ]
   }
