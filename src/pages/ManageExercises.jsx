@@ -112,7 +112,7 @@ const syncPacingStorage = (list) => {
         };
       });
     localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(pacing));
-  } catch {}
+  } catch { }
 };
 
 const ManageExercises = () => {
@@ -121,7 +121,7 @@ const ManageExercises = () => {
     let deletedIds = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
-    } catch {}
+    } catch { }
 
     try {
       const cached = localStorage.getItem("bpo_custom_exercises");
@@ -140,7 +140,7 @@ const ManageExercises = () => {
           if (valid.length > 0) return valid;
         }
       }
-    } catch {}
+    } catch { }
 
     return defaultExercises;
   });
@@ -152,7 +152,6 @@ const ManageExercises = () => {
   const [formData, setFormData] = useState({
     title: "",
     target_flaw: "speech_pacing",
-    difficulty: "easy",
     prompt_text: "",
   });
   const [message, setMessage] = useState("");
@@ -168,7 +167,7 @@ const ManageExercises = () => {
           let deletedIds = [];
           try {
             deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
-          } catch {}
+          } catch { }
 
           const normalized = data
             .filter(
@@ -217,7 +216,6 @@ const ManageExercises = () => {
     setFormData({
       title: "",
       target_flaw: filterFlaw !== "all" ? filterFlaw : "speech_pacing",
-      difficulty: "easy",
       prompt_text: "",
     });
     setIsModalOpen(true);
@@ -228,7 +226,6 @@ const ManageExercises = () => {
     setFormData({
       title: ex.title,
       target_flaw: ex.target_flaw,
-      difficulty: ex.difficulty,
       prompt_text: ex.prompt_text,
     });
     setIsModalOpen(true);
@@ -248,7 +245,7 @@ const ManageExercises = () => {
         deletedIds.push(id);
         localStorage.setItem("bpo_deleted_exercise_ids", JSON.stringify(deletedIds));
       }
-    } catch {}
+    } catch { }
 
     try {
       const res = await fetch(`${API_BASE}/api/exercises/${id}`, { method: "DELETE" });
@@ -459,8 +456,8 @@ const ManageExercises = () => {
                       )}
 
                       <h3 className="text-sm font-bold text-gray-900">{ex.title}</h3>
-                      <span className="text-xs text-gray-400 capitalize">
-                        ({ex.difficulty} tier • ~{ex.prompt_text ? ex.prompt_text.trim().split(/\s+/).length : 0} words)
+                      <span className="text-xs text-gray-400">
+                        (~{ex.prompt_text ? ex.prompt_text.trim().split(/\s+/).length : 0} words)
                       </span>
                     </div>
                     {!isSuperAdmin && (
@@ -531,35 +528,19 @@ const ManageExercises = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Target Speech Flaw
-                  </label>
-                  <select
-                    value={formData.target_flaw}
-                    onChange={(e) => setFormData({ ...formData, target_flaw: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
-                  >
-                    <option value="speech_pacing">Speech Pacing</option>
-                    <option value="filler_words">Filler Words</option>
-                    <option value="grammar">Grammar & Phrasing</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Difficulty Level
-                  </label>
-                  <select
-                    value={formData.difficulty}
-                    onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
-                  >
-                    <option value="easy">Easy Level</option>
-                    <option value="medium">Medium Level</option>
-                    <option value="hard">Hard Level</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Target Speech Flaw
+                </label>
+                <select
+                  value={formData.target_flaw}
+                  onChange={(e) => setFormData({ ...formData, target_flaw: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
+                >
+                  <option value="speech_pacing">Speech Pacing</option>
+                  <option value="filler_words">Filler Words</option>
+                  <option value="grammar">Grammar & Phrasing</option>
+                </select>
               </div>
 
               <div>

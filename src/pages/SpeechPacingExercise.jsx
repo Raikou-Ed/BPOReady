@@ -67,7 +67,7 @@ const SpeechPacingExercise = () => {
           return mapped;
         }
       }
-    } catch {}
+    } catch { }
 
     // Fallback: Check bpo_pacing_scripts_custom but strictly remove deleted or legacy drills
     try {
@@ -171,7 +171,7 @@ const SpeechPacingExercise = () => {
         setScripts(defaultPacingScripts);
         localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(defaultPacingScripts));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleRecorded = (blob, durationSeconds, transcript) => {
@@ -330,11 +330,10 @@ const SpeechPacingExercise = () => {
                   setRecording(null);
                   setResult(null);
                 }}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                  selectedScriptIdx === idx
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                }`}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition cursor-pointer ${selectedScriptIdx === idx
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  }`}
               >
                 Passage {idx + 1}: {script.title?.replace(/^Passage\s*\d+:\s*/i, "")}
               </button>
