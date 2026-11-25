@@ -65,22 +65,19 @@ export default function ApplyCertification() {
   const [isRecordingStage2, setIsRecordingStage2] = useState(false);
   const [stage2RecordingData, setStage2RecordingData] = useState(null);
 
-  // Stage 3 Call Simulation State (Designated Official Certification Scenarios: Inbound + Outbound)
-  const CERTIFICATION_CALL_SCENARIOS = [
-    CALL_SCENARIOS.find((s) => s.id === 1) || CALL_SCENARIOS[0], // Technical Support: DSL Internet Outage (Inbound)
-    CALL_SCENARIOS.find((s) => s.id === 4) || CALL_SCENARIOS[3], // Kwestyon Telecom: High-Speed Fiber Upgrade (Outbound)
-  ];
-  const [currentCallScenarioIdx, setCurrentCallScenarioIdx] = useState(0);
+  // Stage 3 Call Simulation State (Designated Official Inbound Scenario with Comprehension Quiz)
+  const CERTIFICATION_CALL_SCENARIO = CALL_SCENARIOS.find((s) => s.id === 1) || CALL_SCENARIOS[0]; // Technical Support: DSL Internet Outage (Inbound)
   const [callTurn, setCallTurn] = useState(0);
   const [isCustomerAudioPlaying, setIsCustomerAudioPlaying] = useState(false);
   const [callHistory, setCallHistory] = useState([]);
-  const [completedCallScores, setCompletedCallScores] = useState([]);
   const [isRecordingCall, setIsRecordingCall] = useState(false);
   const [callRecordingData, setCallRecordingData] = useState(null);
+  const [isQuizMode, setIsQuizMode] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizScoreResult, setQuizScoreResult] = useState(null);
   const audioPlayerRef = useRef(null);
 
-  const currentCallScenario =
-    CERTIFICATION_CALL_SCENARIOS[currentCallScenarioIdx] || CERTIFICATION_CALL_SCENARIOS[0];
+  const currentCallScenario = CERTIFICATION_CALL_SCENARIO;
 
   // Completed Certificate Object
   const [savedCertificate, setSavedCertificate] = useState(null);
@@ -229,57 +226,118 @@ export default function ApplyCertification() {
     };
   };
 
-  // Submit Stage 1 (Reading Passage)
-  const handleSubmitStage1 = () => {
-    const transcript = (stage1RecordingData?.transcript || "").trim() || CERTIFICATION_PASSAGE.content;
+  // Reset Exam State for Fresh Attempt
+  const handleRetakeExam = () => {
+    setStage1Score(null);
+    setStage1RecordingData(null);
+    setStage2Score(null);
+    setStage2RecordingData(null);
+    setInterviewAnswers([]);
+    setCurrentQuestionIdx(0);
+    setStage3Score(null);
+    setCallHistory([]);
+    setCallTurn(0);
+    setCallRecordingData(null);
+    setIsQuizMode(false);
+    setQuizAnswers({});
+    setQuizScoreResult(null);
+    setCurrentStep("STAGE_1_READING");
+  };
 
-    try {
-      const evalResult = calculateAssessmentScore({
-        durationSeconds: stage1RecordingData?.durationSeconds || 40,
-        wordCount: transcript.split(/\s+/).filter(Boolean).length,
-        transcript,
-        expectedText: CERTIFICATION_PASSAGE.content,
-        audioMetrics: stage1RecordingData?.audioMetrics || { signal: 85, consistency: 90 },
-        currentLevel: 'medium'
-      });
-      setStage1Score(evalResult);
-    } catch (err) {
-      console.error("Stage 1 score calculation fallback:", err);
-      // Fallback calculation in case of any scoring issue
+  // Submit Stage 1 (Reading Passage) using Real Paragraph Reading Speech Engine
+  const handleSubmitStage1 = () => {
+    const rawTranscript = (stage1RecordingData?.transcript || "").trim();
+    const duration = stage1RecordingData?.durationSeconds || 0;
+    const words = rawTranscript.split(/\s+/).filter(Boolean);
+    const meaningful = hasMeaningfulSpeech(rawTranscript) && duration >= 4 && words.length >= 8;
+
+    if (!meaningful || words.length < 8) {
+      // Inaudible, silent, or single-word/filler response (e.g. just said "hello")
       setStage1Score({
-        score: 88,
-        placedLevel: 'medium',
-        wordsPerMinute: 130,
+        score: 0,
+        placedLevel: 'easy',
+        wordsPerMinute: 0,
         criteria: [
-          { name: 'Accuracy', value: 88, weight: 50, contribution: 44 },
-          { name: 'Fluency', value: 88, weight: 50, contribution: 44 }
-        ]
+          { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read aloud' },
+          { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read aloud' }
+        ],
+        feedbackText: 'No clear speech or passage match detected. Please re-read the passage aloud clearly.',
+        passed: false,
       });
+    } else {
+      try {
+        const evalResult = calculateAssessmentScore({
+          durationSeconds: duration,
+          wordCount: words.length,
+          transcript: rawTranscript,
+          expectedText: CERTIFICATION_PASSAGE.content,
+          audioMetrics: stage1RecordingData?.audioMetrics || { signal: 85, consistency: 90 },
+          currentLevel: 'hard'
+        });
+        setStage1Score({
+          ...evalResult,
+          passed: evalResult.score >= 70,
+        });
+      } catch (err) {
+        console.error("Stage 1 score calculation error:", err);
+        setStage1Score({
+          score: 0,
+          placedLevel: 'easy',
+          wordsPerMinute: 0,
+          criteria: [
+            { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Scoring error' },
+            { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Scoring error' }
+          ],
+          passed: false,
+        });
+      }
     }
 
     setCurrentStep("STAGE_2_INTERVIEW");
   };
 
-  // Save Interview Question Answer & Advance
+  // Save Interview Question Answer & Advance using Real Mock Interview Evaluation Logic
   const handleSaveInterviewAnswer = () => {
-    const transcript = (stage2RecordingData?.transcript || "").trim() || "I have strong communication skills and experience resolving customer concerns with empathy and patience.";
-    const words = transcript.split(/\s+/).filter(Boolean);
-    const duration = stage2RecordingData?.durationSeconds || 12;
-    const wpm = Math.round((words.length / Math.max(1, duration)) * 60);
+    const rawTranscript = (stage2RecordingData?.transcript || "").trim();
+    const duration = stage2RecordingData?.durationSeconds || 0;
+    const words = rawTranscript.match(/[a-z']+/gi) || [];
+    const isMeaningful = hasMeaningfulSpeech(rawTranscript) && words.length >= 8 && duration >= 3;
 
-    // Score based on length, pacing, and completeness
-    const paceScore = (wpm >= 115 && wpm <= 150) ? 95 : (wpm >= 90 ? 88 : 80);
-    const contentClarity = Math.min(95, Math.max(75, 60 + words.length * 1.5));
-    const confidenceScore = Math.min(95, Math.max(75, 65 + duration * 1.2));
-    const answerScore = Math.min(100, Math.round((paceScore * 0.3) + (contentClarity * 0.4) + (confidenceScore * 0.3)));
+    let answerScore = 0;
+    let wpm = 0;
+    let fillerCount = 0;
+
+    if (isMeaningful) {
+      wpm = duration > 0 ? Math.round((words.length / duration) * 60) : 120;
+      const pacingScore = Math.max(15, Math.min(100, Math.round(100 - Math.abs(wpm - 135) * 1.5)));
+      const fillers = rawTranscript.toLowerCase().match(/\b(um|uh|uhm|ah|like|you know|actually|basically)\b/g) || [];
+      fillerCount = fillers.length;
+      const fillerCleanliness = Math.max(10, Math.min(100, Math.round(100 - (fillerCount * 8))));
+      const depthScore = Math.min(100, Math.max(15, Math.round((words.length / 32) * 85)));
+      const clarityScore = Math.max(15, Math.min(95, Math.round((pacingScore * 0.4) + (fillerCleanliness * 0.3) + (depthScore * 0.3))));
+      const confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
+      const coherenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
+
+      answerScore = Math.round(
+        (clarityScore * 0.25) +
+        (pacingScore * 0.20) +
+        (fillerCleanliness * 0.20) +
+        (confidenceScore * 0.20) +
+        (coherenceScore * 0.15)
+      );
+    } else {
+      // Very brief, dismissive, or single-word answer (e.g. just said "hello")
+      answerScore = words.length > 0 ? Math.min(15, words.length * 3) : 0;
+    }
 
     const newAnswers = [
       ...interviewAnswers,
       {
         questionIdx: currentQuestionIdx,
-        transcript,
+        transcript: rawTranscript,
         duration,
-        score: answerScore
+        score: answerScore,
+        words: words.length
       }
     ];
     setInterviewAnswers(newAnswers);
@@ -292,114 +350,167 @@ export default function ApplyCertification() {
       const avgInterview = Math.round(newAnswers.reduce((sum, a) => sum + a.score, 0) / newAnswers.length);
       setStage2Score(avgInterview);
       setCurrentStep("STAGE_3_CALL");
-      setCurrentCallScenarioIdx(0);
+      setIsQuizMode(false);
       setCallTurn(0);
       setCallHistory([]);
-      setCompletedCallScores([]);
       setCallRecordingData(null);
-      // Pre-play first customer audio of Call 1
-      const firstAudio = CERTIFICATION_CALL_SCENARIOS[0]?.dialogues?.[0]?.audio_url;
+      // Pre-play first customer audio of Inbound Call
+      const firstAudio = CERTIFICATION_CALL_SCENARIO?.dialogues?.[0]?.audio_url;
       if (firstAudio) {
         setTimeout(() => playCustomerAudio(firstAudio), 600);
       }
     }
   };
 
-  // Call Simulation Turn Advance (Manages 2 Designated Certification Scenarios: Inbound & Outbound)
+  // Call Simulation Turn Advance (Inbound Call Dialogues)
   const handleNextCallTurn = () => {
-    const currentDialogue = currentCallScenario?.dialogues?.[callTurn] || {};
-    const replyText = (
-      callRecordingData?.transcript ||
-      currentDialogue?.suggested_agent_text ||
-      "Understood, thank you."
-    ).trim();
+    const currentDialogue = CERTIFICATION_CALL_SCENARIO?.dialogues?.[callTurn] || {};
+    const replyText = (callRecordingData?.transcript || "").trim();
 
     const updatedHistory = [
       ...callHistory,
       {
         turn: callTurn + 1,
         customer: currentDialogue.customer_text || "",
-        agent: replyText
+        agent: replyText || "[No verbal response recorded]"
       }
     ];
     setCallHistory(updatedHistory);
     setCallRecordingData(null);
 
     const nextTurn = callTurn + 1;
-    if (nextTurn < currentCallScenario.dialogues.length) {
+    if (nextTurn < CERTIFICATION_CALL_SCENARIO.dialogues.length) {
       setCallTurn(nextTurn);
-      const nextAudio = currentCallScenario.dialogues[nextTurn]?.audio_url;
+      const nextAudio = CERTIFICATION_CALL_SCENARIO.dialogues[nextTurn]?.audio_url;
       if (nextAudio) {
         playCustomerAudio(nextAudio);
       }
     } else {
-      // Completed all dialogue turns for this scenario!
-      // Compute 3-Pillar QA Score for this scenario (Interaction 40%, Fluency 30%, Accuracy 30%)
-      const totalWords = updatedHistory.reduce((acc, h) => acc + (h.agent || "").split(/\s+/).filter(Boolean).length, 0);
-      const interactionScore = Math.min(95, Math.max(65, 60 + totalWords * 0.5));
-      const fluencyScore = Math.min(95, Math.max(65, 70 + totalWords * 0.4));
-      const accuracyScore = Math.min(94, Math.max(68, 60 + totalWords * 0.5));
-      const callQA = Math.round(
-        (interactionScore * 0.40) +
-        (fluencyScore * 0.30) +
-        (accuracyScore * 0.30)
-      );
-
-      const allCallScores = [...completedCallScores, callQA];
-      setCompletedCallScores(allCallScores);
-
-      // Check if there is a 2nd call scenario (Call 1 = Inbound, Call 2 = Outbound)
-      if (currentCallScenarioIdx + 1 < CERTIFICATION_CALL_SCENARIOS.length) {
-        // Advance to Call 2 of 2: Kwestyon Telecom (Outbound Call)
-        setCurrentCallScenarioIdx(currentCallScenarioIdx + 1);
-        setCallTurn(0);
-        setCallHistory([]);
-        setCallRecordingData(null);
-        const nextCall = CERTIFICATION_CALL_SCENARIOS[currentCallScenarioIdx + 1];
-        if (nextCall?.dialogues?.[0]?.audio_url) {
-          setTimeout(() => playCustomerAudio(nextCall.dialogues[0].audio_url), 700);
-        }
-      } else {
-        // Both Inbound & Outbound calls completed!
-        const avgCallScore = Math.round(
-          allCallScores.reduce((sum, s) => sum + s, 0) / allCallScores.length
-        );
-        setStage3Score(avgCallScore);
-
-        // Compute FINAL Comprehensive Certification Score
-        const rScore = stage1Score?.score || 88;
-        const iScore = stage2Score || 88;
-        const cScore = avgCallScore;
-        const finalAverage = Math.round((rScore + iScore + cScore) / 3);
-        const isPassed = finalAverage >= 85;
-
-        const certObject = {
-          passed: isPassed,
-          candidateName: candidateDisplayName || currentUser.name || "BPO Candidate",
-          candidateId: currentUser.id || 19,
-          issueDate: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
-          certificateNumber: `BPO-2026-CERT-${Math.floor(1000 + Math.random() * 9000)}`,
-          overallScore: finalAverage,
-          stage1ReadingScore: rScore,
-          stage2InterviewScore: iScore,
-          stage3CallScore: cScore,
-          cefrLevel: finalAverage >= 90 ? "CEFR C1 (Advanced Voice)" : "CEFR B2 (BPO Hiring Benchmark)",
-        };
-
-        if (isPassed) {
-          saveUserData("bpoReadyCertificate", certObject);
-          setSavedCertificate(certObject);
-          addUserActivity({
-            activity: "BPO Communication Readiness Certified",
-            level: certObject.cefrLevel,
-            result: `${finalAverage}%`,
-            date: new Date().toISOString()
-          });
-        }
-
-        setCurrentStep("STAGE_4_RESULT");
-      }
+      // All dialogues finished! Advance directly to Post-Call Comprehension Quiz
+      setIsQuizMode(true);
+      setQuizAnswers({});
     }
+  };
+
+  // Submit Comprehension Quiz & Calculate Official Certification Results using Real Call Simulation Engine
+  const handleQuizSubmitAndEvaluate = () => {
+    const questions = CERTIFICATION_CALL_SCENARIO?.comprehension_quiz || [];
+    let correctCount = 0;
+    questions.forEach((q, idx) => {
+      if (quizAnswers[q.id || idx] === q.correctAnswer) {
+        correctCount += 1;
+      }
+    });
+
+    const quizPercent = Math.round((correctCount / Math.max(1, questions.length)) * 100);
+    const quizResult = {
+      correct: correctCount,
+      total: questions.length,
+      percentage: quizPercent,
+    };
+    setQuizScoreResult(quizResult);
+
+    // Evaluate Spoken Turns across the Call
+    const agentTexts = callHistory.map(h => (h.agent || '').trim()).filter(t => !t.startsWith('[no verbal'));
+    const allSpokenText = agentTexts.join(' ').toLowerCase();
+    const spokenTokens = allSpokenText.match(/[a-z']+/g) || [];
+    const totalWords = spokenTokens.length;
+    const uniqueTokens = new Set(spokenTokens.filter(t => t.length > 2));
+    const uniqueCount = uniqueTokens.size;
+
+    // Check Scenario Resolution Milestones for Inbound DSL Outage (Sarah Sky)
+    // Milestone 1: Verification (account number 860-995-1234 or name Sarah Sky)
+    // Milestone 2: Technical Inquiry (DSL light, modem, power, router, flashing red)
+    // Milestone 3: Cable & resolution (phone cord, plug in, loose cable, restore internet/email)
+    let milestoneCount = 0;
+    if (/(860|account|number|verify|sky|sarah)/i.test(allSpokenText)) milestoneCount++;
+    if (/(light|modem|dsl|router|flashing|red|green|ethernet)/i.test(allSpokenText)) milestoneCount++;
+    if (/(phone|cord|cable|plug|back|connect|restore|email|internet|work)/i.test(allSpokenText)) milestoneCount++;
+
+    let accuracyScore = 0;
+    let speechInteraction = 0;
+    let fluencyScore = 0;
+
+    if (totalWords < 8 || uniqueCount < 3 || milestoneCount === 0) {
+      // Inquiries NOT addressed / generic repetitive answers (e.g. only saying "hello")
+      accuracyScore = Math.min(20, Math.max(0, uniqueCount * 3));
+      speechInteraction = Math.min(20, Math.max(0, uniqueCount * 3));
+      fluencyScore = Math.min(25, Math.max(0, uniqueCount * 4));
+    } else if (milestoneCount === 1) {
+      accuracyScore = Math.min(50, Math.max(25, 25 + (uniqueCount * 2)));
+      speechInteraction = Math.min(55, Math.max(30, 30 + (uniqueCount * 2)));
+      fluencyScore = Math.min(60, Math.max(35, 35 + Math.min(20, totalWords)));
+    } else {
+      accuracyScore = Math.min(95, Math.max(60, 55 + (milestoneCount * 12) + uniqueCount));
+      speechInteraction = Math.min(95, Math.max(60, 55 + (milestoneCount * 10) + uniqueCount));
+      fluencyScore = Math.min(95, Math.max(65, 60 + Math.min(30, totalWords)));
+    }
+
+    // Blend Comprehension Quiz into Interaction (50% Speech Interaction + 50% Quiz)
+    let finalInteraction = Math.round((speechInteraction * 0.50) + (quizPercent * 0.50));
+
+    // Active institutional weights (Interaction 40%, Fluency 30%, Accuracy 30%)
+    let callQA = Math.round(
+      (finalInteraction * 0.40) +
+      (fluencyScore * 0.30) +
+      (accuracyScore * 0.30)
+    );
+
+    // Critical impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)
+    if (quizPercent === 0) {
+      callQA = Math.min(35, callQA);
+      finalInteraction = Math.min(35, finalInteraction);
+    }
+
+    const stage3Eval = {
+      overall_score: callQA,
+      interaction_score: finalInteraction,
+      fluency_score: fluencyScore,
+      accuracy_score: accuracyScore,
+      quiz_score: quizPercent,
+      quiz_result: quizResult,
+      passed: callQA >= 70,
+    };
+    setStage3Score(stage3Eval);
+
+    // Compute FINAL Comprehensive Certification Score
+    const rScore = stage1Score?.score ?? 0;
+    const iScore = stage2Score ?? 0;
+    const cScore = callQA;
+    const finalAverage = Math.round((rScore + iScore + cScore) / 3);
+
+    // Passing criteria: Composite >= 85% AND each individual stage >= 70%
+    const isPassed = finalAverage >= 85 && rScore >= 70 && iScore >= 70 && cScore >= 70;
+
+    const certObject = {
+      passed: isPassed,
+      candidateName: candidateDisplayName || currentUser.name || "BPO Candidate",
+      candidateId: currentUser.id || 19,
+      issueDate: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+      certificateNumber: `BPO-2026-CERT-${Math.floor(1000 + Math.random() * 9000)}`,
+      overallScore: finalAverage,
+      stage1ReadingScore: rScore,
+      stage2InterviewScore: iScore,
+      stage3CallScore: cScore,
+      stage3QuizScore: quizPercent,
+      cefrLevel: finalAverage >= 90 ? "CEFR C1 (Advanced Voice)" : (finalAverage >= 85 ? "CEFR B2 (BPO Hiring Benchmark)" : "Certification Standard Not Achieved"),
+    };
+
+    saveUserData("bpoReadyCertificate", certObject);
+    setSavedCertificate(certObject);
+
+    if (isPassed) {
+      addUserActivity({
+        activity: "BPO Communication Readiness Certified",
+        level: certObject.cefrLevel,
+        result: `${finalAverage}%`,
+        score: finalAverage,
+        date: new Date().toISOString(),
+        type: "certification"
+      });
+    }
+
+    setCurrentStep("STAGE_4_RESULT");
   };
 
   // Direct Download Certificate as HD Image
@@ -650,7 +761,7 @@ export default function ApplyCertification() {
                   2. HR Interview {stage2Score && "✓"}
                 </span>
                 <span className={currentStep === "STAGE_3_CALL" ? "text-blue-600" : "text-gray-400"}>
-                  3. Call Handling {stage3Score ? "✓" : currentCallScenarioIdx > 0 ? "(Call 2/2)" : "(2 Calls)"}
+                  3. Inbound Call &amp; Quiz {stage3Score && "✓"}
                 </span>
               </div>
               <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
@@ -743,17 +854,25 @@ export default function ApplyCertification() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setCurrentStep("STAGE_4_RESULT")}
-                    className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-                  >
-                    <span>View Official Certificate →</span>
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setCurrentStep("STAGE_4_RESULT")}
+                      className="py-3 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>View Official Certificate →</span>
+                    </button>
+                    <button
+                      onClick={handleRetakeExam}
+                      className="py-3 px-4 bg-white hover:bg-gray-100 text-gray-700 font-bold border border-gray-300 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      <span>↺ Retake Exam</span>
+                    </button>
+                  </div>
                 </div>
               ) : isEligible ? (
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={() => setCurrentStep("STAGE_1_READING")}
+                    onClick={handleRetakeExam}
                     className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>{savedCertificate && !savedCertificate.passed ? "↺ Retake Official Certification Exam (3 Stages) →" : "Start Official Certification Exam (3 Stages) →"}</span>
@@ -879,106 +998,161 @@ export default function ApplyCertification() {
             </div>
           )}
 
-          {/* STAGE 3: CALL SIMULATION */}
+          {/* STAGE 3: INBOUND CALL SIMULATION WITH COMPREHENSION QUIZ */}
           {currentStep === "STAGE_3_CALL" && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-6">
-              <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                      Exam Stage 3 of 3 • Call {currentCallScenarioIdx + 1} of {CERTIFICATION_CALL_SCENARIOS.length}
+            isQuizMode ? (
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-6">
+                <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                      Exam Stage 3 of 3 • Active Listening Comprehension Quiz
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
-                      {currentCallScenario.call_type === "inbound" ? "📥 Inbound Customer Care" : "📤 Outbound Consultation"}
+                    <h2 className="text-xl font-bold text-gray-900 mt-1">
+                      Post-Call Comprehension &amp; Verification Quiz
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Verify key customer details, reported issues, and resolution actions from your call with <strong>{CERTIFICATION_CALL_SCENARIO.customer_name}</strong>.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-gray-400 block uppercase">Answered</span>
+                    <span className="text-xl font-black text-blue-600">
+                      {Object.keys(quizAnswers).length} / {CERTIFICATION_CALL_SCENARIO.comprehension_quiz?.length || 3}
                     </span>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mt-1">{currentCallScenario.title}</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Customer: <strong className="text-gray-700">{currentCallScenario.customer_name}</strong> • Dialogue Turn {callTurn + 1} of {currentCallScenario.dialogues.length}
+                </div>
+
+                {/* Questions */}
+                <div className="space-y-4">
+                  {(CERTIFICATION_CALL_SCENARIO.comprehension_quiz || []).map((q, qIdx) => {
+                    const selected = quizAnswers[q.id || qIdx];
+                    return (
+                      <div key={q.id || qIdx} className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
+                        <h4 className="text-sm font-bold text-gray-900 flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-xs flex items-center justify-center shrink-0 mt-0.5 font-extrabold">
+                            {qIdx + 1}
+                          </span>
+                          <span>{q.question}</span>
+                        </h4>
+                        <div className="space-y-2 pl-7">
+                          {q.options.map((opt, oIdx) => {
+                            const isSelected = selected === oIdx;
+                            return (
+                              <label
+                                key={oIdx}
+                                onClick={() => setQuizAnswers(prev => ({ ...prev, [q.id || qIdx]: oIdx }))}
+                                className={`block p-3 rounded-xl border text-xs font-medium cursor-pointer transition ${
+                                  isSelected ? "bg-blue-50 border-blue-500 text-blue-950 font-semibold shadow-xs" : "bg-white border-gray-200 text-gray-700 hover:border-blue-300"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <input
+                                    type="radio"
+                                    name={`cert_quiz_${q.id || qIdx}`}
+                                    checked={isSelected}
+                                    onChange={() => {}}
+                                    className="text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>{opt}</span>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  disabled={Object.keys(quizAnswers).length < (CERTIFICATION_CALL_SCENARIO.comprehension_quiz?.length || 3)}
+                  onClick={handleQuizSubmitAndEvaluate}
+                  className={`w-full py-4 rounded-xl text-sm font-extrabold transition shadow-md cursor-pointer ${
+                    Object.keys(quizAnswers).length < (CERTIFICATION_CALL_SCENARIO.comprehension_quiz?.length || 3)
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                >
+                  Finalize Call Simulation &amp; Calculate Official Certification Results →
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-6">
+                <div className="border-b border-gray-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                        Exam Stage 3 of 3 • Live Call Simulation
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
+                        📥 Inbound Technical Support
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mt-1">{CERTIFICATION_CALL_SCENARIO.title}</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Customer: <strong className="text-gray-700">{CERTIFICATION_CALL_SCENARIO.customer_name}</strong> • Dialogue Turn {callTurn + 1} of {CERTIFICATION_CALL_SCENARIO.dialogues.length}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                      DSL Internet Outage
+                    </span>
+                  </div>
+                </div>
+
+                {/* Customer Dialogue Playback */}
+                <div className="p-5 bg-gray-900 text-white rounded-2xl border border-gray-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-emerald-400 uppercase">Customer Audio:</span>
+                    <button
+                      onClick={() => playCustomerAudio(CERTIFICATION_CALL_SCENARIO.dialogues[callTurn]?.audio_url)}
+                      className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-emerald-300 font-semibold flex items-center gap-1 transition cursor-pointer"
+                    >
+                      🔊 Replay Audio
+                    </button>
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed">
+                    "{CERTIFICATION_CALL_SCENARIO.dialogues[callTurn]?.customer_text}"
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-                    {currentCallScenarioIdx === 0 ? "Call 1: Technical Support" : "Call 2: Kwestyon Telecom"}
-                  </span>
-                </div>
-              </div>
 
-              {/* Customer Dialogue Playback */}
-              <div className="p-5 bg-gray-900 text-white rounded-2xl border border-gray-800">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-emerald-400 uppercase">Customer Audio:</span>
-                  <button
-                    onClick={() => playCustomerAudio(currentCallScenario.dialogues[callTurn]?.audio_url)}
-                    className="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg text-emerald-300 font-semibold flex items-center gap-1 transition cursor-pointer"
-                  >
-                    🔊 Replay Audio
-                  </button>
-                </div>
-                <p className="text-sm font-medium leading-relaxed">
-                  "{currentCallScenario.dialogues[callTurn]?.customer_text}"
-                </p>
-              </div>
-
-              {/* Suggested Guidance */}
-              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
-                <strong>Recommended Agent Strategy:</strong> {currentCallScenario.dialogues[callTurn]?.suggested_agent_text}
-              </div>
-
-              {/* Agent Voice Recorder */}
-              <div className="flex flex-col items-center justify-center py-4 gap-3 bg-gray-50 rounded-2xl border border-gray-200">
-                <AudioRecorder
-                  key={`stage3_rec_${currentCallScenarioIdx}_${callTurn}`}
-                  onStateChange={setIsRecordingCall}
-                  onRecorded={(blob, durationSeconds, transcript, audioMetrics) => {
-                    setCallRecordingData({ blob, durationSeconds, transcript, audioMetrics });
-                  }}
-                />
-                <div className="flex items-center gap-2">
+                {/* Agent Voice Recorder */}
+                <div className="flex flex-col items-center justify-center py-4 gap-3 bg-gray-50 rounded-2xl border border-gray-200">
+                  <AudioRecorder
+                    key={`stage3_rec_${callTurn}`}
+                    onStateChange={setIsRecordingCall}
+                    onRecorded={(blob, durationSeconds, transcript, audioMetrics) => {
+                      setCallRecordingData({ blob, durationSeconds, transcript, audioMetrics });
+                    }}
+                  />
                   {callRecordingData && (
                     <span className="text-xs font-semibold text-emerald-700">
                       ✓ Agent response captured ({callRecordingData.durationSeconds || 6}s)
                     </span>
                   )}
-                  {!callRecordingData && currentCallScenario.dialogues[callTurn]?.suggested_agent_text && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCallRecordingData({
-                          transcript: currentCallScenario.dialogues[callTurn].suggested_agent_text,
-                          durationSeconds: 6,
-                        })
-                      }
-                      className="text-[11px] text-emerald-600 hover:text-emerald-700 hover:underline font-semibold cursor-pointer"
-                    >
-                      ✨ Use Recommended Strategy
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {/* Turn Advance Button */}
-              <button
-                disabled={isRecordingCall}
-                onClick={handleNextCallTurn}
-                className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${
-                  isRecordingCall
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-                }`}
-              >
-                {callTurn + 1 < currentCallScenario.dialogues.length
-                  ? "Submit Turn & Next Customer Exchange →"
-                  : currentCallScenarioIdx + 1 < CERTIFICATION_CALL_SCENARIOS.length
-                  ? "Complete Inbound Call & Proceed to Outbound Call (2 of 2) →"
-                  : "Finalize Call Simulation & Calculate Certification Results →"}
-              </button>
-            </div>
+                {/* Turn Advance Button */}
+                <button
+                  disabled={isRecordingCall}
+                  onClick={handleNextCallTurn}
+                  className={`w-full py-3.5 rounded-xl text-xs font-extrabold transition shadow-sm ${
+                    isRecordingCall
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                  }`}
+                >
+                  {callTurn + 1 < CERTIFICATION_CALL_SCENARIO.dialogues.length
+                    ? "Submit Turn & Next Customer Exchange →"
+                    : "Complete Call & Proceed to Comprehension Quiz →"}
+                </button>
+              </div>
+            )
           )}
 
-          {/* STAGE 4: RESULT & CERTIFICATE VIEW */}
+          {/* STAGE 4: RESULT & SCORECARD VIEW */}
           {currentStep === "STAGE_4_RESULT" && savedCertificate && (
-            <div className="space-y-4">
+            <div className="space-y-6">
 
               {/* Clean Action Toolbar (Hidden during print) */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-2 print:hidden">
@@ -990,31 +1164,112 @@ export default function ApplyCertification() {
                 </button>
 
                 <div className="flex items-center gap-2.5">
-                  {savedCertificate.passed ? (
+                  <button
+                    onClick={handleRetakeExam}
+                    className="px-4 py-2.5 bg-white hover:bg-gray-100 text-gray-700 font-bold border border-gray-300 text-xs rounded-xl transition cursor-pointer"
+                  >
+                    <span>↺ Retake Exam</span>
+                  </button>
+                  {savedCertificate.passed && (
                     <button
                       onClick={handleDownloadCertificate}
                       className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
                     >
                       <span>📥 Download Certificate</span>
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setCurrentStep("STAGE_1_READING");
-                        setStage1Score(null);
-                        setStage2Score(null);
-                        setStage3Score(null);
-                        setInterviewAnswers([]);
-                        setCurrentCallScenarioIdx(0);
-                        setCompletedCallScores([]);
-                        setCallTurn(0);
-                        setCallHistory([]);
-                      }}
-                      className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
-                    >
-                      <span>↺ Retake Exam</span>
-                    </button>
                   )}
+                </div>
+              </div>
+
+              {/* OFFICIAL 3-STAGE EXAMINATION SCORECARD */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-sm space-y-6">
+                {/* Composite Scorecard Banner */}
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50/90 via-indigo-50/50 to-slate-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Official Certification Composite Score</span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      <span className="text-5xl font-black text-blue-950">{savedCertificate.overallScore}%</span>
+                      <span className="text-sm font-semibold text-gray-400">/ 100%</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {savedCertificate.passed 
+                        ? "★ Minimum 85% accreditation benchmark achieved across all 3 examination stages."
+                        : "⚠️ Standard Not Achieved: Composite score is below the 85% accreditation threshold."}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-block px-4 py-1.5 rounded-full text-xs font-black border ${
+                      savedCertificate.passed ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-rose-100 text-rose-800 border-rose-300"
+                    }`}>
+                      {savedCertificate.cefrLevel}
+                    </span>
+                    <p className="text-[10px] text-gray-500 mt-1 font-medium">Accreditation Standard: 85% Min Passing</p>
+                  </div>
+                </div>
+
+                {/* 3 Stage Breakdown Cards */}
+                <div>
+                  <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-3">
+                    Comprehensive 3-Stage Performance Audit
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Stage 1: Paragraph Reading */}
+                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 1: Reading</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          (savedCertificate.stage1ReadingScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {(savedCertificate.stage1ReadingScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-gray-900">{savedCertificate.stage1ReadingScore}%</span>
+                        <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
+                        {savedCertificate.stage1ReadingScore === 0 ? "Passage not read aloud" : `Speech Articulation & Pacing (${stage1Score?.wordsPerMinute || 0} WPM)`}
+                      </p>
+                    </div>
+
+                    {/* Stage 2: Mock Interview */}
+                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 2: HR Interview</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          (savedCertificate.stage2InterviewScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {(savedCertificate.stage2InterviewScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-gray-900">{savedCertificate.stage2InterviewScore}%</span>
+                        <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
+                        3 Competency Questions (STAR, Cadence &amp; Composure)
+                      </p>
+                    </div>
+
+                    {/* Stage 3: Call Simulation */}
+                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 3: Inbound Call</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          (savedCertificate.stage3CallScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {(savedCertificate.stage3CallScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-gray-900">{savedCertificate.stage3CallScore}%</span>
+                        <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
+                        Technical Support QA • Quiz: {savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
