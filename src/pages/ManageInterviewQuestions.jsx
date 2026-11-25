@@ -12,58 +12,68 @@ const defaultQuestions = [
   {
     id: 1,
     question_type: "initial",
-    category: "Introduction",
-    difficulty: "easy",
     question_text: "Tell me about yourself and your background.",
-    expected_keywords: "education, experience, strengths, background",
   },
   {
     id: 2,
     question_type: "initial",
-    category: "Motivation",
-    difficulty: "easy",
     question_text: "Why do you want to build a career in the BPO / Call Center industry?",
-    expected_keywords: "growth, customer service, communication, dynamic environment",
   },
   {
     id: 3,
     question_type: "initial",
-    category: "Workplace Adaptability",
-    difficulty: "medium",
     question_text: "How do you handle night shifts and rotating work schedules?",
-    expected_keywords: "discipline, sleep routine, commitment, physical health",
   },
   {
     id: 4,
     question_type: "final",
-    category: "Conflict Resolution",
-    difficulty: "hard",
     question_text: "Describe a specific time you had to deal with an extremely angry or unreasonable customer. How did you resolve the situation?",
-    expected_keywords: "empathy, de-escalation, listening, resolution, follow-up",
   },
   {
     id: 5,
     question_type: "final",
-    category: "Pressure Management",
-    difficulty: "hard",
     question_text: "How do you maintain high call quality when handling high call volumes and back-to-back customer inquiries?",
-    expected_keywords: "focus, composure, process adherence, efficiency",
   },
 ];
 
 const ManageInterviewQuestions = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin" });
-  const [questions, setQuestions] = useState(defaultQuestions);
+  const [questions, setQuestions] = useState(() => {
+    let deletedIds = [];
+    let deletedTexts = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+      deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
+    } catch {}
+
+    try {
+      const cached = localStorage.getItem("bpo_custom_questions");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(
+            (q) =>
+              q.is_active !== false &&
+              !deletedIds.includes(q.id) &&
+              !deletedIds.includes(String(q.id)) &&
+              !deletedIds.includes(Number(q.id)) &&
+              !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+          );
+          if (valid.length > 0) return valid;
+        }
+      }
+    } catch {}
+
+    return defaultQuestions;
+  });
+
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     question_type: "initial",
-    category: "General HR",
-    difficulty: "easy",
     question_text: "",
-    expected_keywords: "",
   });
   const [message, setMessage] = useState("");
 
@@ -73,7 +83,56 @@ const ManageInterviewQuestions = () => {
     try {
       const data = await listInterviewQuestions();
       if (Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
+        let deletedIds = [];
+        let deletedTexts = [];
+        try {
+          deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+          deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
+        } catch {}
+
+        const validFromApi = data.filter(
+          (q) =>
+            q.is_active !== false &&
+            !deletedIds.includes(q.id) &&
+            !deletedIds.includes(String(q.id)) &&
+            !deletedIds.includes(Number(q.id)) &&
+            !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+        );
+
+        let localCustom = [];
+        try {
+          const raw = localStorage.getItem("bpo_custom_questions");
+          if (raw) {
+            localCustom = JSON.parse(raw).filter(
+              (q) =>
+                q.is_active !== false &&
+                !deletedIds.includes(q.id) &&
+                !deletedIds.includes(String(q.id)) &&
+                !deletedIds.includes(Number(q.id)) &&
+                !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+            );
+          }
+        } catch {}
+
+        const map = new Map();
+        defaultQuestions.forEach((def) => {
+          if (
+            !deletedIds.includes(def.id) &&
+            !deletedTexts.includes((def.question_text || "").trim().toLowerCase())
+          ) {
+            map.set(String(def.id), def);
+          }
+        });
+        validFromApi.forEach((q) => map.set(String(q.id), q));
+        localCustom.forEach((q) => {
+          if (!map.has(String(q.id))) {
+            map.set(String(q.id), q);
+          }
+        });
+
+        const merged = Array.from(map.values());
+        setQuestions(merged);
+        localStorage.setItem("bpo_custom_questions", JSON.stringify(merged));
       }
     } catch (err) {
       console.warn("Using offline questions:", err);
@@ -90,10 +149,7 @@ const ManageInterviewQuestions = () => {
     setEditingId(null);
     setFormData({
       question_type: "initial",
-      category: "General HR",
-      difficulty: "easy",
       question_text: "",
-      expected_keywords: "",
     });
     setIsModalOpen(true);
   };
@@ -101,23 +157,40 @@ const ManageInterviewQuestions = () => {
   const handleOpenEdit = (q) => {
     setEditingId(q.id);
     setFormData({
-      question_type: q.question_type || "initial",
-      category: q.category || "General HR",
-      difficulty: q.difficulty || "easy",
+      question_type: q.question_type || q.interview_type || "initial",
       question_text: q.question_text || q.question || "",
-      expected_keywords: q.expected_keywords || "",
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this question?")) return;
+    const target = questions.find((q) => q.id === id);
+    const targetText = (target?.question_text || target?.question || "").trim().toLowerCase();
+
+    const remaining = questions.filter((q) => q.id !== id);
+    setQuestions(remaining);
+    localStorage.setItem("bpo_custom_questions", JSON.stringify(remaining));
+
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(deletedIds));
+      }
+      if (targetText) {
+        const deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
+        if (!deletedTexts.includes(targetText)) {
+          deletedTexts.push(targetText);
+          localStorage.setItem("bpo_deleted_question_texts", JSON.stringify(deletedTexts));
+        }
+      }
+    } catch {}
+
     try {
       await deleteInterviewQuestion(id);
-      setQuestions(questions.filter((q) => q.id !== id));
       setMessage("Question deleted successfully.");
     } catch {
-      setQuestions(questions.filter((q) => q.id !== id));
       setMessage("Question removed locally.");
     }
     setTimeout(() => setMessage(""), 3000);
@@ -127,23 +200,54 @@ const ManageInterviewQuestions = () => {
     e.preventDefault();
     const approval_status = "approved"; // Published live immediately per adviser directive
     const payload = {
-      ...formData,
+      question_type: formData.question_type,
+      interview_type: formData.question_type,
+      question_text: formData.question_text,
       approval_status,
       created_by_user_id: currentUser?.id,
     };
 
+    let updatedList = questions;
+
     try {
       if (editingId) {
+        updatedList = questions.map((q) => (q.id === editingId ? { ...q, ...payload } : q));
+        setQuestions(updatedList);
+        localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
+
         const updated = await updateInterviewQuestion(editingId, payload);
-        setQuestions(
-          questions.map((q) => (q.id === editingId ? { ...(updated.question || updated), approval_status: "approved" } : q))
-        );
+        setMessage("Interview question updated and active for applicants! Monitored in Super Admin audit trail.");
       } else {
+        const tempId = `q-${Date.now()}`;
+        const newQ = { id: tempId, ...payload };
+        updatedList = [...questions, newQ];
+        setQuestions(updatedList);
+        localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
+
         const created = await createInterviewQuestion(payload);
-        setQuestions([...questions, created.question || created]);
+        const realId = created?.question?.id || created?.id;
+        if (realId) {
+          setQuestions((current) => {
+            const wasDeleted = !current.some((q) => q.id === tempId);
+            if (wasDeleted) {
+              deleteInterviewQuestion(realId).catch(() => {});
+              try {
+                const delIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+                if (!delIds.includes(realId)) {
+                  delIds.push(realId);
+                  localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(delIds));
+                }
+              } catch {}
+              return current;
+            }
+            const withRealId = current.map((q) => (q.id === tempId ? { ...q, id: realId } : q));
+            localStorage.setItem("bpo_custom_questions", JSON.stringify(withRealId));
+            return withRealId;
+          });
+        }
+        setMessage("Interview question saved and active for applicants! Monitored in Super Admin audit trail.");
       }
       setIsModalOpen(false);
-      setMessage("Interview question saved and active for applicants! Monitored in Super Admin audit trail.");
     } catch {
       if (editingId) {
         setQuestions(
@@ -297,13 +401,6 @@ const ManageInterviewQuestions = () => {
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> ⚡ Recently Updated
                         </span>
                       )}
-
-                      <span className="text-xs font-semibold text-gray-700">
-                        {q.category || "General HR"}
-                      </span>
-                      <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded capitalize">
-                        {q.difficulty} Tier
-                      </span>
                     </div>
                     {!isSuperAdmin && (
                       <div className="flex items-center gap-2">
@@ -335,15 +432,6 @@ const ManageInterviewQuestions = () => {
                   <p className="text-sm font-semibold text-gray-900 leading-relaxed">
                     "{q.question_text || q.question}"
                   </p>
-
-                  {q.expected_keywords && (
-                    <div className="flex items-center gap-2 text-[11px] text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                      <span className="font-semibold text-gray-600">Scoring Keywords:</span>
-                      <span className="text-blue-700 font-mono">
-                        {q.expected_keywords}
-                      </span>
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -368,48 +456,18 @@ const ManageInterviewQuestions = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Interview Round
-                  </label>
-                  <select
-                    value={formData.question_type}
-                    onChange={(e) => setFormData({ ...formData, question_type: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  >
-                    <option value="initial">Initial Interview (HR)</option>
-                    <option value="final">Final Interview (Ops)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Difficulty Tier
-                  </label>
-                  <select
-                    value={formData.difficulty}
-                    onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Category
+                  Interview Round
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g. Conflict Resolution / De-escalation"
+                <select
+                  value={formData.question_type}
+                  onChange={(e) => setFormData({ ...formData, question_type: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
+                >
+                  <option value="initial">Initial Interview (HR)</option>
+                  <option value="final">Final Interview (Ops)</option>
+                </select>
               </div>
 
               <div>
@@ -417,24 +475,11 @@ const ManageInterviewQuestions = () => {
                   Question Prompt Text
                 </label>
                 <textarea
-                  rows="3"
+                  rows="4"
                   required
                   value={formData.question_text}
                   onChange={(e) => setFormData({ ...formData, question_text: e.target.value })}
                   placeholder="Enter the complete interview question..."
-                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Target Scoring Keywords (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={formData.expected_keywords}
-                  onChange={(e) => setFormData({ ...formData, expected_keywords: e.target.value })}
-                  placeholder="e.g. empathy, active listening, de-escalation, resolution"
                   className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
               </div>
