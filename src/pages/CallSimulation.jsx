@@ -148,32 +148,6 @@ const CallSimulation = () => {
             ))}
           </div>
 
-          {/* Official Certification Examination Scenarios Banner */}
-          <div className="p-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-2xs">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
-                🎓
-              </div>
-              <div>
-                <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-widest bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full">
-                  Official BPO Certification • Stage 3
-                </span>
-                <h3 className="text-base font-bold text-gray-900 mt-1">
-                  Official Certification Examination Scenarios (Inbound &amp; Outbound)
-                </h3>
-                <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                  <strong>Technical Support: DSL Internet Outage</strong> (Inbound) and <strong>Kwestyon Telecom: High-Speed Fiber Upgrade</strong> (Outbound) are designated for the official 3-Stage Certification Exam.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate("/apply-certification")}
-              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition shrink-0 cursor-pointer"
-            >
-              Apply for Certification →
-            </button>
-          </div>
-
           {/* Quick Best Practices Guide */}
           <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-6 rounded-2xl shadow-sm">
             <h4 className="text-base font-bold mb-2">BPO Call Handling Quality Standards (HEAT Model):</h4>
