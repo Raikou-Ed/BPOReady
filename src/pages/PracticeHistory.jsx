@@ -20,23 +20,73 @@ const PracticeHistory = () => {
 
   useEffect(() => {
     async function loadHistory() {
-      const local = getUserActivity();
+      const local = getUserActivity() || [];
+
+      // Auto-heal: If user has a recent paragraph reading in localStorage that wasn't logged into activity history yet, add it
+      try {
+        const lastReading = getUserData('bpoReadyLastParagraphResult');
+        if (lastReading && lastReading.score != null) {
+          const alreadyInLocal = local.some((l) =>
+            (l.type === 'paragraph_reading' || (l.activity && l.activity.includes('Paragraph Reading'))) &&
+            String(l.score) === String(lastReading.score)
+          );
+          if (!alreadyInLocal) {
+            const rawLvl = lastReading.assignedLevel || 'Hard';
+            const titleCaseLevel = rawLvl.charAt(0).toUpperCase() + rawLvl.slice(1);
+            const autoLogged = {
+              id: `reading_${rawLvl.toLowerCase()}_${Date.now()}`,
+              activity: `Paragraph Reading (${titleCaseLevel})`,
+              level: titleCaseLevel,
+              result: `${lastReading.score}/100`,
+              score: lastReading.score,
+              criteria: lastReading.criteria,
+              feedbackText: lastReading.feedbackText || (lastReading.score === 0 ? "No clear speech or passage match detected. Please re-read the passage aloud." : null),
+              suggestions: lastReading.suggestions || [],
+              date: new Date().toISOString(),
+              type: 'paragraph_reading',
+            };
+            local.unshift(autoLogged);
+            saveUserData('bpoReadyActivity', local);
+          }
+        }
+      } catch (e) {
+        console.warn('Auto-heal last paragraph reading:', e);
+      }
+
       try {
         const remote = await getApplicantHistory(currentUser.id || 19);
         if (Array.isArray(remote) && remote.length > 0) {
-          const remoteList = remote.map((r) => ({
-            id: r.id,
-            activity: r.activity_type || r.activity || "Practice Drill",
-            level: r.level || "Standard",
-            result: r.result || (r.score ? `${r.score}/100` : "Completed"),
-            date: r.date || r.created_at || new Date().toISOString(),
-            type: r.type || "practice"
-          }));
+          const remoteList = remote.map((r) => {
+            let scoreVal = r.score != null ? Number(r.score) : undefined;
+            let resultVal = r.result || (scoreVal != null ? `${scoreVal}/100` : "Completed");
 
-          // Merge any local-only activities (e.g. recent pre-assessment) if not in remote
-          const remoteTypes = new Set(remoteList.map(r => r.type));
-          const localPreAssess = (local || []).filter(l => l.activity === 'Pre-Assessment' && !remoteTypes.has('pre_assessment'));
-          const combined = [...remoteList, ...localPreAssess];
+            // Normalize legacy 18/100 backend volume floor bug (90 * 0.20 = 18) when speech was actually 0
+            const isReading = (r.type === 'paragraph_reading' || r.activity_type === 'paragraph_reading' || (r.activity && r.activity.toLowerCase().includes('paragraph')));
+            if (isReading && (scoreVal === 18 || resultVal === '18/100')) {
+              scoreVal = 0;
+              resultVal = '0/100';
+            }
+
+            return {
+              id: r.id,
+              activity: r.activity || r.activity_type || "Practice Drill",
+              level: r.level || "Standard",
+              result: resultVal,
+              score: scoreVal,
+              criteria: r.criteria,
+              feedbackText: r.feedbackText || r.feedback_text,
+              suggestions: r.suggestions,
+              date: r.date || r.created_at || new Date().toISOString(),
+              type: r.type || "practice",
+            };
+          });
+
+          // Merge local and remote activities, ensuring local freshest records take priority
+          const map = new Map();
+          remoteList.forEach((r) => map.set(String(r.id), r));
+          local.forEach((l) => map.set(String(l.id || `${l.type}_${l.date}`), l));
+
+          const combined = Array.from(map.values());
           combined.sort((a, b) => new Date(b.date) - new Date(a.date));
 
           setActivities(combined);
@@ -93,14 +143,16 @@ const PracticeHistory = () => {
 
   // Helper to extract score number
   const getScoreNum = (resultStr) => {
-    const match = String(resultStr || "").match(/(\d+)/);
-    return match ? parseInt(match[1]) : 75;
+    if (resultStr == null) return 0;
+    const match = String(resultStr).match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
   };
 
   const getCefrBadge = (score) => {
     if (score >= 90) return { label: "CEFR C1 (Advanced Voice)", color: "bg-purple-100 text-purple-800 border-purple-200" };
-    if (score >= 75) return { label: "CEFR B2 (BPO Interview Ready)", color: "bg-emerald-100 text-emerald-800 border-emerald-200" };
-    return { label: "CEFR B1 (Developing Competencies)", color: "bg-amber-100 text-amber-800 border-amber-200" };
+    if (score >= 75) return { label: "CEFR B2 (BPO Ready Standard)", color: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+    if (score > 0) return { label: "CEFR B1 (Developing Competencies)", color: "bg-amber-100 text-amber-800 border-amber-200" };
+    return { label: "Needs Improvement (0/100)", color: "bg-rose-100 text-rose-800 border-rose-200" };
   };
 
   return (
@@ -261,7 +313,15 @@ const PracticeHistory = () => {
 
             {/* Overall Scorecard Banner */}
             {(() => {
-              const score = detailedSession?.overall_score ?? getScoreNum(selectedActivity.result);
+              let score = selectedActivity.score != null
+                ? Number(selectedActivity.score)
+                : (detailedSession?.overall_score ?? getScoreNum(selectedActivity.result));
+              const type = (selectedActivity.type || "").toLowerCase();
+              const act = (selectedActivity.activity || "").toLowerCase();
+              const isReading = type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment");
+              if (isReading && (score === 18 || selectedActivity.result === '18/100') && !selectedActivity.criteria) {
+                score = 0;
+              }
               const cefr = getCefrBadge(score);
               return (
                 <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50/90 via-indigo-50/50 to-slate-50 border border-blue-200 flex items-center justify-between">
@@ -284,24 +344,39 @@ const PracticeHistory = () => {
 
             {/* CEFR Dimension Pillars Breakdown */}
             {(() => {
-              const score = detailedSession?.overall_score ?? getScoreNum(selectedActivity.result);
+              let score = selectedActivity.score != null
+                ? Number(selectedActivity.score)
+                : (detailedSession?.overall_score ?? getScoreNum(selectedActivity.result));
               const type = (selectedActivity.type || "").toLowerCase();
               const act = (selectedActivity.activity || "").toLowerCase();
+              const isReading = type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment");
+              if (isReading && (score === 18 || selectedActivity.result === '18/100') && !selectedActivity.criteria) {
+                score = 0;
+              }
 
               let pillars = [];
 
-              if (type.includes("interview") || act.includes("interview")) {
+              if (Array.isArray(selectedActivity.criteria) && selectedActivity.criteria.length > 0) {
+                // Exact criteria saved directly from the session!
+                pillars = selectedActivity.criteria.map((c) => ({
+                  name: c.name === "Pronunciation" ? "Accuracy" : c.name,
+                  weight: `${c.weight ?? 50}%`,
+                  score: Number(c.value ?? 0),
+                  contribution: c.contribution,
+                  label: c.detail || `${c.name} Standard`,
+                }));
+              } else if (type.includes("interview") || act.includes("interview")) {
                 // Mock Interview: Dynamic institutional criteria
                 const fb = detailedSession?.feedback || {};
                 const activeInterviewCrit = getActiveMockInterviewCriteria();
                 const scoreLookup = {
-                  accuracy: fb.clarity_score ?? Math.min(100, Math.max(50, score - 2)),
-                  fluency: fb.pacing_score ?? Math.min(100, Math.max(50, score + 4)),
-                  range: fb.filler_word_count != null ? Math.max(10, 100 - fb.filler_word_count * 8) : Math.min(100, Math.max(50, score - 1)),
-                  interaction: fb.confidence_score ?? Math.min(100, Math.max(50, score + 2)),
-                  coherence: fb.answer_quality_score ?? Math.min(100, Math.max(50, score - 1)),
+                  accuracy: fb.clarity_score ?? score,
+                  fluency: fb.pacing_score ?? score,
+                  range: fb.filler_word_count != null ? Math.max(10, 100 - fb.filler_word_count * 8) : score,
+                  interaction: fb.confidence_score ?? score,
+                  coherence: fb.answer_quality_score ?? score,
                 };
-                pillars = activeInterviewCrit.map(c => {
+                pillars = activeInterviewCrit.map((c) => {
                   const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
                   const s = scoreLookup[key] ?? score;
                   return {
@@ -312,29 +387,22 @@ const PracticeHistory = () => {
                   };
                 });
               } else if (type.includes("simulation") || act.includes("call")) {
-                // Call Simulation: Dynamic institutional criteria (default 3 Pillars: Interaction 40%, Fluency 30%, Accuracy 30%)
                 const activeCallCrit = getActiveCallSimulationCriteria();
                 pillars = activeCallCrit.map((c, idx) => ({
                   name: c.name,
                   weight: `${c.weight}%`,
-                  score: idx === 0
-                    ? Math.min(100, Math.max(45, score + 2))
-                    : idx === 1
-                    ? Math.min(100, Math.max(45, score - 1))
-                    : Math.min(100, Math.max(45, score + 1)),
+                  score: score === 0 ? 0 : (idx === 0 ? Math.min(100, Math.max(0, score + 1)) : idx === 1 ? Math.min(100, Math.max(0, score - 1)) : score),
                   label: c.detail ? c.detail.split(',')[0].slice(0, 35) : `${c.name} Standard`,
                 }));
               } else if (type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment")) {
-                // Paragraph Reading & Pre-Assessment: Dynamic institutional criteria
                 const activeCrit = getActiveEvaluationCriteria();
-                pillars = activeCrit.map((c, idx) => ({
+                pillars = activeCrit.map((c) => ({
                   name: c.name,
                   weight: `${c.weight}%`,
-                  score: idx === 0 ? Math.min(100, Math.max(45, score + 1)) : Math.min(100, Math.max(45, score - 1)),
-                  label: c.detail ? c.detail.split(',')[0].slice(0, 35) : `${c.name} Standard`,
+                  score: score === 0 ? 0 : Math.round(score),
+                  label: score === 0 ? "Passage not read" : (c.detail ? c.detail.split(',')[0].slice(0, 35) : `${c.name} Standard`),
                 }));
               } else {
-                // Communication Drills
                 pillars = [
                   { name: "Target Drill Mastery", weight: "100%", score: score, label: "Specialized Gym Drill Target" },
                 ];
@@ -370,11 +438,27 @@ const PracticeHistory = () => {
                 </h4>
               </div>
               <p className="text-xs text-amber-950 leading-relaxed font-medium">
-                {detailedSession?.feedback?.feedback_text ||
-                  (getScoreNum(selectedActivity.result) >= 75
+                {selectedActivity.feedbackText ||
+                  selectedActivity.feedback_text ||
+                  detailedSession?.feedback?.feedback_text ||
+                  (getScoreNum(selectedActivity.result) === 0
+                    ? "No clear speech or passage match detected. Please re-read the passage aloud clearly."
+                    : getScoreNum(selectedActivity.result) >= 75
                     ? "Session successfully completed with solid articulation and adherence to BPO voice communication benchmarks. Conversational rhythm remained steady with professional composure."
                     : "Foundational practice session completed. Continue focusing on eliminating hesitation words and maintaining smooth sentence transitions to meet higher hiring benchmarks.")}
               </p>
+              {Array.isArray(selectedActivity.suggestions) && selectedActivity.suggestions.length > 0 && (
+                <div className="pt-2 border-t border-amber-200/60 mt-2">
+                  <span className="text-[10px] font-bold uppercase text-amber-900 tracking-wider block mb-1">
+                    Actionable Improvement Tips:
+                  </span>
+                  <ul className="text-xs text-amber-950/90 space-y-1 list-disc list-inside">
+                    {selectedActivity.suggestions.map((tip, tIdx) => (
+                      <li key={tIdx} className="leading-relaxed">{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Questions & Transcripts (If Mock Interview Session) */}

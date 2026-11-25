@@ -117,6 +117,7 @@ export function getUserActivity() {
 }
 
 export function addUserActivity(activity) {
-  const current = getUserActivity();
-  saveUserData('bpoReadyActivity', [{ ...activity, id: Date.now() }, ...current]);
+  const current = getUserActivity() || [];
+  const id = activity.id || Date.now();
+  saveUserData('bpoReadyActivity', [{ ...activity, id }, ...current]);
 }

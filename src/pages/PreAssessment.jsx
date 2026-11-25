@@ -251,10 +251,18 @@ export default function PreAssessment() {
         });
       }
       addUserActivity({
+        id: `pa_${Date.now()}`,
         activity: 'Pre-Assessment',
-        level: assessmentResult.placedLevel,
+        level: `${assessmentResult.placedLevel ? assessmentResult.placedLevel.charAt(0).toUpperCase() + assessmentResult.placedLevel.slice(1) : 'Easy'} Level`,
         result: `${assessmentResult.score}/100`,
-        date: assessmentResult.completedAt,
+        score: assessmentResult.score,
+        type: 'pre_assessment',
+        criteria: assessmentResult.criteria,
+        feedbackText: assessmentResult.feedbackText,
+        suggestions: assessmentResult.suggestions,
+        wordsPerMinute: assessmentResult.wordsPerMinute,
+        passageTitle: activePassage?.title || 'Diagnostic Assessment',
+        date: assessmentResult.completedAt || new Date().toISOString(),
       });
       setResult(assessmentResult);
       setIsRetaking(false);
@@ -296,10 +304,18 @@ export default function PreAssessment() {
         });
       }
       addUserActivity({
+        id: `pa_${Date.now()}`,
         activity: 'Pre-Assessment',
-        level: assessmentResult.placedLevel,
+        level: `${assessmentResult.placedLevel ? assessmentResult.placedLevel.charAt(0).toUpperCase() + assessmentResult.placedLevel.slice(1) : 'Easy'} Level`,
         result: `${assessmentResult.score}/100`,
-        date: assessmentResult.completedAt,
+        score: assessmentResult.score,
+        type: 'pre_assessment',
+        criteria: assessmentResult.criteria,
+        feedbackText: assessmentResult.feedbackText,
+        suggestions: assessmentResult.suggestions,
+        wordsPerMinute: assessmentResult.wordsPerMinute,
+        passageTitle: activePassage?.title || 'Diagnostic Assessment',
+        date: assessmentResult.completedAt || new Date().toISOString(),
       });
       setResult(assessmentResult);
       setIsRetaking(false);

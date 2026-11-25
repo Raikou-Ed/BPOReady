@@ -435,10 +435,10 @@ export function getActiveEvaluationCriteria() {
       );
       if (isValid) return custom;
     }
-  } catch {}
+  } catch { }
   try {
     saveUserData('bpoReadyScoringCriteria', DEFAULT_READING_CRITERIA);
-  } catch {}
+  } catch { }
   return DEFAULT_READING_CRITERIA;
 }
 
@@ -507,7 +507,7 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
 
   try {
     saveUserData('bpoReadyLastParagraphResult', sanitized);
-  } catch {}
+  } catch { }
 
   return sanitized;
 }
@@ -551,7 +551,7 @@ export function getActiveMockInterviewCriteria() {
     if (Array.isArray(custom) && custom.length > 0) {
       return custom;
     }
-  } catch {}
+  } catch { }
   return DEFAULT_MOCK_INTERVIEW_CRITERIA;
 }
 
@@ -582,7 +582,7 @@ export function getActiveCallSimulationCriteria() {
     if (Array.isArray(custom) && custom.length > 0) {
       return custom;
     }
-  } catch {}
+  } catch { }
   return DEFAULT_CALL_SIMULATION_CRITERIA;
 }
 

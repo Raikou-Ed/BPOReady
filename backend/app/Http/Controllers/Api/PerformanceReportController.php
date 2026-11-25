@@ -96,7 +96,9 @@ class PerformanceReportController extends Controller
                 'paragraph_feedback.clarity_score',
                 'paragraph_feedback.confidence_score',
                 'paragraph_feedback.pacing_score',
-                'paragraph_feedback.volume_score'
+                'paragraph_feedback.volume_score',
+                'paragraph_feedback.feedback_text',
+                'paragraph_feedback.suggestions'
             )
             ->orderByDesc('paragraph_reading_sessions.submitted_at')
             ->get();
@@ -104,13 +106,15 @@ class PerformanceReportController extends Controller
         foreach ($readings as $pr) {
             $computedScore = null;
             if ($pr->clarity_score !== null) {
+                // Official 50/50 Accuracy & Fluency model (no obsolete 20% volume floor)
                 $computedScore = round(
-                    ($pr->clarity_score * 0.30) +
-                    ($pr->pacing_score * 0.25) +
-                    ($pr->confidence_score * 0.25) +
-                    ($pr->volume_score * 0.20)
+                    ($pr->clarity_score * 0.50) +
+                    ($pr->pacing_score * 0.50)
                 );
             }
+
+            $clarityVal = round($pr->clarity_score ?? 0);
+            $pacingVal = round($pr->pacing_score ?? 0);
 
             $activities[] = [
                 'id' => 'pr_' . $pr->id,
@@ -118,7 +122,26 @@ class PerformanceReportController extends Controller
                 'level' => ucfirst($pr->difficulty ?: 'easy') . ' Level',
                 'date' => $pr->submitted_at ?: $pr->started_at,
                 'result' => $computedScore !== null ? "{$computedScore}/100" : 'Completed',
+                'score' => $computedScore,
                 'type' => 'paragraph_reading',
+                'feedbackText' => $pr->feedback_text,
+                'suggestions' => is_string($pr->suggestions) ? array_values(array_filter(array_map('trim', explode("\n", $pr->suggestions)))) : [],
+                'criteria' => [
+                    [
+                        'name' => 'Accuracy',
+                        'value' => $clarityVal,
+                        'weight' => 50,
+                        'contribution' => round($clarityVal * 0.50, 2),
+                        'detail' => $computedScore === 0 ? 'Passage not read' : 'Vowel & consonant articulation clarity',
+                    ],
+                    [
+                        'name' => 'Fluency',
+                        'value' => $pacingVal,
+                        'weight' => 50,
+                        'contribution' => round($pacingVal * 0.50, 2),
+                        'detail' => $computedScore === 0 ? 'Passage not read' : 'Speech rhythm & continuous pacing',
+                    ],
+                ],
             ];
         }
 

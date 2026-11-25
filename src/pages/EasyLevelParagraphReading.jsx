@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getParagraphs, submitReadingSession } from "../api/paragraphsApi";
 import AudioRecorder from "../components/AudioRecorder";
 import { calculateAssessmentScore, getAssignedLevel, hasMeaningfulSpeech, saveAssessmentResult, getScoreTieredFeedback } from "../utils/assessmentScoring";
-import { getCurrentUser } from "../utils/userData";
+import { getCurrentUser, addUserActivity } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const EasyLevelParagraphReading = () => {
@@ -230,6 +230,20 @@ const EasyLevelParagraphReading = () => {
                     }
 
                     saveAssessmentResult({ ...finalResult, isParagraphPractice: true, currentLevel: 'easy' });
+                    addUserActivity({
+                      id: `pr_${Date.now()}`,
+                      activity: "Easy Level Paragraph Reading",
+                      level: "Easy Level",
+                      result: `${finalResult.score}/100`,
+                      score: finalResult.score,
+                      type: "paragraph_reading",
+                      criteria: finalResult.criteria,
+                      feedbackText: finalResult.feedbackText,
+                      suggestions: finalResult.suggestions,
+                      wordsPerMinute: finalResult.wordsPerMinute,
+                      passageTitle: currentParagraph?.title || "Easy Reading Passage",
+                      date: finalResult.completedAt || new Date().toISOString(),
+                    });
                     navigate('/EasyLevelResult', { state: { result: finalResult } });
                   } catch (err) {
                     console.error('Submission error:', err);
@@ -252,6 +266,20 @@ const EasyLevelParagraphReading = () => {
                       completedAt: new Date().toISOString(),
                     };
                     saveAssessmentResult(persisted);
+                    addUserActivity({
+                      id: `pr_${Date.now()}`,
+                      activity: "Easy Level Paragraph Reading",
+                      level: "Easy Level",
+                      result: `${persisted.score}/100`,
+                      score: persisted.score,
+                      type: "paragraph_reading",
+                      criteria: persisted.criteria,
+                      feedbackText: persisted.feedbackText,
+                      suggestions: persisted.suggestions,
+                      wordsPerMinute: persisted.wordsPerMinute,
+                      passageTitle: currentParagraph?.title || "Easy Reading Passage",
+                      date: persisted.completedAt || new Date().toISOString(),
+                    });
                     navigate('/EasyLevelResult', { state: { result: persisted } });
                   } finally {
                     setIsSubmitting(false);

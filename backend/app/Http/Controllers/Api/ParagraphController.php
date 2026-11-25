@@ -209,7 +209,7 @@ class ParagraphController extends Controller
             'clarity_score' => min(100.0, max(0.0, (float) $pronunciationScore)),
             'confidence_score' => min(100.0, max(0.0, (float) $sentenceMasteryScore)),
             'pacing_score' => min(100.0, max(0.0, (float) $fluencyScore)),
-            'volume_score' => 90.0,
+            'volume_score' => $score === 0 ? 0.0 : 90.0,
             'grammar_score' => min(100.0, max(0.0, (float) $sentenceMasteryScore)),
             'feedback_text' => $feedbackText,
             'suggestions' => $suggestions,
