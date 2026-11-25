@@ -1,26 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import AudioRecorder from "../components/AudioRecorder";
-import { submitExerciseAttempt, listExercises } from "../api/adminApi";
+import { submitExerciseAttempt } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
-const defaultPacingScripts = [
-  {
-    id: "admin_pacing_1",
-    title: "Optimal Speech Pacing Practice (125-150 WPM)",
-    targetWords: 48,
-    estimatedSeconds: 22, // ~131 WPM (in 125-150 range)
-    text: "Good day, and welcome to Premium Cardholder Concierge. My name is Alex. Today I will be assisting you with booking your travel reservation, verifying your reward points, and confirming your hotel itinerary. Please allow me a moment while I pull up your travel profile.",
-    difficulty: "easy",
-  },
+const pacingScripts = [
   {
     id: 1,
     title: "Customer Empathy & Billing Assurance",
     targetWords: 68,
     estimatedSeconds: 30, // ~136 WPM
     text: "Thank you for bringing this billing discrepancy to our attention. I completely understand how frustrating unexpected charges can be. I have already initiated a reversal for the twenty-five dollar maintenance fee, and you will see the credit reflected on your next billing statement. Is there anything else about your monthly charges I can clarify for you today?",
-    difficulty: "medium",
   },
   {
     id: 2,
@@ -28,7 +19,6 @@ const defaultPacingScripts = [
     targetWords: 92,
     estimatedSeconds: 40, // ~138 WPM
     text: "To resolve your intermittent connectivity issue, let's perform a power cycle on your gateway. First, please locate the power cable on the back panel of your router and gently disconnect it. We will keep it unplugged for roughly thirty seconds to allow the internal capacitors to discharge completely. Once reconnected, please watch the broadband indicator light until it turns solid green.",
-    difficulty: "hard",
   },
   {
     id: 3,
@@ -36,71 +26,17 @@ const defaultPacingScripts = [
     targetWords: 52,
     estimatedSeconds: 23, // ~135 WPM
     text: "It has been my pleasure assisting you today with your order status. For your records, your reference confirmation code is Alpha Bravo Niner Zero. If you have two minutes, please stay on the line for a brief one-question satisfaction survey. Have a wonderful rest of your day!",
-    difficulty: "easy",
   }
 ];
 
 const SpeechPacingExercise = () => {
-  const [pacingScripts, setPacingScripts] = useState(defaultPacingScripts);
   const [selectedScriptIdx, setSelectedScriptIdx] = useState(0);
   const [recording, setRecording] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
-
-  // Dynamically load Admin-authored speech drills
-  useEffect(() => {
-    const loadAdminDrills = async () => {
-      try {
-        let apiDrills = await listExercises("speech_pacing", false);
-        if (!Array.isArray(apiDrills) || apiDrills.length === 0) {
-          // Check local custom exercises cache if offline
-          const cached = localStorage.getItem("bpo_custom_exercises");
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            apiDrills = parsed.filter(e => e.target_flaw === "speech_pacing");
-          }
-        }
-
-        if (Array.isArray(apiDrills) && apiDrills.length > 0) {
-          const dynamicScripts = apiDrills.map((ex, idx) => {
-            const rawContent = (ex.prompt_text || ex.exercise_content || "").trim();
-            // If content has quotes "...", extract the spoken part
-            const quoteMatch = rawContent.match(/"([^"]+)"/);
-            const cleanText = quoteMatch ? quoteMatch[1] : rawContent;
-            const words = cleanText.split(/\s+/).filter(Boolean).length;
-            const estSeconds = Math.max(15, Math.round((words / 135) * 60));
-
-            return {
-              id: ex.id || `custom_pacing_${idx}`,
-              title: ex.title || `Custom Pacing Drill ${idx + 1}`,
-              targetWords: words,
-              estimatedSeconds: estSeconds,
-              text: cleanText,
-              difficulty: ex.difficulty || "medium",
-            };
-          });
-
-          // Merge: dynamic drills from Admin first, followed by default scripts (avoid duplicates)
-          const merged = [...dynamicScripts];
-          defaultPacingScripts.forEach(def => {
-            if (!merged.some(m => m.title.toLowerCase() === def.title.toLowerCase() || m.text === def.text)) {
-              merged.push(def);
-            }
-          });
-
-          setPacingScripts(merged);
-        }
-      } catch (err) {
-        console.warn("Could not load dynamic admin drills, using default pacing scripts:", err);
-      }
-    };
-
-    loadAdminDrills();
-  }, []);
-
-  const currentScript = pacingScripts[selectedScriptIdx] || pacingScripts[0];
+  const currentScript = pacingScripts[selectedScriptIdx];
 
   const handleRecorded = (blob, durationSeconds, transcript) => {
     const text = (transcript || "").trim();
@@ -126,7 +62,7 @@ const SpeechPacingExercise = () => {
     const durationMin = durationSeconds > 0 ? durationSeconds / 60 : 0.1;
     const wpm = Math.round(words / durationMin);
 
-    // Score calculation based on 125-150 optimal range
+    // Score calculation based on 130-150 optimal range
     let score = 50;
     let status = "Needs Practice";
     let statusColor = "text-yellow-600";
@@ -135,28 +71,28 @@ const SpeechPacingExercise = () => {
 
     if (wpm >= 125 && wpm <= 150) {
       score = 95;
-      status = "Optimal BPO Pacing (125-150 WPM)";
+      status = "Optimal BPO Pacing";
       statusColor = "text-green-600";
       badgeBg = "bg-green-100";
-      advice = `Outstanding pacing! Your cadence of ${wpm} WPM is right in the optimal 125–150 WPM bracket. It is clear, conversational, and easy for customers to comprehend.`;
+      advice = "Outstanding pacing! Your cadence is clear, conversational, and easy for customers to comprehend without sounding rushed or hesitant.";
     } else if (wpm >= 110 && wpm < 125) {
       score = 80;
-      status = "Slightly Slow (<125 WPM)";
+      status = "Slightly Slow";
       statusColor = "text-blue-600";
       badgeBg = "bg-blue-100";
-      advice = `Good clarity at ${wpm} WPM, but slightly deliberate. Try to link your words more fluidly to reach the 125–150 WPM sweet spot.`;
+      advice = "Good clarity, but slightly deliberate. Try to link your words more fluidly to reach the 130 WPM mark.";
     } else if (wpm > 150 && wpm <= 165) {
       score = 80;
-      status = "Slightly Fast (>150 WPM)";
+      status = "Slightly Fast";
       statusColor = "text-orange-600";
       badgeBg = "bg-orange-100";
-      advice = `Good energy at ${wpm} WPM, but take micro-pauses at commas and periods to keep your delivery within the 125–150 WPM bracket.`;
+      advice = "Good energy, but take a micro-pause at commas and periods so the customer has time to digest numbers and details.";
     } else if (wpm >= 60 && wpm < 110) {
       score = 65;
       status = "Too Slow / Hesitant";
       statusColor = "text-amber-600";
       badgeBg = "bg-amber-100";
-      advice = `Your pace of ${wpm} WPM is below the standard 125–150 WPM conversational rate. Practice reading sentences in full breath groups.`;
+      advice = "Your pace is below standard call-center conversational rate. Practice reading sentences in full breath groups.";
     } else if (wpm < 60) {
       score = 30;
       status = "Extremely Slow / Incomplete";
@@ -165,10 +101,10 @@ const SpeechPacingExercise = () => {
       advice = "Very few words spoken. Speak continuously through the passage to maintain a natural conversation flow.";
     } else {
       score = 60;
-      status = "Too Fast / Rushed (>165 WPM)";
+      status = "Too Fast / Rushed";
       statusColor = "text-red-600";
       badgeBg = "bg-red-100";
-      advice = `Your delivery is ${wpm} WPM, which exceeds the 125–150 WPM bracket. In a live call environment, rushed speech can cause misunderstandings.`;
+      advice = "Your delivery exceeds 165 WPM. In a live BPO environment, rushed speech creates repeat contacts and misunderstandings.";
     }
 
     setRecording({
@@ -244,7 +180,7 @@ const SpeechPacingExercise = () => {
             </div>
             <div className="text-right bg-white p-3 rounded-xl border border-gray-200">
               <span className="text-xs text-gray-400 font-bold uppercase">Optimal Target</span>
-              <p className="text-lg font-bold text-green-600">125 – 150 WPM</p>
+              <p className="text-lg font-bold text-green-600">130 – 150 WPM</p>
             </div>
           </div>
 

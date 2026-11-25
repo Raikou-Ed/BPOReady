@@ -328,8 +328,9 @@ export default function PreAssessment() {
                       return (
                         <div
                           key={criterion.name || idx}
-                          className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${idx === arr.length - 1 ? 'rounded-b-xl' : ''
-                            }`}
+                          className={`grid grid-cols-4 border-t border-gray-100 px-4 py-3 text-xs text-gray-700 hover:bg-gray-50/60 transition ${
+                            idx === arr.length - 1 ? 'rounded-b-xl' : ''
+                          }`}
                         >
                           <div className="flex items-center">
                             <p className="font-semibold text-gray-900">{factorName}</p>

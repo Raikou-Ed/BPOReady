@@ -23,26 +23,17 @@ const defaultExercises = [
   },
   {
     id: 3,
-    title: "Optimal Speech Pacing Practice (125-150 WPM)",
+    title: "Flight Itinerary Reassurance",
     target_flaw: "speech_pacing",
-    difficulty: "easy",
+    difficulty: "hard",
     approval_status: "approved",
-    prompt_text: "Good day, and welcome to Premium Cardholder Concierge. My name is Alex. Today I will be assisting you with booking your travel reservation, verifying your reward points, and confirming your hotel itinerary. Please allow me a moment while I pull up your travel profile.",
+    prompt_text: "Thank you for your patience while I was confirming your flight itinerary with our partner airlines. Your seat reservation and meal preference have been successfully locked in for tomorrow morning's flight.",
   }
 ];
 
 const ManageExercises = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin", name: "Admin" });
-  const [exercises, setExercises] = useState(() => {
-    try {
-      const cached = localStorage.getItem("bpo_custom_exercises");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return defaultExercises;
-  });
+  const [exercises, setExercises] = useState(defaultExercises);
   const [loading, setLoading] = useState(true);
   const [filterFlaw, setFilterFlaw] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +60,6 @@ const ManageExercises = () => {
             prompt_text: d.prompt_text || d.exercise_content || "",
           }));
           setExercises(normalized);
-          localStorage.setItem("bpo_custom_exercises", JSON.stringify(normalized));
         }
       }
     } catch (err) {
@@ -107,17 +97,17 @@ const ManageExercises = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this exercise drill?")) return;
-    const remaining = exercises.filter((e) => e.id !== id);
-    setExercises(remaining);
-    localStorage.setItem("bpo_custom_exercises", JSON.stringify(remaining));
     try {
       const res = await fetch(`${API_BASE}/api/exercises/${id}`, { method: "DELETE" });
       if (res.ok) {
+        setExercises(exercises.filter((e) => e.id !== id));
         setMessage("Exercise drill deleted successfully.");
       } else {
+        setExercises(exercises.filter((e) => e.id !== id));
         setMessage("Exercise removed from view.");
       }
     } catch {
+      setExercises(exercises.filter((e) => e.id !== id));
       setMessage("Exercise removed locally.");
     }
     setTimeout(() => setMessage(""), 3500);
@@ -132,45 +122,48 @@ const ManageExercises = () => {
       created_by_user_id: currentUser?.id,
     };
 
-    let updatedList = exercises;
-
     try {
       if (editingId) {
-        updatedList = exercises.map((ex) => (ex.id === editingId ? { ...ex, ...payload } : ex));
-        setExercises(updatedList);
-        localStorage.setItem("bpo_custom_exercises", JSON.stringify(updatedList));
-
         const res = await fetch(`${API_BASE}/api/exercises/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          const updated = await res.json();
+          setExercises(exercises.map((ex) => (ex.id === editingId ? { ...(updated.exercise || updated), prompt_text: formData.prompt_text, approval_status: "approved" } : ex)));
           setMessage("Exercise drill updated and published live! Monitored in Super Admin audit trail.");
         } else {
+          setExercises(exercises.map((ex) => (ex.id === editingId ? { ...ex, ...payload } : ex)));
           setMessage("Exercise drill updated locally.");
         }
       } else {
-        const newObj = {
-          id: Date.now(),
-          ...payload,
-        };
-        updatedList = [newObj, ...exercises];
-        setExercises(updatedList);
-        localStorage.setItem("bpo_custom_exercises", JSON.stringify(updatedList));
-
         const res = await fetch(`${API_BASE}/api/exercises`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          const created = await res.json();
+          const newObj = {
+            ...(created.exercise || created),
+            prompt_text: formData.prompt_text,
+            approval_status: "approved",
+          };
+          setExercises([...exercises, newObj]);
           setMessage("New exercise drill created and published live! Monitored in Super Admin audit trail.");
         } else {
+          const newEx = { id: Date.now(), ...payload };
+          setExercises([...exercises, newEx]);
           setMessage("New drill saved locally.");
         }
       }
     } catch {
+      if (editingId) {
+        setExercises(exercises.map((ex) => (ex.id === editingId ? { ...ex, ...payload } : ex)));
+      } else {
+        setExercises([...exercises, { id: Date.now(), ...payload }]);
+      }
       setMessage("Saved locally.");
     }
 

@@ -298,7 +298,7 @@ const HomePage = () => {
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 pt-10 border-t border-gray-100 text-left">
             <div className="bg-white/80 p-4 rounded-xl border border-gray-100 shadow-sm">
-              <span className="text-2xl font-bold text-blue-600">125–150</span>
+              <span className="text-2xl font-bold text-blue-600">130–145</span>
               <p className="text-xs text-gray-500 font-medium mt-1">Target BPO Speaking WPM</p>
             </div>
             <div className="bg-white/80 p-4 rounded-xl border border-gray-100 shadow-sm">

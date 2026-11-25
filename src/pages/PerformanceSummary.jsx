@@ -168,7 +168,7 @@ const PerformanceSummary = () => {
 
       const recommendations = remoteSummary?.recommendations || (hasData ? [
         "Incorporate a 1-second silent breath pause before beginning multi-part technical explanations.",
-        "Maintain your conversational pacing in the 125-150 WPM sweet spot during active customer dialogues.",
+        "Maintain your conversational pacing in the 130-145 WPM sweet spot during active customer dialogues.",
         "Use polite acknowledgment phrases like 'Certainly, let me verify that for you' during escalation calls."
       ] : [
         "Complete the Pre-Assessment to calibrate your baseline speech and receive your training track.",
@@ -313,7 +313,7 @@ const PerformanceSummary = () => {
                 </p>
               </div>
               <p className="text-[11px] text-emerald-600 mt-2 font-medium">
-                {summary?.hasData && summary.pacing_wpm > 0 ? "✓ Optimal 125–150 WPM sweet spot" : "Target: 125–150 WPM sweet spot"}
+                {summary?.hasData && summary.pacing_wpm > 0 ? "✓ Optimal 130–145 WPM sweet spot" : "Target: 130–145 WPM sweet spot"}
               </p>
             </div>
 
