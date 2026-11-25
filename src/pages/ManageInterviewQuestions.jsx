@@ -57,11 +57,14 @@ const normalizeQuestion = (q) => {
 const ManageInterviewQuestions = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin" });
   const [questions, setQuestions] = useState(() => {
+    // Clear legacy text-based blocklist so re-adding questions always works
+    try {
+      localStorage.removeItem("bpo_deleted_question_texts");
+    } catch {}
+
     let deletedIds = [];
-    let deletedTexts = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
-      deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
     } catch {}
 
     try {
@@ -75,8 +78,7 @@ const ManageInterviewQuestions = () => {
                 q.is_active !== false &&
                 !deletedIds.includes(q.id) &&
                 !deletedIds.includes(String(q.id)) &&
-                !deletedIds.includes(Number(q.id)) &&
-                !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+                !deletedIds.includes(Number(q.id))
             )
             .map(normalizeQuestion);
           if (valid.length > 0) return valid;
@@ -101,13 +103,15 @@ const ManageInterviewQuestions = () => {
 
   const fetchQuestions = async () => {
     try {
+      try {
+        localStorage.removeItem("bpo_deleted_question_texts");
+      } catch {}
+
       const data = await listInterviewQuestions();
       if (Array.isArray(data) && data.length > 0) {
         let deletedIds = [];
-        let deletedTexts = [];
         try {
           deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
-          deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
         } catch {}
 
         const validFromApi = data
@@ -116,8 +120,7 @@ const ManageInterviewQuestions = () => {
               q.is_active !== false &&
               !deletedIds.includes(q.id) &&
               !deletedIds.includes(String(q.id)) &&
-              !deletedIds.includes(Number(q.id)) &&
-              !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+              !deletedIds.includes(Number(q.id))
           )
           .map(normalizeQuestion);
 
@@ -131,28 +134,38 @@ const ManageInterviewQuestions = () => {
                   q.is_active !== false &&
                   !deletedIds.includes(q.id) &&
                   !deletedIds.includes(String(q.id)) &&
-                  !deletedIds.includes(Number(q.id)) &&
-                  !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+                  !deletedIds.includes(Number(q.id))
               )
               .map(normalizeQuestion);
           }
         } catch {}
 
         const map = new Map();
-        defaultQuestions.forEach((def) => {
-          if (
-            !deletedIds.includes(def.id) &&
-            !deletedTexts.includes((def.question_text || "").trim().toLowerCase())
-          ) {
-            map.set(String(def.id), normalizeQuestion(def));
-          }
-        });
         validFromApi.forEach((q) => map.set(String(q.id), q));
+
+        // Preserve any offline/custom questions not yet in API
         localCustom.forEach((q) => {
-          if (!map.has(String(q.id))) {
+          const textMatch = Array.from(map.values()).some(
+            (existing) =>
+              (existing.question_text || existing.question || "").trim().toLowerCase() ===
+              (q.question_text || q.question || "").trim().toLowerCase()
+          );
+          if (!map.has(String(q.id)) && !textMatch) {
             map.set(String(q.id), q);
           }
         });
+
+        // Only fall back to defaults if database is completely empty
+        if (map.size === 0) {
+          defaultQuestions.forEach((def) => {
+            if (
+              !deletedIds.includes(def.id) &&
+              !deletedIds.includes(String(def.id))
+            ) {
+              map.set(String(def.id), normalizeQuestion(def));
+            }
+          });
+        }
 
         const merged = Array.from(map.values()).map(normalizeQuestion);
         setQuestions(merged);
@@ -189,8 +202,6 @@ const ManageInterviewQuestions = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this question?")) return;
-    const target = questions.find((q) => q.id === id);
-    const targetText = (target?.question_text || target?.question || "").trim().toLowerCase();
 
     const remaining = questions.filter((q) => q.id !== id);
     setQuestions(remaining);
@@ -198,17 +209,9 @@ const ManageInterviewQuestions = () => {
 
     try {
       const deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
-      if (!deletedIds.includes(id)) {
-        deletedIds.push(id);
-        localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(deletedIds));
-      }
-      if (targetText) {
-        const deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
-        if (!deletedTexts.includes(targetText)) {
-          deletedTexts.push(targetText);
-          localStorage.setItem("bpo_deleted_question_texts", JSON.stringify(deletedTexts));
-        }
-      }
+      if (!deletedIds.includes(id)) deletedIds.push(id);
+      if (!deletedIds.includes(String(id))) deletedIds.push(String(id));
+      localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(deletedIds));
     } catch {}
 
     try {
@@ -227,66 +230,64 @@ const ManageInterviewQuestions = () => {
     const payload = {
       question_type: chosenType,
       interview_type: chosenType,
-      question_text: formData.question_text,
+      question_text: formData.question_text.trim(),
       approval_status,
       created_by_user_id: currentUser?.id,
     };
 
-    let updatedList = questions;
+    if (editingId) {
+      const updatedList = questions.map((q) =>
+        q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q
+      );
+      setQuestions(updatedList);
+      localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
+      setIsModalOpen(false);
 
-    try {
-      if (editingId) {
-        updatedList = questions.map((q) =>
-          q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q
-        );
-        setQuestions(updatedList);
-        localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
-
+      try {
         await updateInterviewQuestion(editingId, payload);
         setMessage("Interview question updated and active for applicants! Monitored in Super Admin audit trail.");
-      } else {
-        const tempId = `q-${Date.now()}`;
-        const newQ = normalizeQuestion({ id: tempId, ...payload });
-        updatedList = [...questions, newQ];
-        setQuestions(updatedList);
-        localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
+      } catch {
+        setMessage("Interview question updated locally.");
+      }
+      setTimeout(() => setMessage(""), 3500);
+      return;
+    }
 
-        const created = await createInterviewQuestion(payload);
-        const realId = created?.question?.id || created?.id;
-        if (realId) {
-          setQuestions((current) => {
-            const wasDeleted = !current.some((q) => q.id === tempId);
-            if (wasDeleted) {
-              deleteInterviewQuestion(realId).catch(() => {});
-              try {
-                const delIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
-                if (!delIds.includes(realId)) {
-                  delIds.push(realId);
-                  localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(delIds));
-                }
-              } catch {}
-              return current;
-            }
-            const withRealId = current.map((q) =>
-              q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
-            );
-            localStorage.setItem("bpo_custom_questions", JSON.stringify(withRealId));
-            return withRealId;
-          });
-        }
-        setMessage("Interview question saved and active for applicants! Monitored in Super Admin audit trail.");
+    // Adding new question:
+    const tempId = `q-${Date.now()}`;
+    const newQ = normalizeQuestion({ id: tempId, ...payload });
+    const updatedList = [...questions, newQ];
+    setQuestions(updatedList);
+    localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
+    setIsModalOpen(false);
+
+    try {
+      const created = await createInterviewQuestion(payload);
+      const realId = created?.question?.id || created?.id;
+      if (realId) {
+        setQuestions((current) => {
+          const wasDeleted = !current.some((q) => q.id === tempId);
+          if (wasDeleted) {
+            deleteInterviewQuestion(realId).catch(() => {});
+            try {
+              const delIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+              if (!delIds.includes(realId)) delIds.push(realId);
+              if (!delIds.includes(String(realId))) delIds.push(String(realId));
+              localStorage.setItem("bpo_deleted_question_ids", JSON.stringify(delIds));
+            } catch {}
+            return current;
+          }
+          const withRealId = current.map((q) =>
+            q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
+          );
+          localStorage.setItem("bpo_custom_questions", JSON.stringify(withRealId));
+          return withRealId;
+        });
       }
-      setIsModalOpen(false);
-    } catch {
-      if (editingId) {
-        setQuestions(
-          questions.map((q) => (q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q))
-        );
-      } else {
-        setQuestions([...questions, normalizeQuestion({ id: Date.now(), ...payload })]);
-      }
-      setIsModalOpen(false);
-      setMessage("Question saved locally.");
+      setMessage("Interview question saved and active for applicants! Monitored in Super Admin audit trail.");
+    } catch (err) {
+      console.warn("API save failed, preserved locally:", err);
+      setMessage("Interview question saved locally.");
     }
     setTimeout(() => setMessage(""), 3500);
   };

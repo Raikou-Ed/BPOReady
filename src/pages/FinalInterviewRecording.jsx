@@ -27,10 +27,8 @@ const FinalInterviewRecording = () => {
 
   useEffect(() => {
     let deletedIds = [];
-    let deletedTexts = [];
     try {
       deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
-      deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
     } catch {}
 
     const filterValid = (arr) =>
@@ -39,8 +37,7 @@ const FinalInterviewRecording = () => {
           q.is_active !== false &&
           !deletedIds.includes(q.id) &&
           !deletedIds.includes(String(q.id)) &&
-          !deletedIds.includes(Number(q.id)) &&
-          !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+          !deletedIds.includes(Number(q.id))
       );
 
     getMockInterviewQuestions("final")
