@@ -2,6 +2,7 @@ export const CALL_SCENARIOS = [
   {
     id: 1,
     call_type: "inbound",
+    is_certification: true,
     title: "Technical Support: DSL Internet Outage",
     category: "Technical Support",
     difficulty: "medium",
@@ -144,6 +145,7 @@ export const CALL_SCENARIOS = [
   {
     id: 2,
     call_type: "inbound",
+    is_certification: false,
     title: "Banking Support: Account Balance & Wire Transfer",
     category: "Financial Services",
     difficulty: "easy",
@@ -232,6 +234,7 @@ export const CALL_SCENARIOS = [
   {
     id: 3,
     call_type: "outbound",
+    is_certification: false,
     title: "Deluxe Credit Card: Platinum Upgrade Offer",
     category: "Outbound Sales & Loyalty",
     difficulty: "medium",
@@ -320,6 +323,7 @@ export const CALL_SCENARIOS = [
   {
     id: 4,
     call_type: "outbound",
+    is_certification: true,
     title: "Kwestyon Telecom: High-Speed Fiber Upgrade",
     category: "Telecommunications & Retention",
     difficulty: "hard",
