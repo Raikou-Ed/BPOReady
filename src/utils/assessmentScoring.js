@@ -341,6 +341,22 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     placedLevel = 'hard';
   }
 
+  const accuracyWeight = activeCriteria.find(c => (c.name || '').toLowerCase().includes('accuracy'))?.weight ?? 50;
+  const fluencyWeight = activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluency'))?.weight ?? 50;
+  const rangeWeight = activeCriteria.find(c => (c.name || '').toLowerCase().includes('range'))?.weight ?? 0;
+  const coherenceWeight = activeCriteria.find(c => (c.name || '').toLowerCase().includes('coherence'))?.weight ?? 0;
+  const pronunciationWeight = accuracyWeight;
+  const sentenceMasteryWeight = rangeWeight;
+  const vocabularyWeight = coherenceWeight;
+
+  const accuracyContribution = Number(((accuracyScore * accuracyWeight) / 100).toFixed(2));
+  const fluencyContribution = Number(((fluencyScore * fluencyWeight) / 100).toFixed(2));
+  const rangeContribution = Number(((rangeScore * rangeWeight) / 100).toFixed(2));
+  const coherenceContribution = Number(((coherenceScore * coherenceWeight) / 100).toFixed(2));
+  const pronunciationContribution = accuracyContribution;
+  const sentenceMasteryContribution = rangeContribution;
+  const vocabularyContribution = coherenceContribution;
+
   const metrics = {
     accuracy: Math.round(accuracyScore),
     fluency: Math.round(fluencyScore),
