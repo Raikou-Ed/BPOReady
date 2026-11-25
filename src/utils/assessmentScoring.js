@@ -420,6 +420,49 @@ export function getActiveEvaluationCriteria() {
   return DEFAULT_READING_CRITERIA;
 }
 
+export const DEFAULT_MOCK_INTERVIEW_CRITERIA = [
+  {
+    id: 1,
+    name: 'Accuracy',
+    weight: 20,
+    detail: 'Grammar control, clear pronunciation, and phonetic crispness.',
+  },
+  {
+    id: 2,
+    name: 'Fluency',
+    weight: 20,
+    detail: 'Natural speaking tempo (120–150 WPM) without hesitation.',
+  },
+  {
+    id: 3,
+    name: 'Range',
+    weight: 20,
+    detail: 'Professional BPO vocabulary without crutch words or fillers.',
+  },
+  {
+    id: 4,
+    name: 'Interaction',
+    weight: 20,
+    detail: 'Professional composure, question relevance, and confident tone.',
+  },
+  {
+    id: 5,
+    name: 'Coherence',
+    weight: 20,
+    detail: 'STAR method structure (Situation, Task, Action, Result).',
+  },
+];
+
+export function getActiveMockInterviewCriteria() {
+  try {
+    const custom = getUserData('bpoReadyMockInterviewCriteria');
+    if (Array.isArray(custom) && custom.length > 0) {
+      return custom;
+    }
+  } catch {}
+  return DEFAULT_MOCK_INTERVIEW_CRITERIA;
+}
+
 export function formatScore(score) {
   if (score == null) return "0";
   const num = Number(score);

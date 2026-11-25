@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
 import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
+import { getActiveMockInterviewCriteria } from "../utils/assessmentScoring";
 
 const MockInterviewFeedback = () => {
   const location = useLocation();
@@ -108,60 +109,57 @@ const MockInterviewFeedback = () => {
             </div>
           </div>
 
-          {/* CEFR Table 3 Spoken Language Metrics Grid (Balanced 20% each) */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Accuracy</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(accuracy)}%</p>
-              <span className={`text-[11px] font-semibold ${clarityTier.color}`}>{clarityTier.label}</span>
-              <p className="text-[10px] text-gray-400 mt-0.5">Clarity &amp; Grammar</p>
-            </div>
+          {/* Dynamic Mock Interview Evaluation Criteria Grid */}
+          {(() => {
+            const activeInterviewCriteria = getActiveMockInterviewCriteria();
+            const metricMap = {
+              accuracy: { score: accuracy, tier: clarityTier, defaultLabel: "Clarity & Grammar" },
+              pronunciation: { score: accuracy, tier: clarityTier, defaultLabel: "Clarity & Grammar" },
+              fluency: { score: fluency, tier: pacingTier, defaultLabel: "120–150 WPM Tempo" },
+              range: { score: range, tier: fillerTier, defaultLabel: "Crutch Suppression" },
+              interaction: { score: interaction, tier: confidenceTier, defaultLabel: "Composure & Tone" },
+              coherence: { score: coherence, tier: qualityTier, defaultLabel: "STAR Method Flow" },
+            };
 
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Fluency</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
+            return (
+              <div
+                className={`grid gap-3 ${
+                  activeInterviewCriteria.length === 5
+                    ? "grid-cols-2 md:grid-cols-5"
+                    : activeInterviewCriteria.length === 4
+                    ? "grid-cols-2 md:grid-cols-4"
+                    : activeInterviewCriteria.length === 3
+                    ? "grid-cols-1 md:grid-cols-3"
+                    : "grid-cols-2"
+                }`}
+              >
+                {activeInterviewCriteria.map((c, idx) => {
+                  const key = (c.name || "").toLowerCase().replace(/[^a-z]/g, "");
+                  const item = metricMap[key] || {
+                    score: Math.round(overallScore),
+                    tier: getMetricTier(overallScore),
+                    defaultLabel: c.detail ? c.detail.slice(0, 25) : "Competency Focus",
+                  };
+                  return (
+                    <div
+                      key={c.name || idx}
+                      className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center"
+                    >
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <p className="text-xs text-gray-500 font-semibold">{c.name}</p>
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {c.weight}%
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-800">{Math.round(item.score)}%</p>
+                      <span className={`text-[11px] font-semibold ${item.tier.color}`}>{item.tier.label}</span>
+                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">{c.detail ? c.detail.slice(0, 25) : item.defaultLabel}</p>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(fluency)}%</p>
-              <span className={`text-[11px] font-semibold ${pacingTier.color}`}>{pacingTier.label}</span>
-              <p className="text-[10px] text-gray-400 mt-0.5">120–150 WPM Tempo</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Range</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(range)}%</p>
-              <span className={`text-[11px] font-semibold ${fillerTier.color}`}>
-                {fillerCount === 0 ? "Clean Lexicon" : `${fillerCount} Fillers`}
-              </span>
-              <p className="text-[10px] text-gray-400 mt-0.5">Crutch Suppression</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Interaction</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(interaction)}%</p>
-              <span className={`text-[11px] font-semibold ${confidenceTier.color}`}>{confidenceTier.label}</span>
-              <p className="text-[10px] text-gray-400 mt-0.5">Composure &amp; Tone</p>
-            </div>
-
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center col-span-2 md:col-span-1">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <p className="text-xs text-gray-500 font-semibold">Coherence</p>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 border border-blue-200">20%</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-800">{Math.round(coherence)}%</p>
-              <span className={`text-[11px] font-semibold ${qualityTier.color}`}>{qualityTier.label}</span>
-              <p className="text-[10px] text-gray-400 mt-0.5">STAR Method Flow</p>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Filler Word Breakdown & AI Commentary */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

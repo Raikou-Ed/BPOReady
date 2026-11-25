@@ -13,7 +13,7 @@ class ScoringStandardController extends Controller
     public function index()
     {
         $standards = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
-        $criteria = cache()->get('spoken_reading_criteria', [
+        $readingCriteria = cache()->get('spoken_reading_criteria', [
             [
                 'id' => 1,
                 'name' => 'Accuracy',
@@ -28,9 +28,44 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
+        $mockInterviewCriteria = cache()->get('mock_interview_criteria', [
+            [
+                'id' => 1,
+                'name' => 'Accuracy',
+                'weight' => 20,
+                'detail' => 'Grammar control, clear pronunciation, and phonetic crispness.',
+            ],
+            [
+                'id' => 2,
+                'name' => 'Fluency',
+                'weight' => 20,
+                'detail' => 'Natural speaking tempo (120–150 WPM) without long pauses or hesitations.',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Range',
+                'weight' => 20,
+                'detail' => 'Professional BPO vocabulary repertoire without crutch words or fillers.',
+            ],
+            [
+                'id' => 4,
+                'name' => 'Interaction',
+                'weight' => 20,
+                'detail' => 'Professional composure, question relevance, and confident customer service tone.',
+            ],
+            [
+                'id' => 5,
+                'name' => 'Coherence',
+                'weight' => 20,
+                'detail' => 'Logical answer structure following the STAR method (Situation, Task, Action, Result).',
+            ],
+        ]);
+
         return response()->json([
             'standards' => $standards,
-            'criteria' => $criteria,
+            'criteria' => $readingCriteria,
+            'readingCriteria' => $readingCriteria,
+            'mockInterviewCriteria' => $mockInterviewCriteria,
         ]);
     }
 
@@ -54,14 +89,25 @@ class ScoringStandardController extends Controller
             cache()->forever('spoken_reading_criteria', $request->input('criteria'));
         }
 
+        if ($request->has('readingCriteria') && is_array($request->input('readingCriteria'))) {
+            cache()->forever('spoken_reading_criteria', $request->input('readingCriteria'));
+        }
+
+        if ($request->has('mockInterviewCriteria') && is_array($request->input('mockInterviewCriteria'))) {
+            cache()->forever('mock_interview_criteria', $request->input('mockInterviewCriteria'));
+        }
+
         $updated = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
-        $criteria = cache()->get('spoken_reading_criteria', []);
+        $readingCriteria = cache()->get('spoken_reading_criteria', []);
+        $mockInterviewCriteria = cache()->get('mock_interview_criteria', []);
 
         return response()->json([
             'success' => true,
             'message' => 'Scoring standards & evaluation criteria updated successfully.',
             'standards' => $updated,
-            'criteria' => $criteria,
+            'criteria' => $readingCriteria,
+            'readingCriteria' => $readingCriteria,
+            'mockInterviewCriteria' => $mockInterviewCriteria,
         ]);
     }
 }

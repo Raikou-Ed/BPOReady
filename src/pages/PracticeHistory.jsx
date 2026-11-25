@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserActivity, getCurrentUser } from "../utils/userData";
 import { getApplicantHistory, getMockInterviewFeedback } from "../api/adminApi";
-import { getActiveEvaluationCriteria } from "../utils/assessmentScoring";
+import { getActiveEvaluationCriteria, getActiveMockInterviewCriteria } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const PracticeHistory = () => {
@@ -291,15 +291,26 @@ const PracticeHistory = () => {
               let pillars = [];
 
               if (type.includes("interview") || act.includes("interview")) {
-                // Mock Interview: 5 Pillars (20% each)
+                // Mock Interview: Dynamic institutional criteria
                 const fb = detailedSession?.feedback || {};
-                pillars = [
-                  { name: "Accuracy", weight: "20%", score: fb.clarity_score ?? Math.min(100, Math.max(50, score - 2)), label: "Clarity & Grammar" },
-                  { name: "Fluency", weight: "20%", score: fb.pacing_score ?? Math.min(100, Math.max(50, score + 4)), label: "120–150 WPM Tempo" },
-                  { name: "Range", weight: "20%", score: fb.filler_word_count != null ? Math.max(10, 100 - fb.filler_word_count * 8) : Math.min(100, Math.max(50, score - 1)), label: "Lexicon & Fillers" },
-                  { name: "Interaction", weight: "20%", score: fb.confidence_score ?? Math.min(100, Math.max(50, score + 2)), label: "Composure & Tone" },
-                  { name: "Coherence", weight: "20%", score: fb.answer_quality_score ?? Math.min(100, Math.max(50, score - 1)), label: "STAR Method Flow" },
-                ];
+                const activeInterviewCrit = getActiveMockInterviewCriteria();
+                const scoreLookup = {
+                  accuracy: fb.clarity_score ?? Math.min(100, Math.max(50, score - 2)),
+                  fluency: fb.pacing_score ?? Math.min(100, Math.max(50, score + 4)),
+                  range: fb.filler_word_count != null ? Math.max(10, 100 - fb.filler_word_count * 8) : Math.min(100, Math.max(50, score - 1)),
+                  interaction: fb.confidence_score ?? Math.min(100, Math.max(50, score + 2)),
+                  coherence: fb.answer_quality_score ?? Math.min(100, Math.max(50, score - 1)),
+                };
+                pillars = activeInterviewCrit.map(c => {
+                  const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
+                  const s = scoreLookup[key] ?? score;
+                  return {
+                    name: c.name,
+                    weight: `${c.weight}%`,
+                    score: s,
+                    label: c.detail ? c.detail.slice(0, 32) : `${c.name} Standard`,
+                  };
+                });
               } else if (type.includes("simulation") || act.includes("call")) {
                 // Call Simulation: 5 Pillars (Customer Centric 30/25/15/15/15)
                 pillars = [
