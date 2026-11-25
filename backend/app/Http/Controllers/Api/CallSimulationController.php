@@ -86,6 +86,7 @@ class CallSimulationController extends Controller
             'response_text' => 'nullable|string',
             'duration_seconds' => 'nullable|integer',
             'conversation_history' => 'nullable|array',
+            'quiz_score' => 'nullable|numeric',
         ]);
 
         if ($v->fails()) {
@@ -97,6 +98,9 @@ class CallSimulationController extends Controller
         $conversationHistory = $request->input('conversation_history', []);
         $aggregatedText = trim($request->input('response_text', ''));
         $duration = (int) $request->input('duration_seconds', 30);
+        $quizScore = $request->has('quiz_score') && $request->input('quiz_score') !== null
+            ? (float) $request->input('quiz_score')
+            : null;
 
         // 1. Detect Silence / Dead Air / Empty Response across all turns
         $agentWordCount = 0;
@@ -113,10 +117,10 @@ class CallSimulationController extends Controller
         $totalWords = max($agentWordCount, count($aggWords));
 
         if ($totalWords < 3) {
-            $empathyScore = 0;
-            $resolutionScore = 0;
-            $clarityScore = 0;
-            $overallScore = 0;
+            $interactionScore = $quizScore !== null ? (int) round($quizScore * 0.4) : 0;
+            $fluencyScore = 0;
+            $accuracyScore = 0;
+            $overallScore = $interactionScore > 0 ? (int) round($interactionScore * 0.4) : 0;
             $feedbackText = "No audible speech or verbal response was detected during this call simulation (Dead Air / Silence). In professional BPO operations, failing to acknowledge a customer or remaining silent results in an immediate call failure. Please ensure your microphone is enabled, grant audio permissions, and speak clearly to assist the customer.";
             $suggestions = [
                 "Acknowledge the customer immediately upon connection to eliminate dead air penalties",
@@ -133,10 +137,18 @@ class CallSimulationController extends Controller
             }
 
             if ($evalResult && isset($evalResult['overall_score']) && $evalResult['overall_score'] > 0) {
-                $empathyScore = (int) ($evalResult['empathy_score'] ?? 80);
-                $resolutionScore = (int) ($evalResult['resolution_score'] ?? 80);
-                $clarityScore = (int) ($evalResult['clarity_score'] ?? 80);
-                $overallScore = (int) ($evalResult['overall_score'] ?? round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2)));
+                $speechInteraction = (int) ($evalResult['interaction_score'] ?? $evalResult['empathy_score'] ?? 80);
+                $fluencyScore = (int) ($evalResult['fluency_score'] ?? $evalResult['clarity_score'] ?? 80);
+                $accuracyScore = (int) ($evalResult['accuracy_score'] ?? $evalResult['resolution_score'] ?? 80);
+
+                // Blend post-call active listening quiz into Interaction pillar if provided
+                if ($quizScore !== null) {
+                    $interactionScore = (int) round(($speechInteraction * 0.50) + ($quizScore * 0.50));
+                } else {
+                    $interactionScore = $speechInteraction;
+                }
+
+                $overallScore = (int) round(($interactionScore * 0.40) + ($fluencyScore * 0.30) + ($accuracyScore * 0.30));
                 $feedbackText = $evalResult['feedback_text'] ?? "Well-managed call interaction with solid customer rapport and clear problem-solving delivery.";
                 $suggestions = is_array($evalResult['suggestions'] ?? null)
                     ? $evalResult['suggestions']
@@ -149,17 +161,24 @@ class CallSimulationController extends Controller
                 foreach ($empathyKeywords as $kw) {
                     if (str_contains($text, $kw)) $empathyHits++;
                 }
-                $empathyScore = min(95, max(45, 55 + ($empathyHits * 8)));
+                $speechInteraction = min(95, max(45, 55 + ($empathyHits * 8)));
+
+                if ($quizScore !== null) {
+                    $interactionScore = (int) round(($speechInteraction * 0.50) + ($quizScore * 0.50));
+                } else {
+                    $interactionScore = $speechInteraction;
+                }
+
+                $fluencyScore = min(96, max(45, 55 + min(40, (int)($totalWords * 1.2))));
 
                 $resolutionKeywords = ['resolve', 'check', 'account', 'fix', 'refund', 'confirm', 'schedule', 'credit', 'verify', 'update', 'test', 'cable'];
                 $resolutionHits = 0;
                 foreach ($resolutionKeywords as $kw) {
                     if (str_contains($text, $kw)) $resolutionHits++;
                 }
-                $resolutionScore = min(95, max(45, 55 + ($resolutionHits * 8)));
+                $accuracyScore = min(95, max(45, 55 + ($resolutionHits * 8)));
 
-                $clarityScore = min(95, max(40, 50 + min(45, (int)($totalWords * 1.5))));
-                $overallScore = round(($empathyScore * 0.4) + ($resolutionScore * 0.4) + ($clarityScore * 0.2));
+                $overallScore = (int) round(($interactionScore * 0.40) + ($fluencyScore * 0.30) + ($accuracyScore * 0.30));
 
                 $feedbackText = "Good overall call handling. You maintained a professional customer service tone throughout the simulation and addressed the core concerns.";
                 $suggestions = [
@@ -182,9 +201,9 @@ class CallSimulationController extends Controller
         $log = CallSimulationLog::create([
             'session_id' => $session->id,
             'duration_seconds' => $duration,
-            'empathy_score' => $empathyScore,
-            'resolution_score' => $resolutionScore,
-            'clarity_score' => $clarityScore,
+            'empathy_score' => $interactionScore,
+            'resolution_score' => $accuracyScore,
+            'clarity_score' => $fluencyScore,
             'ai_feedback' => $feedbackText,
             'created_at' => now(),
         ]);
@@ -193,9 +212,14 @@ class CallSimulationController extends Controller
             'success' => true,
             'session_id' => $session->id,
             'overall_score' => $overallScore,
-            'empathy_score' => $empathyScore,
-            'resolution_score' => $resolutionScore,
-            'clarity_score' => $clarityScore,
+            'interaction_score' => $interactionScore,
+            'fluency_score' => $fluencyScore,
+            'accuracy_score' => $accuracyScore,
+            'quiz_score' => $quizScore,
+            // Backward compatibility
+            'empathy_score' => $interactionScore,
+            'resolution_score' => $accuracyScore,
+            'clarity_score' => $fluencyScore,
             'feedback_text' => $feedbackText,
             'feedback' => $feedbackText,
             'suggestions' => $suggestions,
@@ -224,17 +248,20 @@ class CallSimulationController extends Controller
         $prompt = "You are an expert BPO Quality Assurance Manager evaluating an agent's performance in a customer call simulation.\n\n"
             . "Scenario: {$scenarioTitle}\n\n"
             . "Call Dialogue:\n{$dialogueTranscript}\n"
-            . "Evaluation Guidelines:\n"
-            . "CRITICAL RULE: If the agent's replies are empty, silent, or contain no actual spoken response, overall_score, empathy_score, resolution_score, and clarity_score MUST BE 0, and feedback_text MUST indicate that the candidate failed to respond.\n"
-            . "1. empathy_score (0-100): Validating customer feelings, professional composure, de-escalation, politeness.\n"
-            . "2. resolution_score (0-100): Accurate troubleshooting/pitch, proper verification, effective problem resolution.\n"
-            . "3. clarity_score (0-100): Clear English articulation, absence of awkward phrasing, concise explanations.\n"
-            . "4. overall_score (0-100): Weighted overall call readiness.\n"
+            . "Evaluation Guidelines (3-Pillar CEFR Spoken Interaction Model: Interaction 40%, Fluency 30%, Accuracy 30%):\n"
+            . "CRITICAL RULE: If the agent's replies are empty, silent, or contain no actual spoken response, overall_score, interaction_score, fluency_score, and accuracy_score MUST BE 0, and feedback_text MUST indicate that the candidate failed to respond.\n"
+            . "1. interaction_score (0-100): Customer empathy, validating concerns, professional composure, de-escalation, turn-taking, and politeness.\n"
+            . "2. fluency_score (0-100): Conversational pacing (115-145 WPM), smooth delivery flow, minimal hesitations, and absence of dead-air.\n"
+            . "3. accuracy_score (0-100): Phonetic clarity, correct customer account verification, grammar control, and professional phrasing.\n"
+            . "4. overall_score (0-100): Weighted overall score: (interaction_score * 0.40) + (fluency_score * 0.30) + (accuracy_score * 0.30).\n"
             . "5. feedback_text: 2 to 3 sentences summarizing the agent's strengths and customer service performance.\n"
             . "6. suggestions: Array of 3 to 4 actionable improvement tips for this agent.\n\n"
             . "Return strict JSON with this exact structure:\n"
             . "{\n"
             . "  \"overall_score\": number,\n"
+            . "  \"interaction_score\": number,\n"
+            . "  \"fluency_score\": number,\n"
+            . "  \"accuracy_score\": number,\n"
             . "  \"empathy_score\": number,\n"
             . "  \"resolution_score\": number,\n"
             . "  \"clarity_score\": number,\n"

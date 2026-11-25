@@ -5,6 +5,7 @@ import { getUserData, saveUserData } from "../utils/userData";
 import {
   DEFAULT_READING_CRITERIA,
   DEFAULT_MOCK_INTERVIEW_CRITERIA,
+  DEFAULT_CALL_SIMULATION_CRITERIA,
 } from "../utils/assessmentScoring";
 
 const defaultStandards = [
@@ -55,12 +56,22 @@ const AdminScoringStandards = () => {
     return DEFAULT_MOCK_INTERVIEW_CRITERIA;
   });
 
+  // 3. Call Simulation Criteria
+  const [callCriteriaList, setCallCriteriaList] = useState(() => {
+    try {
+      const saved = getUserData("bpoReadyCallSimulationCriteria");
+      if (Array.isArray(saved) && saved.length > 0) return saved;
+    } catch {}
+    return DEFAULT_CALL_SIMULATION_CRITERIA;
+  });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
   const totalReadingWeight = readingCriteriaList.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
   const totalInterviewWeight = interviewCriteriaList.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
+  const totalCallWeight = callCriteriaList.reduce((sum, c) => sum + (Number(c.weight) || 0), 0);
 
   useEffect(() => {
     async function loadStandards() {
@@ -82,6 +93,10 @@ const AdminScoringStandards = () => {
           if (data.mockInterviewCriteria && Array.isArray(data.mockInterviewCriteria) && data.mockInterviewCriteria.length > 0) {
             setInterviewCriteriaList(data.mockInterviewCriteria);
             saveUserData("bpoReadyMockInterviewCriteria", data.mockInterviewCriteria);
+          }
+          if (data.callSimulationCriteria && Array.isArray(data.callSimulationCriteria) && data.callSimulationCriteria.length > 0) {
+            setCallCriteriaList(data.callSimulationCriteria);
+            saveUserData("bpoReadyCallSimulationCriteria", data.callSimulationCriteria);
           }
         }
       } catch (err) {
@@ -178,6 +193,43 @@ const AdminScoringStandards = () => {
     }
   };
 
+  // Call Simulation Criteria Handlers
+  const handleCallCriteriaChange = (index, field, value) => {
+    const updated = [...callCriteriaList];
+    updated[index] = {
+      ...updated[index],
+      [field]: field === "weight" ? (value === "" ? "" : Number(value)) : value,
+    };
+    setCallCriteriaList(updated);
+  };
+
+  const handleAddCallCriteria = () => {
+    setCallCriteriaList([
+      ...callCriteriaList,
+      {
+        id: Date.now(),
+        name: "New Dimension",
+        weight: 0,
+        detail: "Define candidate call handling and active listening standard...",
+      },
+    ]);
+  };
+
+  const handleRemoveCallCriteria = (index) => {
+    if (callCriteriaList.length <= 1) {
+      alert("At least one evaluation factor must be maintained for Call Simulation.");
+      return;
+    }
+    setCallCriteriaList(callCriteriaList.filter((_, idx) => idx !== index));
+  };
+
+  const handleResetCallCriteria = () => {
+    if (window.confirm("Reset Call Simulation factors back to standard (40% Interaction, 30% Fluency, 30% Accuracy)?")) {
+      setCallCriteriaList(DEFAULT_CALL_SIMULATION_CRITERIA);
+      saveUserData("bpoReadyCallSimulationCriteria", DEFAULT_CALL_SIMULATION_CRITERIA);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -186,6 +238,7 @@ const AdminScoringStandards = () => {
     // Save locally first to guarantee immediate offline / client persistence
     saveUserData("bpoReadyScoringCriteria", readingCriteriaList);
     saveUserData("bpoReadyMockInterviewCriteria", interviewCriteriaList);
+    saveUserData("bpoReadyCallSimulationCriteria", callCriteriaList);
     saveUserData("bpoReadyScoringStandards", standards);
 
     try {
@@ -194,6 +247,7 @@ const AdminScoringStandards = () => {
         readingCriteria: readingCriteriaList,
         criteria: readingCriteriaList,
         mockInterviewCriteria: interviewCriteriaList,
+        callSimulationCriteria: callCriteriaList,
       });
       setToastMessage("All scoring standards & evaluation criteria successfully updated and synced with the evaluation engine!");
     } catch {
@@ -506,6 +560,139 @@ const AdminScoringStandards = () => {
                 className="text-xs text-purple-600 hover:text-purple-800 font-semibold underline cursor-pointer"
               >
                 Reset to Standard CEFR Table 3 (Balanced 20% each)
+              </button>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* SECTION 3: CALL SIMULATION EVALUATION CRITERIA & WEIGHTS */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-gray-900">
+                    Call Simulation Evaluation Criteria &amp; Weight Distribution
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+                    Call Simulation Studio · Spoken Interaction
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Institutional multi-factor evaluation dimensions applied to telephony dialogues and post-call comprehension quizzes (Interaction, Fluency, Accuracy).
+                </p>
+              </div>
+
+              {/* Total Weight Indicator & Add Factor Button */}
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+                    totalCallWeight === 100
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-amber-50 text-amber-700 border-amber-300"
+                  }`}
+                >
+                  <span>{totalCallWeight === 100 ? "✓" : "⚠️"}</span>
+                  <span>Total Weight: {totalCallWeight}%</span>
+                  {totalCallWeight !== 100 && (
+                    <span className="text-[10px] font-normal">
+                      ({totalCallWeight < 100 ? `+${100 - totalCallWeight}% needed` : `-${totalCallWeight - 100}% excess`})
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddCallCriteria}
+                  className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-xl text-xs transition border border-teal-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>+ Add Factor</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Editable Factor Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {callCriteriaList.map((crit, idx) => (
+                <div
+                  key={crit.id || idx}
+                  className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3 relative group hover:border-teal-300 transition shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        Factor Name
+                      </label>
+                      <input
+                        type="text"
+                        value={crit.name}
+                        onChange={(e) => handleCallCriteriaChange(idx, "name", e.target.value)}
+                        placeholder="e.g. Interaction, Fluency, Accuracy"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                      />
+                    </div>
+
+                    <div className="w-24">
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        Weight (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={crit.weight}
+                          onChange={(e) => handleCallCriteriaChange(idx, "weight", e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-extrabold text-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 transition pr-6"
+                        />
+                        <span className="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">%</span>
+                      </div>
+                    </div>
+
+                    {callCriteriaList.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCallCriteria(idx)}
+                        title="Remove Factor"
+                        className="mt-5 p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                      Guidance &amp; Evaluation Focus
+                    </label>
+                    <textarea
+                      rows="2"
+                      value={crit.detail || ""}
+                      onChange={(e) => handleCallCriteriaChange(idx, "detail", e.target.value)}
+                      placeholder="e.g. Active listening, comprehension quiz, empathy, conversational pace..."
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer Info & Reset */}
+            <div className="flex flex-wrap items-center justify-between pt-2 text-xs text-gray-500 gap-2 border-t border-gray-100">
+              <span className="text-[11px] text-gray-400">
+                💡 Tip: Call Simulation weights must total <strong>100%</strong> to evaluate applicant call handling scores accurately.
+              </span>
+              <button
+                type="button"
+                onClick={handleResetCallCriteria}
+                className="text-xs text-teal-600 hover:text-teal-800 font-semibold underline cursor-pointer"
+              >
+                Reset to Standard (40% Interaction, 30% Fluency, 30% Accuracy)
               </button>
             </div>
           </div>

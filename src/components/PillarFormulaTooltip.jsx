@@ -90,19 +90,17 @@ export const PILLAR_FORMULAS = {
     standard: 'CEFR Table 3: Spoken Interaction & STAR Coherence',
   },
 
-  // Call Simulation QA Scorecard
+  // Call Simulation QA Scorecard (CEFR Spoken Interaction 3-Pillar Model with Comprehension Quiz)
   'CallSimulation': {
-    name: 'Call Simulation QA (CEFR Customer-Centric Model)',
+    name: 'Call Simulation QA (CEFR Spoken Interaction Model)',
     weight: '100%',
-    formula: '(Interaction × 30%) + (Coherence × 25%) + (Fluency × 15%) + (Accuracy × 15%) + (Range × 15%)',
+    formula: '(Interaction × 40%) + (Fluency × 30%) + (Accuracy × 30%)',
     subWeights: [
-      { name: 'Interaction (Empathy & De-escalation)', weight: '30%', desc: 'Empathy validation, customer de-escalation & active listening' },
-      { name: 'Coherence (Troubleshooting & Resolution)', weight: '25%', desc: 'Step-by-step troubleshooting, timeline setting & issue resolution' },
-      { name: 'Fluency (Conversational Pace)', weight: '15%', desc: 'Calm, steady conversational tempo with customer under pressure' },
-      { name: 'Accuracy (Verification & Enunciation)', weight: '15%', desc: 'Accurate customer verification & clear phonetic enunciation' },
-      { name: 'Range (Customer Service Vocabulary)', weight: '15%', desc: 'Polite customer service phrasing ("Certainly", "Allow me to verify")' },
+      { name: 'Interaction (Empathy & Comprehension Quiz)', weight: '40%', desc: 'Empathy validation, conversational turn-taking & post-call active listening quiz' },
+      { name: 'Fluency (Conversational Pace & Flow)', weight: '30%', desc: 'Conversational tempo (115–145 WPM), response cadence & dead-air management' },
+      { name: 'Accuracy (Verification & Phrasing)', weight: '30%', desc: 'Accurate customer verification, enunciation clarity & professional phrasing' },
     ],
-    standard: 'CEFR Table 3: Spoken Interaction & Customer Phone Support',
+    standard: 'CEFR Table 3: Spoken Interaction & Active Listening Quiz',
   },
 };
 

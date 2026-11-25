@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getUserActivity, getCurrentUser } from "../utils/userData";
 import { getApplicantHistory, getMockInterviewFeedback } from "../api/adminApi";
-import { getActiveEvaluationCriteria, getActiveMockInterviewCriteria } from "../utils/assessmentScoring";
+import { getActiveEvaluationCriteria, getActiveMockInterviewCriteria, getActiveCallSimulationCriteria } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const PracticeHistory = () => {
@@ -312,14 +312,18 @@ const PracticeHistory = () => {
                   };
                 });
               } else if (type.includes("simulation") || act.includes("call")) {
-                // Call Simulation: 5 Pillars (Customer Centric 30/25/15/15/15)
-                pillars = [
-                  { name: "Interaction", weight: "30%", score: Math.min(100, Math.max(45, score + 3)), label: "Empathy & De-escalation" },
-                  { name: "Coherence", weight: "25%", score: Math.min(100, Math.max(45, score - 2)), label: "Troubleshooting & Steps" },
-                  { name: "Fluency", weight: "15%", score: Math.min(100, Math.max(45, score - 1)), label: "Conversational Pace" },
-                  { name: "Accuracy", weight: "15%", score: Math.min(100, Math.max(45, score + 1)), label: "Verification & Clarity" },
-                  { name: "Range", weight: "15%", score: Math.min(100, Math.max(45, score)), label: "Customer Service Terms" },
-                ];
+                // Call Simulation: Dynamic institutional criteria (default 3 Pillars: Interaction 40%, Fluency 30%, Accuracy 30%)
+                const activeCallCrit = getActiveCallSimulationCriteria();
+                pillars = activeCallCrit.map((c, idx) => ({
+                  name: c.name,
+                  weight: `${c.weight}%`,
+                  score: idx === 0
+                    ? Math.min(100, Math.max(45, score + 2))
+                    : idx === 1
+                    ? Math.min(100, Math.max(45, score - 1))
+                    : Math.min(100, Math.max(45, score + 1)),
+                  label: c.detail ? c.detail.split(',')[0].slice(0, 35) : `${c.name} Standard`,
+                }));
               } else if (type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment")) {
                 // Paragraph Reading & Pre-Assessment: Dynamic institutional criteria
                 const activeCrit = getActiveEvaluationCriteria();

@@ -463,6 +463,37 @@ export function getActiveMockInterviewCriteria() {
   return DEFAULT_MOCK_INTERVIEW_CRITERIA;
 }
 
+export const DEFAULT_CALL_SIMULATION_CRITERIA = [
+  {
+    id: 1,
+    name: 'Interaction',
+    weight: 40,
+    detail: 'Active listening, customer empathy, conversational turn-taking, and post-call comprehension quiz accuracy.',
+  },
+  {
+    id: 2,
+    name: 'Fluency',
+    weight: 30,
+    detail: 'Conversational speech cadence, natural tempo (115–145 WPM), and dead-air management.',
+  },
+  {
+    id: 3,
+    name: 'Accuracy',
+    weight: 30,
+    detail: 'Phonetic articulation, grammatical correctness, verification precision, and professional phrasing.',
+  },
+];
+
+export function getActiveCallSimulationCriteria() {
+  try {
+    const custom = getUserData('bpoReadyCallSimulationCriteria');
+    if (Array.isArray(custom) && custom.length > 0) {
+      return custom;
+    }
+  } catch {}
+  return DEFAULT_CALL_SIMULATION_CRITERIA;
+}
+
 export function formatScore(score) {
   if (score == null) return "0";
   const num = Number(score);

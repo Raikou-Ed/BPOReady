@@ -61,11 +61,33 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
+        $callSimulationCriteria = cache()->get('call_simulation_criteria', [
+            [
+                'id' => 1,
+                'name' => 'Interaction',
+                'weight' => 40,
+                'detail' => 'Active listening, customer empathy, conversational turn-taking, and post-call comprehension quiz accuracy.',
+            ],
+            [
+                'id' => 2,
+                'name' => 'Fluency',
+                'weight' => 30,
+                'detail' => 'Conversational speech cadence, natural tempo (115–145 WPM), and dead-air management.',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Accuracy',
+                'weight' => 30,
+                'detail' => 'Phonetic articulation, grammatical correctness, verification precision, and professional phrasing.',
+            ],
+        ]);
+
         return response()->json([
             'standards' => $standards,
             'criteria' => $readingCriteria,
             'readingCriteria' => $readingCriteria,
             'mockInterviewCriteria' => $mockInterviewCriteria,
+            'callSimulationCriteria' => $callSimulationCriteria,
         ]);
     }
 
@@ -97,9 +119,14 @@ class ScoringStandardController extends Controller
             cache()->forever('mock_interview_criteria', $request->input('mockInterviewCriteria'));
         }
 
+        if ($request->has('callSimulationCriteria') && is_array($request->input('callSimulationCriteria'))) {
+            cache()->forever('call_simulation_criteria', $request->input('callSimulationCriteria'));
+        }
+
         $updated = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
         $readingCriteria = cache()->get('spoken_reading_criteria', []);
         $mockInterviewCriteria = cache()->get('mock_interview_criteria', []);
+        $callSimulationCriteria = cache()->get('call_simulation_criteria', []);
 
         return response()->json([
             'success' => true,
@@ -108,6 +135,7 @@ class ScoringStandardController extends Controller
             'criteria' => $readingCriteria,
             'readingCriteria' => $readingCriteria,
             'mockInterviewCriteria' => $mockInterviewCriteria,
+            'callSimulationCriteria' => $callSimulationCriteria,
         ]);
     }
 }

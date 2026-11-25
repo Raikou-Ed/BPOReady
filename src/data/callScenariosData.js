@@ -101,6 +101,44 @@ export const CALL_SCENARIOS = [
         customer_text: "Thank you for choosing Rocket Speed Internet. (Call Resolved)",
         suggested_agent_text: "You are welcome. We are open 24/7 just in case that you'll need our help again. And again, my name is Patrick, we do value your business and thank you for choosing Rocket Speed Internet. Have a blessed day!"
       }
+    ],
+    comprehension_quiz: [
+      {
+        id: "c1_q1",
+        question: "What was the customer's primary technical problem reported at the beginning of the call?",
+        options: [
+          "DSL light on the modem was flashing red and she could not access her email",
+          "Her computer power supply was completely dead",
+          "She forgot her account username and email password",
+          "Her monthly internet billing payment was declined"
+        ],
+        correctAnswer: 0,
+        explanation: "The customer stated that her DSL internet was down for almost a week and the DSL light was flashing red."
+      },
+      {
+        id: "c1_q2",
+        question: "What telephone or account number did the customer verify for the account?",
+        options: [
+          "860-995-1234",
+          "800-555-0199",
+          "213-897-0362",
+          "805-7845-389"
+        ],
+        correctAnswer: 0,
+        explanation: "Ms. Sarah Sky verified her account and callback number as 860-995-1234."
+      },
+      {
+        id: "c1_q3",
+        question: "What physical troubleshooting step resolved the customer's internet issue over the phone?",
+        options: [
+          "Plugging in the loose gray phone cord at the back of the modem",
+          "Dispatching a field technician with an on-site service charge",
+          "Purchasing a brand new wireless modem at the store",
+          "Reinstalling the operating system on her computer"
+        ],
+        correctAnswer: 0,
+        explanation: "The customer checked behind her desk and plugged in the loose gray DSL line cord, restoring a steady green light."
+      }
     ]
   },
   {
@@ -151,6 +189,44 @@ export const CALL_SCENARIOS = [
         customer_text: "Thank you for banking with Bank of Wealth. (Call Resolved)",
         suggested_agent_text: "You are very welcome, Ms. Claudin! Have a wonderful day and thank you for calling Bank of Wealth, goodbye!"
       }
+    ],
+    comprehension_quiz: [
+      {
+        id: "c2_q1",
+        question: "What was the customer's verified remaining checking account balance?",
+        options: [
+          "$84,000.65 (84 thousand and 65 cents)",
+          "$12,450.00",
+          "$500.25",
+          "$184,000.00"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent verified the remaining funds in the customer's account as 84 thousand and 65 cents ($84,000.65)."
+      },
+      {
+        id: "c2_q2",
+        question: "What were the last four digits of the customer's Social Security ID verified on the call?",
+        options: [
+          "1234",
+          "5678",
+          "9876",
+          "4321"
+        ],
+        correctAnswer: 0,
+        explanation: "The customer clearly verified 'It is 1234' for security validation."
+      },
+      {
+        id: "c2_q3",
+        question: "How long does the international wire transfer to Lloyds of London typically take?",
+        options: [
+          "2 to 3 business days",
+          "Instant transfer within seconds",
+          "2 to 3 weeks",
+          "Over 30 calendar days"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent informed the customer that online/phone wire transactions take 2-3 business days after security verification."
+      }
     ]
   },
   {
@@ -200,6 +276,44 @@ export const CALL_SCENARIOS = [
         audio_url: "/audio/call_simulation/call3/OutboundRec6.m4a",
         customer_text: "Thank you, bye.",
         suggested_agent_text: "Got it! Your card has been submitted and will arrive in 10 business days. Thank you for your continued loyalty to Deluxe Credit Card, have a great day!"
+      }
+    ],
+    comprehension_quiz: [
+      {
+        id: "c3_q1",
+        question: "How long has Ms. Anastasia Robinson been a valued cardholder with Deluxe Credit Card?",
+        options: [
+          "8 years",
+          "6 months",
+          "2 years",
+          "15 years"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent explicitly acknowledged her loyalty: 'We appreciate your 8 years as a valued cardholder!'"
+      },
+      {
+        id: "c3_q2",
+        question: "Which of the following exclusive benefits is included with the Platinum MasterCard upgrade?",
+        options: [
+          "Lifetime waived annual fee, $20,000 complimentary travel insurance & airport Sky View lounge access",
+          "Free luxury sports car upon approval",
+          "Zero percent interest on all cash advances forever",
+          "Free monthly international flights to London"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent outlined non-expiring points, waived lifetime fee, $20,000 travel insurance, and worldwide Sky View lounge access."
+      },
+      {
+        id: "c3_q3",
+        question: "What is the expected delivery timeframe for the newly processed Platinum card?",
+        options: [
+          "10 business days",
+          "Same day delivery within 4 hours",
+          "3 to 4 weeks",
+          "60 calendar days"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent closed the call confirming: 'Your card has been submitted and will arrive in 10 business days.'"
       }
     ]
   },
@@ -352,6 +466,44 @@ export const CALL_SCENARIOS = [
         audio_url: "/audio/call_simulation/call4/outb2Rec23.m4a",
         customer_text: "You too, Bye.",
         suggested_agent_text: "Alright then, thank you for your time, Vanessa. I'll call you back at 7:00 in the evening today, have a good day!"
+      }
+    ],
+    comprehension_quiz: [
+      {
+        id: "c4_q1",
+        question: "What main technical issue was Vanessa Roberts experiencing on her home connection?",
+        options: [
+          "Lagging and freezing whenever streaming videos in 4K resolution on her new TV",
+          "Her home telephone landline was making loud static noises",
+          "Her computer was infected with malicious ransomware",
+          "Her neighborhood had an unexpected fiber blackout"
+        ],
+        correctAnswer: 0,
+        explanation: "The customer explained that every time they watch in 4K, videos freeze and buffer like clockwork."
+      },
+      {
+        id: "c4_q2",
+        question: "What download speed was revealed when the customer ran the live Speedtest?",
+        options: [
+          "8.19 Mbps (well below the 25 Mbps required for 4K streaming)",
+          "500 Mbps",
+          "100 Mbps",
+          "0.5 Mbps"
+        ],
+        correctAnswer: 0,
+        explanation: "Vanessa read out 8.19 Mbps download and 17.43 Mbps upload, which explains the 4K streaming lag."
+      },
+      {
+        id: "c4_q3",
+        question: "What fiber plan did the agent successfully present to match Vanessa's budget and resolve her buffering?",
+        options: [
+          "100 Mbps fiber for only $25/month with free installation",
+          "800 Mbps fiber for $150/month with a 2-year lock-in",
+          "Dial-up backup package for $15/month",
+          "A free antenna without internet service"
+        ],
+        correctAnswer: 0,
+        explanation: "The agent offered 100 Mbps for $25/month with free installation fee, fitting under her $30-$33 budget."
       }
     ]
   }

@@ -5,6 +5,7 @@ import { addUserActivity, getCurrentUser } from "../utils/userData";
 import { CALL_SCENARIOS } from "../data/callScenariosData";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
 import PillarFormulaTooltip from "../components/PillarFormulaTooltip";
+import { getActiveCallSimulationCriteria } from "../utils/assessmentScoring";
 
 const CallSimulationSession = () => {
   const { id } = useParams();
@@ -14,11 +15,16 @@ const CallSimulationSession = () => {
   // Load selected scenario from our 4 authentic scenarios
   const initialScenario = CALL_SCENARIOS.find((s) => String(s.id) === String(id)) || CALL_SCENARIOS[0];
   const [scenario, setScenario] = useState(initialScenario);
+  const activeCallCrit = getActiveCallSimulationCriteria();
 
-  // Call lifecycle states: 'IDLE' -> 'CONNECTED' -> 'ENDED'
-  const [callState, setCallState] = useState("IDLE"); // 'IDLE', 'CONNECTED', 'ENDED'
+  // Call lifecycle states: 'IDLE' -> 'CONNECTED' -> 'QUIZ' -> 'ENDED'
+  const [callState, setCallState] = useState("IDLE");
   const [currentTurn, setCurrentTurn] = useState(0);
   const [callDuration, setCallDuration] = useState(0);
+
+  // Post-Call Comprehension Quiz state
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizScoreResult, setQuizScoreResult] = useState(null);
 
   // Speaker state: 'CUSTOMER_SPEAKING', 'AGENT_SPEAKING', 'AGENT_PROCESSING'
   const [speakerState, setSpeakerState] = useState("CUSTOMER_SPEAKING");
@@ -274,8 +280,8 @@ const CallSimulationSession = () => {
       setCurrentTurn(nextTurn);
       startAgentTurn();
     } else {
-      // All dialogues in scenario finished -> Conclude call and trigger evaluation!
-      endCallAndEvaluate(agentResponsesRef.current);
+      // All dialogues in scenario finished -> Conclude call and trigger quiz/evaluation!
+      proceedToQuizOrEvaluate(agentResponsesRef.current);
     }
   };
 
@@ -402,7 +408,68 @@ const CallSimulationSession = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const endCallAndEvaluate = async (allResponses) => {
+  const proceedToQuizOrEvaluate = (allResponses) => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+
+    const allAgentWords = allResponses
+      .map((r) => r.agentReply || "")
+      .join(" ")
+      .trim();
+    const liveWord = (liveAgentTranscriptRef.current || "").trim();
+    const fullCombined = `${allAgentWords} ${liveWord}`.trim();
+    const spokenTokens = fullCombined
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((w) => !w.startsWith("[") && !w.toLowerCase().includes("silence"));
+    const hasMeaningfulSpeech = spokenTokens.length >= 3;
+
+    const sc = scenarioRef.current || scenario;
+    const hasQuiz = Array.isArray(sc?.comprehension_quiz) && sc.comprehension_quiz.length > 0;
+
+    if (!hasMeaningfulSpeech) {
+      // If no speech was recorded (dead air/silence fail), jump straight to zero evaluation
+      endCallAndEvaluate(allResponses, 0, null);
+      return;
+    }
+
+    if (hasQuiz) {
+      setCallState("QUIZ");
+      setQuizAnswers({});
+    } else {
+      endCallAndEvaluate(allResponses, null, null);
+    }
+  };
+
+  const handleQuizSubmit = () => {
+    const sc = scenarioRef.current || scenario;
+    const questions = sc?.comprehension_quiz || [];
+    let correctCount = 0;
+    questions.forEach((q, idx) => {
+      if (quizAnswers[q.id || idx] === q.correctAnswer) {
+        correctCount += 1;
+      }
+    });
+
+    const percent = Math.round((correctCount / Math.max(1, questions.length)) * 100);
+    const quizResult = {
+      correct: correctCount,
+      total: questions.length,
+      percentage: percent,
+    };
+    setQuizScoreResult(quizResult);
+
+    endCallAndEvaluate(agentResponsesRef.current, percent, quizResult);
+  };
+
+  const endCallAndEvaluate = async (allResponses, quizPercent = null, quizRes = null) => {
     setCallState("ENDED");
     setSubmitting(true);
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -431,13 +498,9 @@ const CallSimulationSession = () => {
       const zeroEvaluation = {
         overall_score: 0,
         interaction_score: 0,
-        coherence_score: 0,
         fluency_score: 0,
         accuracy_score: 0,
-        range_score: 0,
-        empathy_score: 0,
-        resolution_score: 0,
-        clarity_score: 0,
+        quiz_score: 0,
         feedback_text:
           "No audible speech was detected during this call simulation (Dead Air / Silence). In a professional BPO environment, failing to acknowledge a customer or remaining silent results in an immediate call failure. Please ensure your microphone is active and practice speaking your response clearly.",
         suggestions: [
@@ -460,6 +523,7 @@ const CallSimulationSession = () => {
           response_text: "[Silence / No response recorded]",
           duration_seconds: callDuration,
           conversation_history: allResponses,
+          quiz_score: 0,
         });
       } catch (e) {
         console.warn("Could not log silent session to backend:", e);
@@ -475,10 +539,15 @@ const CallSimulationSession = () => {
         response_text: fullCombined,
         duration_seconds: callDuration,
         conversation_history: allResponses,
+        quiz_score: quizPercent,
       });
 
       if (res && res.overall_score != null) {
-        setEvaluation(res);
+        setEvaluation({
+          ...res,
+          quiz_result: quizRes || quizScoreResult,
+          quiz_score: quizPercent,
+        });
         addUserActivity({
           activity: `Call Simulation: ${scenario.title}`,
           level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
@@ -491,39 +560,41 @@ const CallSimulationSession = () => {
     } catch (err) {
       console.warn("Backend evaluation failed, computing local fallback:", err);
       const wordCount = spokenTokens.length;
-      // CEFR Table 3 Customer-Centric Weighting (Total: 100%)
-      // Interaction (30%), Coherence (25%), Fluency (15%), Accuracy (15%), Range (15%)
-      const interactionScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
-      const coherenceScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      // CEFR Spoken Interaction 3-Pillar Model (Interaction 40%, Fluency 30%, Accuracy 30%)
+      const speechInteraction = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.8)));
+      const finalInteraction = quizPercent !== null
+        ? Math.round((speechInteraction * 0.50) + (quizPercent * 0.50))
+        : speechInteraction;
       const fluencyScore = Math.min(96, Math.max(60, 70 + Math.round(wordCount * 0.6)));
       const accuracyScore = Math.min(95, Math.max(55, 65 + Math.round(wordCount * 0.7)));
-      const rangeScore = Math.min(95, Math.max(55, 68 + Math.round(wordCount * 0.6)));
+
+      const activeCriteria = getActiveCallSimulationCriteria();
+      const weightInteraction = (activeCriteria.find((c) => c.name.toLowerCase().includes("interaction"))?.weight ?? 40) / 100;
+      const weightFluency = (activeCriteria.find((c) => c.name.toLowerCase().includes("fluency"))?.weight ?? 30) / 100;
+      const weightAccuracy = (activeCriteria.find((c) => c.name.toLowerCase().includes("accuracy"))?.weight ?? 30) / 100;
 
       const calcOverall = Math.round(
-        (interactionScore * 0.30) +
-        (coherenceScore * 0.25) +
-        (fluencyScore * 0.15) +
-        (accuracyScore * 0.15) +
-        (rangeScore * 0.15)
+        (finalInteraction * weightInteraction) +
+        (fluencyScore * weightFluency) +
+        (accuracyScore * weightAccuracy)
       );
 
       const fallbackEvaluation = {
         overall_score: calcOverall,
-        // CEFR Table 3 Spoken Dimensions
-        interaction_score: interactionScore,
-        coherence_score: coherenceScore,
+        interaction_score: finalInteraction,
         fluency_score: fluencyScore,
         accuracy_score: accuracyScore,
-        range_score: rangeScore,
+        quiz_score: quizPercent,
+        quiz_result: quizRes || quizScoreResult,
         // Backward compatibility
-        empathy_score: interactionScore,
-        resolution_score: coherenceScore,
-        clarity_score: accuracyScore,
+        empathy_score: finalInteraction,
+        resolution_score: accuracyScore,
+        clarity_score: fluencyScore,
         feedback_text:
-          "Good call handling attempt. You actively engaged with the customer. Continue working on your opening composure, de-escalation validation, and step-by-step resolution phrasing.",
+          "Good call handling attempt. You actively engaged with the customer and completed the comprehension assessment. Continue working on your opening composure, de-escalation validation, and step-by-step resolution phrasing.",
         suggestions: [
           "Validate customer emotions promptly early in the dialogue (CEFR Interaction)",
-          "Maintain concise, step-by-step troubleshooting explanations (CEFR Coherence)",
+          "Maintain concise, step-by-step troubleshooting explanations (CEFR Accuracy)",
           "Keep a calm, steady conversational pace under customer escalation (CEFR Fluency)",
         ],
       };
@@ -596,8 +667,8 @@ const CallSimulationSession = () => {
           )}
           {callState === "CONNECTED" && (
             <button
-              onClick={() => endCallAndEvaluate(agentResponses)}
-              className="px-3 py-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-medium rounded-lg transition"
+              onClick={() => proceedToQuizOrEvaluate(agentResponses)}
+              className="px-3 py-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-medium rounded-lg transition cursor-pointer"
             >
               End Call
             </button>
@@ -872,6 +943,92 @@ const CallSimulationSession = () => {
           </div>
         )}
 
+        {/* 2.5. POST-CALL COMPREHENSION & ACTIVE LISTENING QUIZ */}
+        {callState === "QUIZ" && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm space-y-6">
+            <div className="pb-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Phase 2: Active Listening Assessment
+                </span>
+                <h2 className="text-2xl font-bold text-gray-900 mt-2">
+                  Call Comprehension &amp; Active Listening Quiz
+                </h2>
+                <p className="text-xs text-gray-500 mt-1 max-w-xl leading-relaxed">
+                  Verify customer details, reported issues, and actions discussed during your call with <strong>{scenario.customer_name}</strong>. Your quiz score directly powers your <strong>Interaction (40%)</strong> evaluation factor.
+                </p>
+              </div>
+              <div className="text-right sm:border-l sm:border-gray-100 sm:pl-6 shrink-0">
+                <span className="text-[10px] font-bold text-gray-400 uppercase block tracking-wider">Questions Answered</span>
+                <span className="text-xl font-extrabold text-teal-600">
+                  {Object.keys(quizAnswers).length} <span className="text-sm font-semibold text-gray-400">/ {scenario.comprehension_quiz?.length || 3}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {(scenario.comprehension_quiz || []).map((q, qIdx) => {
+                const selectedOption = quizAnswers[q.id || qIdx];
+                return (
+                  <div
+                    key={q.id || qIdx}
+                    className="p-5 rounded-2xl border border-gray-200 bg-gray-50/70 space-y-3.5 text-left transition hover:border-teal-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-teal-600 text-white font-bold text-xs flex items-center justify-center mt-0.5 shadow-2xs">
+                        {qIdx + 1}
+                      </span>
+                      <p className="text-sm font-bold text-gray-900 leading-snug">
+                        {q.question}
+                      </p>
+                    </div>
+
+                    <div className="pl-9 space-y-2.5">
+                      {q.options.map((opt, optIdx) => {
+                        const isSelected = selectedOption === optIdx;
+                        return (
+                          <div
+                            key={optIdx}
+                            onClick={() => setQuizAnswers((prev) => ({ ...prev, [q.id || qIdx]: optIdx }))}
+                            className={`flex items-center gap-3 p-3.5 rounded-xl border text-xs font-medium cursor-pointer transition select-none ${
+                              isSelected
+                                ? "bg-teal-50 border-teal-500 text-teal-950 font-semibold shadow-xs ring-1 ring-teal-400"
+                                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100/70 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`quiz_q_${q.id || qIdx}`}
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-gray-300 cursor-pointer pointer-events-none"
+                            />
+                            <span className="flex-1 leading-relaxed">{opt}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-gray-400">
+                💡 Tip: Active listening and detail verification are core competencies tested on official BPO voice assessments.
+              </p>
+              <button
+                type="button"
+                onClick={handleQuizSubmit}
+                disabled={Object.keys(quizAnswers).length < (scenario.comprehension_quiz?.length || 3)}
+                className="w-full sm:w-auto px-7 py-3.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <span>Submit Quiz &amp; Generate QA Scorecard →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 3. EVALUATION & QA SCORECARD SCREEN */}
         {callState === "ENDED" && (
           <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm space-y-6">
@@ -909,61 +1066,69 @@ const CallSimulationSession = () => {
                   </div>
                 </div>
 
-                {/* Scorecard 5-Dimension CEFR Breakdown (Customer-Centric Weighting: 30/25/15/15/15 = 100%) */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="bg-purple-50/50 p-3.5 rounded-xl border border-purple-200 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <span className="text-xs text-purple-700 font-semibold uppercase">Interaction</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 border border-purple-200">30%</span>
+                {/* Scorecard 3-Pillar CEFR Spoken Interaction Breakdown (Interaction 40%, Fluency 30%, Accuracy 30% = 100%) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Interaction Card (Includes Comprehension Quiz) */}
+                  <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 text-center flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <span className="text-xs text-purple-700 font-bold uppercase tracking-wider">Interaction</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                          {activeCallCrit.find((c) => c.name.toLowerCase().includes("interaction"))?.weight ?? 40}%
+                        </span>
+                      </div>
+                      <p className="text-3xl font-extrabold text-purple-700 my-1">
+                        {evaluation ? (evaluation.interaction_score ?? evaluation.empathy_score ?? 0) : 0}%
+                      </p>
+                      <p className="text-[11px] text-purple-700 font-medium">Customer Empathy &amp; Turn-Taking</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-purple-700">
-                      {evaluation ? (evaluation.interaction_score ?? evaluation.empathy_score ?? 0) : 0}%
-                    </p>
-                    <p className="text-[10px] text-purple-600/90 mt-0.5">Empathy &amp; De-escalation</p>
+
+                    {evaluation?.quiz_score != null && (
+                      <div className="mt-3 pt-2.5 border-t border-purple-200/60 flex items-center justify-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] uppercase font-bold text-purple-600">Comprehension Quiz:</span>
+                        <span className="text-xs font-extrabold text-purple-900 bg-white px-2 py-0.5 rounded-lg border border-purple-200 shadow-2xs">
+                          {evaluation.quiz_score}% {evaluation.quiz_result ? `(${evaluation.quiz_result.correct}/${evaluation.quiz_result.total} Correct)` : ""}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <span className="text-xs text-emerald-700 font-semibold uppercase">Coherence</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">25%</span>
+                  {/* Fluency Card */}
+                  <div className="bg-blue-50/70 p-4 rounded-xl border border-blue-200 text-center flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <span className="text-xs text-blue-700 font-bold uppercase tracking-wider">Fluency</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                          {activeCallCrit.find((c) => c.name.toLowerCase().includes("fluency"))?.weight ?? 30}%
+                        </span>
+                      </div>
+                      <p className="text-3xl font-extrabold text-blue-700 my-1">
+                        {evaluation ? (evaluation.fluency_score ?? evaluation.clarity_score ?? 0) : 0}%
+                      </p>
+                      <p className="text-[11px] text-blue-700 font-medium">Cadence, Flow &amp; Dead-Air Control</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-emerald-700">
-                      {evaluation ? (evaluation.coherence_score ?? evaluation.resolution_score ?? 0) : 0}%
-                    </p>
-                    <p className="text-[10px] text-emerald-600/90 mt-0.5">Troubleshooting &amp; Steps</p>
+                    <div className="mt-3 pt-2.5 border-t border-blue-200/60 text-[10px] text-blue-600 font-medium">
+                      Optimal conversational tempo (115–145 WPM)
+                    </div>
                   </div>
 
-                  <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-200 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <span className="text-xs text-blue-700 font-semibold uppercase">Fluency</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700 border border-blue-200">15%</span>
+                  {/* Accuracy Card */}
+                  <div className="bg-teal-50/70 p-4 rounded-xl border border-teal-200 text-center flex flex-col justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <span className="text-xs text-teal-700 font-bold uppercase tracking-wider">Accuracy</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                          {activeCallCrit.find((c) => c.name.toLowerCase().includes("accuracy"))?.weight ?? 30}%
+                        </span>
+                      </div>
+                      <p className="text-3xl font-extrabold text-teal-700 my-1">
+                        {evaluation ? (evaluation.accuracy_score ?? evaluation.resolution_score ?? 0) : 0}%
+                      </p>
+                      <p className="text-[11px] text-teal-700 font-medium">Verification Precision &amp; Phonetics</p>
                     </div>
-                    <p className="text-2xl font-extrabold text-blue-700">
-                      {evaluation ? (evaluation.fluency_score ?? evaluation.overall_score ?? 0) : 0}%
-                    </p>
-                    <p className="text-[10px] text-blue-600/90 mt-0.5">Calm Conversational Pace</p>
-                  </div>
-
-                  <div className="bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-200 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <span className="text-xs text-indigo-700 font-semibold uppercase">Accuracy</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200">15%</span>
+                    <div className="mt-3 pt-2.5 border-t border-teal-200/60 text-[10px] text-teal-600 font-medium">
+                      Clear enunciation &amp; verified account details
                     </div>
-                    <p className="text-2xl font-extrabold text-indigo-700">
-                      {evaluation ? (evaluation.accuracy_score ?? evaluation.clarity_score ?? 0) : 0}%
-                    </p>
-                    <p className="text-[10px] text-indigo-600/90 mt-0.5">Verification &amp; Clarity</p>
-                  </div>
-
-                  <div className="bg-amber-50/50 p-3.5 rounded-xl border border-amber-200 text-center col-span-2 md:col-span-1">
-                    <div className="flex items-center justify-center gap-1 mb-1">
-                      <span className="text-xs text-amber-700 font-semibold uppercase">Range</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-700 border border-amber-200">15%</span>
-                    </div>
-                    <p className="text-2xl font-extrabold text-amber-700">
-                      {evaluation ? (evaluation.range_score ?? (evaluation.overall_score ? Math.min(95, evaluation.overall_score + 2) : 0)) : 0}%
-                    </p>
-                    <p className="text-[10px] text-amber-600/90 mt-0.5">Polite BPO Vocabulary</p>
                   </div>
                 </div>
 
@@ -1061,9 +1226,11 @@ const CallSimulationSession = () => {
                       setCurrentTurn(0);
                       setCallDuration(0);
                       setAgentResponses([]);
+                      setQuizAnswers({});
+                      setQuizScoreResult(null);
                       setEvaluation(null);
                     }}
-                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-sm transition text-center"
+                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-xl text-sm transition text-center cursor-pointer"
                   >
                     🔁 Retry This Scenario
                   </button>
