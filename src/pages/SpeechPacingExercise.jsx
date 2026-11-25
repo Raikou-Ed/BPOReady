@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import AudioRecorder from "../components/AudioRecorder";
 import { submitExerciseAttempt } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
-const pacingScripts = [
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+const defaultPacingScripts = [
   {
     id: 1,
     title: "Customer Empathy & Billing Assurance",
@@ -30,13 +32,68 @@ const pacingScripts = [
 ];
 
 const SpeechPacingExercise = () => {
+  const [scripts, setScripts] = useState(() => {
+    try {
+      const custom = localStorage.getItem("bpo_pacing_scripts_custom");
+      if (custom) {
+        const parsed = JSON.parse(custom);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const allEx = localStorage.getItem("bpo_custom_exercises");
+      if (allEx) {
+        const parsed = JSON.parse(allEx);
+        const pacing = parsed.filter((e) => e.target_flaw === "speech_pacing" && e.is_active !== false);
+        if (pacing.length > 0) {
+          return pacing.map((p, idx) => {
+            const words = p.prompt_text ? p.prompt_text.trim().split(/\s+/).length : 60;
+            return {
+              id: p.id,
+              title: p.title?.replace(/^Passage\s*\d+:\s*/i, "") || `Passage ${idx + 1}`,
+              targetWords: words,
+              estimatedSeconds: Math.round((words / 135) * 60) || 25,
+              text: p.prompt_text,
+            };
+          });
+        }
+      }
+    } catch {}
+    return defaultPacingScripts;
+  });
+
   const [selectedScriptIdx, setSelectedScriptIdx] = useState(0);
   const [recording, setRecording] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
 
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
-  const currentScript = pacingScripts[selectedScriptIdx];
+  const currentScript = scripts[selectedScriptIdx] || scripts[0] || defaultPacingScripts[0];
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/exercises?target_flaw=speech_pacing`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data
+            .filter((d) => d.is_active !== false)
+            .map((d, idx) => {
+              const txt = d.prompt_text || d.exercise_content || "";
+              const words = txt ? txt.trim().split(/\s+/).length : 60;
+              return {
+                id: d.id,
+                title: d.title?.replace(/^Passage\s*\d+:\s*/i, "") || `Passage ${idx + 1}`,
+                targetWords: words,
+                estimatedSeconds: Math.round((words / 135) * 60) || 25,
+                text: txt,
+              };
+            });
+          if (mapped.length > 0) {
+            setScripts(mapped);
+            localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(mapped));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleRecorded = (blob, durationSeconds, transcript) => {
     const text = (transcript || "").trim();
@@ -185,22 +242,22 @@ const SpeechPacingExercise = () => {
           </div>
 
           {/* Script Selector Tabs */}
-          <div className="flex gap-2 border-b border-gray-200 pb-3">
-            {pacingScripts.map((script, idx) => (
+          <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+            {scripts.map((script, idx) => (
               <button
-                key={script.id}
+                key={script.id || idx}
                 onClick={() => {
                   setSelectedScriptIdx(idx);
                   setRecording(null);
                   setResult(null);
                 }}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg transition ${
+                className={`px-4 py-2 text-xs font-semibold rounded-lg transition cursor-pointer ${
                   selectedScriptIdx === idx
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
-                Passage {idx + 1}: {script.title}
+                Passage {idx + 1}: {script.title?.replace(/^Passage\s*\d+:\s*/i, "")}
               </button>
             ))}
           </div>
@@ -227,7 +284,7 @@ const SpeechPacingExercise = () => {
               <p className="text-xs text-gray-500 mb-3 text-center">
                 Press Start Recording, read the passage at your natural conversational speed, and press Stop when finished.
               </p>
-              <AudioRecorder onRecordingComplete={handleRecorded} />
+              <AudioRecorder expectedText={currentScript.text} onRecordingComplete={handleRecorded} />
             </div>
           </div>
 

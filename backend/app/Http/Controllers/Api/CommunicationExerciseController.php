@@ -18,11 +18,17 @@ class CommunicationExerciseController extends Controller
         $isAdmin = $request->query('admin') || $request->query('all');
         $query = CommunicationExercise::query();
 
+        // Never return inactive / deleted drills unless explicitly requested
+        if (!$request->query('include_inactive')) {
+            $query->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            });
+        }
+
         if (!$isAdmin) {
-            $query->where('is_active', true)
-                  ->where(function ($q) {
-                      $q->where('approval_status', 'approved')->orWhereNull('approval_status');
-                  });
+            $query->where(function ($q) {
+                $q->where('approval_status', 'approved')->orWhereNull('approval_status');
+            });
         }
 
         if ($flaw) {
@@ -94,7 +100,11 @@ class CommunicationExerciseController extends Controller
         if (!$ex) {
             return response()->json(['message' => 'Exercise not found'], 404);
         }
-        $ex->update(['is_active' => false]);
+        try {
+            $ex->delete();
+        } catch (\Throwable $e) {
+            $ex->update(['is_active' => false]);
+        }
         return response()->json(['success' => true]);
     }
 

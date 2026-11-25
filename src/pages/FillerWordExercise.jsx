@@ -66,6 +66,32 @@ const FILLER_LIST = [
 const fillerRegex = /\b(um+|uh+|uhm+|ah+|ahh+|er+|erm+|hmm+|mhm|like|you\s+know|actually|basically|literally|honestly|i\s+mean)\b/gi;
 
 const FillerWordExercise = () => {
+  const [promptsList, setPromptsList] = useState(() => {
+    try {
+      const allEx = localStorage.getItem("bpo_custom_exercises");
+      if (allEx) {
+        const parsed = JSON.parse(allEx);
+        const fillers = parsed.filter((e) => e.target_flaw === "filler_words" && e.is_active !== false);
+        if (fillers.length > 0) {
+          return fillers.map((f, idx) => ({
+            id: f.id,
+            title: f.title,
+            customer: prompts[idx]?.customer || "Customer Scenario",
+            situation: f.prompt_text,
+            objectives: prompts[idx]?.objectives || [
+              "Acknowledge the customer's situation with poise.",
+              "Provide a clear, reassuring response without filler words.",
+              "Maintain steady composure and natural pauses."
+            ],
+            hint: prompts[idx]?.hint || "Take a deep breath and pause silently rather than saying 'um' or 'uh'.",
+            promptText: f.prompt_text,
+          }));
+        }
+      }
+    } catch {}
+    return prompts;
+  });
+
   const [promptIndex, setPromptIndex] = useState(0);
   const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -74,7 +100,7 @@ const FillerWordExercise = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
-  const currentPrompt = prompts[promptIndex];
+  const currentPrompt = promptsList[promptIndex] || promptsList[0] || prompts[0];
 
   const handleRecorded = async (blob, durationSeconds, transcript, audioMetrics) => {
     const text = (transcript || "").trim();
@@ -248,7 +274,7 @@ const FillerWordExercise = () => {
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
               Impromptu BPO Scenario Drill
             </span>
-            <span className="text-xs text-gray-500 font-medium">Scenario {promptIndex + 1} of {prompts.length}</span>
+            <span className="text-xs text-gray-500 font-medium">Scenario {promptIndex + 1} of {promptsList.length}</span>
           </div>
 
           <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{currentPrompt.title}</h2>
@@ -381,7 +407,7 @@ const FillerWordExercise = () => {
                 onClick={() => {
                   setRecording(null);
                   setResult(null);
-                  setPromptIndex((promptIndex + 1) % prompts.length);
+                  setPromptIndex((promptIndex + 1) % promptsList.length);
                 }}
                 className="flex-1 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-md transition-all text-sm"
               >
