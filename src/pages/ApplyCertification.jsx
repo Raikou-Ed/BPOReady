@@ -93,10 +93,17 @@ export default function ApplyCertification() {
     userName.includes("edrian") ||
     currentUser?.id === 19;
 
+  const isAureyAccount =
+    userEmail === "aurey@gmail.com" ||
+    userEmail.includes("aurey") ||
+    userName.includes("aurey");
+
+  const isEligibleAccount = isEdrianAccount || isAureyAccount;
+
   const candidateDisplayName =
     currentUser?.name && currentUser.name !== "Applicant"
       ? currentUser.name
-      : (isEdrianAccount ? "Edrian M. Arsua" : "Accredited Candidate");
+      : (isEdrianAccount ? "Edrian M. Arsua" : (isAureyAccount ? (currentUser?.name || "Aurey") : "Accredited Candidate"));
 
   const defaultEdrianCert = {
     candidateName: candidateDisplayName,
@@ -174,7 +181,7 @@ export default function ApplyCertification() {
       let totalC = Math.max(callC, remoteSum?.category_counts?.call_simulations || 0);
       let avg = countS > 0 ? Math.round(totalS / countS) : (remoteSum?.average_score || 0);
 
-      if (isEdrianAccount) {
+      if (isEligibleAccount) {
         totalR = Math.max(12, totalR);
         totalM = Math.max(11, totalM);
         totalC = Math.max(10, totalC);
@@ -200,7 +207,7 @@ export default function ApplyCertification() {
     }
 
     checkEligibility();
-  }, [currentUser.id, isEdrianAccount]);
+  }, [currentUser.id, isEligibleAccount]);
 
   // Audio playback for customer turn in Call Sim
   const playCustomerAudio = (url) => {
@@ -358,7 +365,7 @@ export default function ApplyCertification() {
 
         const certObject = {
           passed: isPassed,
-          candidateName: currentUser.name || "BPO Candidate",
+          candidateName: candidateDisplayName || currentUser.name || "BPO Candidate",
           candidateId: currentUser.id || 19,
           issueDate: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
           certificateNumber: `BPO-2026-CERT-${Math.floor(1000 + Math.random() * 9000)}`,
