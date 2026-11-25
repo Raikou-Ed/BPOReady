@@ -430,7 +430,7 @@ export default function PreAssessment() {
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mt-2">Communication Pre-Assessment</h1>
               <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-                Read the standard BPO screening passage aloud. Standardized against Council of Europe CEFR Table 3, the speech evaluation engine evaluates your Accuracy (30%), Fluency (30%), Range (20%), and Coherence (20%) to calibrate your starting difficulty tier.
+                Read the spoken English diagnostic passage aloud. Calibrated against CEFR speech evaluation standards, the speech engine evaluates your Pronunciation, Fluency, and Pacing to determine your starting difficulty tier.
               </p>
             </div>
 
