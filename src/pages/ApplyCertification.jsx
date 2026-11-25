@@ -708,22 +708,39 @@ export default function ApplyCertification() {
               </div>
 
               {/* Action Button */}
-              {isEligible ? (
+              {savedCertificate?.passed ? (
+                <div className="pt-2 p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 border-2 border-emerald-300 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
+                      🎓
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                        Accredited &amp; Certified
+                      </span>
+                      <h4 className="text-sm font-bold text-gray-900 mt-1">
+                        Certificate of BPO Voice Readiness Issued
+                      </h4>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        You have officially passed the 3-stage exam with a composite score of <strong>{savedCertificate.overallScore}%</strong> ({savedCertificate.cefrLevel}).
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setCurrentStep("STAGE_4_RESULT")}
+                    className="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                  >
+                    <span>View Official Certificate →</span>
+                  </button>
+                </div>
+              ) : isEligible ? (
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setCurrentStep("STAGE_1_READING")}
                     className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Start Official Certification Exam (3 Stages) →</span>
+                    <span>{savedCertificate && !savedCertificate.passed ? "↺ Retake Official Certification Exam (3 Stages) →" : "Start Official Certification Exam (3 Stages) →"}</span>
                   </button>
-                  {savedCertificate?.passed && (
-                    <button
-                      onClick={() => setCurrentStep("STAGE_4_RESULT")}
-                      className="py-4 px-6 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-sm transition border border-blue-200 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>🎓 View Issued Certificate</span>
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div className="pt-2 space-y-3">
@@ -953,28 +970,31 @@ export default function ApplyCertification() {
                 </button>
 
                 <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={handleDownloadCertificate}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
-                  >
-                    <span>📥 Download Certificate</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setCurrentStep("STAGE_1_READING");
-                      setStage1Score(null);
-                      setStage2Score(null);
-                      setStage3Score(null);
-                      setInterviewAnswers([]);
-                      setCurrentCallScenarioIdx(0);
-                      setCompletedCallScores([]);
-                      setCallTurn(0);
-                      setCallHistory([]);
-                    }}
-                    className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
-                  >
-                    <span>↺ Retake Exam</span>
-                  </button>
+                  {savedCertificate.passed ? (
+                    <button
+                      onClick={handleDownloadCertificate}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>📥 Download Certificate</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setCurrentStep("STAGE_1_READING");
+                        setStage1Score(null);
+                        setStage2Score(null);
+                        setStage3Score(null);
+                        setInterviewAnswers([]);
+                        setCurrentCallScenarioIdx(0);
+                        setCompletedCallScores([]);
+                        setCallTurn(0);
+                        setCallHistory([]);
+                      }}
+                      className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>↺ Retake Exam</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
