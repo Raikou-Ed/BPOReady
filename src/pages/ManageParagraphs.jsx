@@ -42,17 +42,35 @@ const defaultParagraphs = [
 const ManageParagraphs = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin", name: "Admin" });
   const [paragraphs, setParagraphs] = useState(() => {
+    let deletedIds = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+    } catch {}
+
     try {
       const cached = localStorage.getItem("bpo_custom_paragraphs");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(
+            (p) =>
+              p.is_active !== false &&
+              p.is_active !== 0 &&
+              p.is_active !== "0" &&
+              !deletedIds.includes(p.id) &&
+              !deletedIds.includes(String(p.id)) &&
+              !deletedIds.includes(Number(p.id))
+          );
           const customPre = localStorage.getItem("bpo_preassessment_custom");
           if (customPre) {
             const preObj = JSON.parse(customPre);
-            return parsed.map(p => p.difficulty === "pre-assessment" ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content } : p);
+            return valid.map((p) =>
+              p.difficulty === "pre-assessment"
+                ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content }
+                : p
+            );
           }
-          return parsed;
+          return valid;
         }
       }
     } catch {}
@@ -61,7 +79,11 @@ const ManageParagraphs = () => {
       const customPre = localStorage.getItem("bpo_preassessment_custom");
       if (customPre) {
         const preObj = JSON.parse(customPre);
-        return defaultParagraphs.map(p => p.difficulty === "pre-assessment" ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content } : p);
+        return defaultParagraphs.map((p) =>
+          p.difficulty === "pre-assessment"
+            ? { ...p, title: preObj.title || p.title, content: preObj.content || p.content }
+            : p
+        );
       }
     } catch {}
 
@@ -87,20 +109,45 @@ const ManageParagraphs = () => {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          let merged = [...data];
+          let deletedIds = [];
+          try {
+            deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+          } catch {}
+
+          // Filter out inactive/deleted passages
+          let merged = data.filter(
+            (p) =>
+              p.is_active !== false &&
+              p.is_active !== 0 &&
+              p.is_active !== "0" &&
+              !deletedIds.includes(p.id) &&
+              !deletedIds.includes(String(p.id)) &&
+              !deletedIds.includes(Number(p.id))
+          );
+
           const customPre = localStorage.getItem("bpo_preassessment_custom");
           let preParsed = null;
           if (customPre) {
-            try { preParsed = JSON.parse(customPre); } catch {}
+            try {
+              preParsed = JSON.parse(customPre);
+            } catch {}
           }
 
-          if (!merged.some(p => p.difficulty?.toLowerCase() === "pre-assessment")) {
-            const preItem = defaultParagraphs.find(p => p.difficulty === "pre-assessment");
+          if (!merged.some((p) => p.difficulty?.toLowerCase() === "pre-assessment")) {
+            const preItem = defaultParagraphs.find((p) => p.difficulty === "pre-assessment");
             if (preItem) {
-              merged.unshift(preParsed ? { ...preItem, title: preParsed.title || preItem.title, content: preParsed.content || preItem.content } : preItem);
+              merged.unshift(
+                preParsed
+                  ? { ...preItem, title: preParsed.title || preItem.title, content: preParsed.content || preItem.content }
+                  : preItem
+              );
             }
           } else if (preParsed) {
-            merged = merged.map(p => p.difficulty?.toLowerCase() === "pre-assessment" ? { ...p, title: preParsed.title || p.title, content: preParsed.content || p.content } : p);
+            merged = merged.map((p) =>
+              p.difficulty?.toLowerCase() === "pre-assessment"
+                ? { ...p, title: preParsed.title || p.title, content: preParsed.content || p.content }
+                : p
+            );
           }
           setParagraphs(merged);
           localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(merged));
@@ -142,6 +189,15 @@ const ManageParagraphs = () => {
     const remaining = paragraphs.filter((p) => p.id !== id);
     setParagraphs(remaining);
     localStorage.setItem("bpo_custom_paragraphs", JSON.stringify(remaining));
+
+    // Persist deleted ID locally so refresh never resurrects it
+    try {
+      const deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_paragraph_ids") || "[]");
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        localStorage.setItem("bpo_deleted_paragraph_ids", JSON.stringify(deletedIds));
+      }
+    } catch {}
 
     try {
       const res = await fetch(`${API_BASE}/api/paragraphs/${id}`, { method: "DELETE" });

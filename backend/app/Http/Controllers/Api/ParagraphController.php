@@ -18,11 +18,18 @@ class ParagraphController extends Controller
         $level = $request->query('level');
         $isAdmin = $request->query('admin') || $request->query('all');
         $query = Paragraph::query();
+
+        // Never return inactive / deleted paragraphs unless explicitly requested with include_inactive=1
+        if (!$request->query('include_inactive')) {
+            $query->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            });
+        }
+
         if (!$isAdmin) {
-            $query->where('is_active', true)
-                  ->where(function ($q) {
-                      $q->where('approval_status', 'approved')->orWhereNull('approval_status');
-                  });
+            $query->where(function ($q) {
+                $q->where('approval_status', 'approved')->orWhereNull('approval_status');
+            });
         }
         if ($level) {
             $query->where('difficulty', strtolower($level));
@@ -78,7 +85,11 @@ class ParagraphController extends Controller
     {
         $p = Paragraph::find($id);
         if (!$p) return response()->json(['message' => 'Paragraph not found'], 404);
-        $p->update(['is_active' => false]);
+        try {
+            $p->delete();
+        } catch (\Throwable $e) {
+            $p->update(['is_active' => false]);
+        }
         return response()->json(['success' => true]);
     }
 
