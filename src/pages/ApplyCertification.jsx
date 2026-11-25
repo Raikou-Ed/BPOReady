@@ -7,11 +7,11 @@ import { calculateAssessmentScore, hasMeaningfulSpeech } from "../utils/assessme
 import { CALL_SCENARIOS } from "../data/callScenariosData";
 import { getApplicantSummary, getApplicantHistory } from "../api/adminApi";
 
-// Exclusive Standardized Certification Reading Passage
+// Exclusive Standardized Certification Reading Passage (General Spoken English)
 const CERTIFICATION_PASSAGE = {
-  title: "Global Customer Service Assurance & Data Security Charter",
-  category: "Standardized Certification Passage",
-  content: "Welcome to Global Telecom Support. Our primary objective is to deliver immediate, transparent, and empathetic service to every customer. When handling sensitive account inquiries, representatives must verify caller identity with strict adherence to security protocols. Clear enunciation, attentive listening, and active patience prevent misunderstandings and reassure customers during high-stress billing or technical escalations. By upholding high verbal professionalism and resolving inquiries promptly on the first contact, you represent our organization with excellence and integrity."
+  title: "The Power of Clear Communication and Human Connection",
+  category: "General Standardized Reading Passage",
+  content: "Clear communication is the foundation of positive human relationships and mutual understanding. When we express our thoughts with clarity, patience, and purpose, we bridge differences and create meaningful connections. Listening attentively is just as important as speaking well, as it shows genuine respect for the speaker's ideas. Practicing thoughtful enunciation and maintaining a steady, natural rhythm helps ensure that our message is received accurately. In any personal or professional endeavor, speaking with confidence and empathy empowers us to collaborate effectively and inspire positive change."
 };
 
 // Exclusive Comprehensive BPO HR Mock Interview Questions
