@@ -12,29 +12,47 @@ const defaultQuestions = [
   {
     id: 1,
     question_type: "initial",
+    interview_type: "initial",
     question_text: "Tell me about yourself and your background.",
   },
   {
     id: 2,
     question_type: "initial",
+    interview_type: "initial",
     question_text: "Why do you want to build a career in the BPO / Call Center industry?",
   },
   {
     id: 3,
     question_type: "initial",
+    interview_type: "initial",
     question_text: "How do you handle night shifts and rotating work schedules?",
   },
   {
     id: 4,
     question_type: "final",
+    interview_type: "final",
     question_text: "Describe a specific time you had to deal with an extremely angry or unreasonable customer. How did you resolve the situation?",
   },
   {
     id: 5,
     question_type: "final",
+    interview_type: "final",
     question_text: "How do you maintain high call quality when handling high call volumes and back-to-back customer inquiries?",
   },
 ];
+
+const getQuestionType = (q) => {
+  return (q.interview_type || q.question_type || "initial").toLowerCase();
+};
+
+const normalizeQuestion = (q) => {
+  const type = getQuestionType(q);
+  return {
+    ...q,
+    interview_type: type,
+    question_type: type,
+  };
+};
 
 const ManageInterviewQuestions = () => {
   const [currentUser] = useState(() => getCurrentUser() || { role: "super_admin" });
@@ -51,20 +69,22 @@ const ManageInterviewQuestions = () => {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const valid = parsed.filter(
-            (q) =>
-              q.is_active !== false &&
-              !deletedIds.includes(q.id) &&
-              !deletedIds.includes(String(q.id)) &&
-              !deletedIds.includes(Number(q.id)) &&
-              !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
-          );
+          const valid = parsed
+            .filter(
+              (q) =>
+                q.is_active !== false &&
+                !deletedIds.includes(q.id) &&
+                !deletedIds.includes(String(q.id)) &&
+                !deletedIds.includes(Number(q.id)) &&
+                !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+            )
+            .map(normalizeQuestion);
           if (valid.length > 0) return valid;
         }
       }
     } catch {}
 
-    return defaultQuestions;
+    return defaultQuestions.map(normalizeQuestion);
   });
 
   const [loading, setLoading] = useState(true);
@@ -90,27 +110,31 @@ const ManageInterviewQuestions = () => {
           deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
         } catch {}
 
-        const validFromApi = data.filter(
-          (q) =>
-            q.is_active !== false &&
-            !deletedIds.includes(q.id) &&
-            !deletedIds.includes(String(q.id)) &&
-            !deletedIds.includes(Number(q.id)) &&
-            !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
-        );
+        const validFromApi = data
+          .filter(
+            (q) =>
+              q.is_active !== false &&
+              !deletedIds.includes(q.id) &&
+              !deletedIds.includes(String(q.id)) &&
+              !deletedIds.includes(Number(q.id)) &&
+              !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+          )
+          .map(normalizeQuestion);
 
         let localCustom = [];
         try {
           const raw = localStorage.getItem("bpo_custom_questions");
           if (raw) {
-            localCustom = JSON.parse(raw).filter(
-              (q) =>
-                q.is_active !== false &&
-                !deletedIds.includes(q.id) &&
-                !deletedIds.includes(String(q.id)) &&
-                !deletedIds.includes(Number(q.id)) &&
-                !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
-            );
+            localCustom = JSON.parse(raw)
+              .filter(
+                (q) =>
+                  q.is_active !== false &&
+                  !deletedIds.includes(q.id) &&
+                  !deletedIds.includes(String(q.id)) &&
+                  !deletedIds.includes(Number(q.id)) &&
+                  !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+              )
+              .map(normalizeQuestion);
           }
         } catch {}
 
@@ -120,7 +144,7 @@ const ManageInterviewQuestions = () => {
             !deletedIds.includes(def.id) &&
             !deletedTexts.includes((def.question_text || "").trim().toLowerCase())
           ) {
-            map.set(String(def.id), def);
+            map.set(String(def.id), normalizeQuestion(def));
           }
         });
         validFromApi.forEach((q) => map.set(String(q.id), q));
@@ -130,7 +154,7 @@ const ManageInterviewQuestions = () => {
           }
         });
 
-        const merged = Array.from(map.values());
+        const merged = Array.from(map.values()).map(normalizeQuestion);
         setQuestions(merged);
         localStorage.setItem("bpo_custom_questions", JSON.stringify(merged));
       }
@@ -199,9 +223,10 @@ const ManageInterviewQuestions = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const approval_status = "approved"; // Published live immediately per adviser directive
+    const chosenType = (formData.question_type || formData.interview_type || "initial").toLowerCase();
     const payload = {
-      question_type: formData.question_type,
-      interview_type: formData.question_type,
+      question_type: chosenType,
+      interview_type: chosenType,
       question_text: formData.question_text,
       approval_status,
       created_by_user_id: currentUser?.id,
@@ -211,15 +236,17 @@ const ManageInterviewQuestions = () => {
 
     try {
       if (editingId) {
-        updatedList = questions.map((q) => (q.id === editingId ? { ...q, ...payload } : q));
+        updatedList = questions.map((q) =>
+          q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q
+        );
         setQuestions(updatedList);
         localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
 
-        const updated = await updateInterviewQuestion(editingId, payload);
+        await updateInterviewQuestion(editingId, payload);
         setMessage("Interview question updated and active for applicants! Monitored in Super Admin audit trail.");
       } else {
         const tempId = `q-${Date.now()}`;
-        const newQ = { id: tempId, ...payload };
+        const newQ = normalizeQuestion({ id: tempId, ...payload });
         updatedList = [...questions, newQ];
         setQuestions(updatedList);
         localStorage.setItem("bpo_custom_questions", JSON.stringify(updatedList));
@@ -240,7 +267,9 @@ const ManageInterviewQuestions = () => {
               } catch {}
               return current;
             }
-            const withRealId = current.map((q) => (q.id === tempId ? { ...q, id: realId } : q));
+            const withRealId = current.map((q) =>
+              q.id === tempId ? normalizeQuestion({ ...q, id: realId }) : q
+            );
             localStorage.setItem("bpo_custom_questions", JSON.stringify(withRealId));
             return withRealId;
           });
@@ -251,10 +280,10 @@ const ManageInterviewQuestions = () => {
     } catch {
       if (editingId) {
         setQuestions(
-          questions.map((q) => (q.id === editingId ? { ...q, ...payload } : q))
+          questions.map((q) => (q.id === editingId ? normalizeQuestion({ ...q, ...payload }) : q))
         );
       } else {
-        setQuestions([...questions, { id: Date.now(), ...payload }]);
+        setQuestions([...questions, normalizeQuestion({ id: Date.now(), ...payload })]);
       }
       setIsModalOpen(false);
       setMessage("Question saved locally.");
@@ -264,7 +293,7 @@ const ManageInterviewQuestions = () => {
 
   const filtered = questions.filter((q) => {
     if (filterType === "all") return true;
-    return q.question_type?.toLowerCase() === filterType;
+    return getQuestionType(q) === filterType;
   });
 
   return (
@@ -356,28 +385,37 @@ const ManageInterviewQuestions = () => {
               { key: "all", label: "All Questions" },
               { key: "initial", label: "Initial HR Screening" },
               { key: "final", label: "Final Operations / Behavioral" },
-            ].map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setFilterType(f.key)}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl transition ${
-                  filterType === f.key
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                }`}
-              >
-                {f.label} ({f.key === "all" ? questions.length : questions.filter((q) => q.question_type?.toLowerCase() === f.key).length})
-              </button>
-            ))}
+            ].map((f) => {
+              const count =
+                f.key === "all"
+                  ? questions.length
+                  : questions.filter((q) => getQuestionType(q) === f.key).length;
+
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setFilterType(f.key)}
+                  className={`px-4 py-2 text-xs font-semibold rounded-xl transition ${
+                    filterType === f.key
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
           </div>
 
           {/* Questions List */}
           <div className="space-y-4">
             {filtered.map((q) => {
-              const typeBadge =
-                q.question_type === "initial"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-purple-100 text-purple-800";
+              const type = getQuestionType(q);
+              const isInitial = type === "initial";
+              const typeBadge = isInitial
+                ? "bg-blue-100 text-blue-800"
+                : "bg-purple-100 text-purple-800";
+              const typeLabel = isInitial ? "Initial HR" : "Final Ops";
 
               const status = q.approval_status || "approved";
 
@@ -389,7 +427,7 @@ const ManageInterviewQuestions = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${typeBadge}`}>
-                        {q.question_type} Interview
+                        {typeLabel} Interview
                       </span>
 
                       {/* Status & Change Badges */}

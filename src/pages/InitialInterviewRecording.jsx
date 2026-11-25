@@ -26,11 +26,50 @@ const InitialInterviewRecording = () => {
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
 
   useEffect(() => {
-    getMockInterviewQuestions("initial").then((list) => {
-      if (Array.isArray(list) && list.length > 0) {
-        setQuestions(list);
-      }
-    }).catch(() => {});
+    let deletedIds = [];
+    let deletedTexts = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_question_ids") || "[]");
+      deletedTexts = JSON.parse(localStorage.getItem("bpo_deleted_question_texts") || "[]");
+    } catch {}
+
+    const filterValid = (arr) =>
+      arr.filter(
+        (q) =>
+          q.is_active !== false &&
+          !deletedIds.includes(q.id) &&
+          !deletedIds.includes(String(q.id)) &&
+          !deletedIds.includes(Number(q.id)) &&
+          !deletedTexts.includes((q.question_text || q.question || "").trim().toLowerCase())
+      );
+
+    getMockInterviewQuestions("initial")
+      .then((list) => {
+        let validList = Array.isArray(list) ? filterValid(list) : [];
+        try {
+          const raw = localStorage.getItem("bpo_custom_questions");
+          if (raw) {
+            const custom = JSON.parse(raw);
+            const initialCustom = filterValid(
+              custom.filter((q) => (q.interview_type || q.question_type) === "initial")
+            );
+            if (initialCustom.length > 0) {
+              const map = new Map();
+              validList.forEach((q) => map.set(String(q.id), q));
+              initialCustom.forEach((q) => map.set(String(q.id), q));
+              validList = Array.from(map.values());
+            }
+          }
+        } catch {}
+        if (validList.length > 0) {
+          setQuestions(validList);
+        } else {
+          setQuestions(filterValid(defaultQuestions));
+        }
+      })
+      .catch(() => {
+        setQuestions(filterValid(defaultQuestions));
+      });
   }, []);
 
   const currentQ = questions[currentIndex] || defaultQuestions[0];
