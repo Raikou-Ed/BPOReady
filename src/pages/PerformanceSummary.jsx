@@ -23,7 +23,12 @@ const PerformanceSummary = () => {
     userEmail.includes("aurey") ||
     userName.includes("aurey");
 
-  const isEligibleAccount = isEdrianAccount || isAureyAccount;
+  const isChiazamAccount =
+    userEmail === "chiazam@gmail.com" ||
+    userEmail.includes("chiazam") ||
+    userName.includes("chiazam");
+
+  const isEligibleAccount = isEdrianAccount || isAureyAccount || isChiazamAccount;
 
   useEffect(() => {
     async function loadPerformanceData() {

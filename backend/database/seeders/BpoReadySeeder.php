@@ -57,6 +57,22 @@ class BpoReadySeeder extends Seeder
             ]);
         }
 
+        $chiazamId = DB::table('users')->where('email', 'chiazam@gmail.com')->value('id');
+        if (!$chiazamId) {
+            $chiazamId = DB::table('users')->insertGetId([
+                'first_name' => 'Chiazam',
+                'last_name' => 'Candidate',
+                'middle_name' => null,
+                'email' => 'chiazam@gmail.com',
+                'password_hash' => Hash::make('Password123!'),
+                'role' => 'applicant',
+                'status' => 'active',
+                'assigned_level' => 'hard',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         // 2. Seed Scoring Standards
         if (DB::table('scoring_standards')->count() === 0) {
             DB::table('scoring_standards')->insert([

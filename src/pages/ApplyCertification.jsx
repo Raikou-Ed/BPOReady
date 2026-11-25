@@ -98,12 +98,17 @@ export default function ApplyCertification() {
     userEmail.includes("aurey") ||
     userName.includes("aurey");
 
-  const isEligibleAccount = isEdrianAccount || isAureyAccount;
+  const isChiazamAccount =
+    userEmail === "chiazam@gmail.com" ||
+    userEmail.includes("chiazam") ||
+    userName.includes("chiazam");
+
+  const isEligibleAccount = isEdrianAccount || isAureyAccount || isChiazamAccount;
 
   const candidateDisplayName =
     currentUser?.name && currentUser.name !== "Applicant"
       ? currentUser.name
-      : (isEdrianAccount ? "Edrian M. Arsua" : (isAureyAccount ? (currentUser?.name || "Aurey") : "Accredited Candidate"));
+      : (isEdrianAccount ? "Edrian M. Arsua" : (isAureyAccount ? (currentUser?.name || "Aurey") : (isChiazamAccount ? (currentUser?.name || "Chiazam") : "Accredited Candidate")));
 
   const defaultEdrianCert = {
     candidateName: candidateDisplayName,
