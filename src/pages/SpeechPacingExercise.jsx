@@ -33,18 +33,27 @@ const defaultPacingScripts = [
 
 const SpeechPacingExercise = () => {
   const [scripts, setScripts] = useState(() => {
+    let deletedIds = [];
     try {
-      const custom = localStorage.getItem("bpo_pacing_scripts_custom");
-      if (custom) {
-        const parsed = JSON.parse(custom);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+    } catch {}
+
+    // First check bpo_custom_exercises managed by Admin
+    try {
       const allEx = localStorage.getItem("bpo_custom_exercises");
       if (allEx) {
         const parsed = JSON.parse(allEx);
-        const pacing = parsed.filter((e) => e.target_flaw === "speech_pacing" && e.is_active !== false);
+        const pacing = parsed.filter(
+          (e) =>
+            e.target_flaw === "speech_pacing" &&
+            e.is_active !== false &&
+            !deletedIds.includes(e.id) &&
+            !deletedIds.includes(String(e.id)) &&
+            !deletedIds.includes(Number(e.id)) &&
+            !e.title?.toLowerCase().includes("optimal speech pacing practice")
+        );
         if (pacing.length > 0) {
-          return pacing.map((p, idx) => {
+          const mapped = pacing.map((p, idx) => {
             const words = p.prompt_text ? p.prompt_text.trim().split(/\s+/).length : 60;
             return {
               id: p.id,
@@ -54,9 +63,31 @@ const SpeechPacingExercise = () => {
               text: p.prompt_text,
             };
           });
+          localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(mapped));
+          return mapped;
         }
       }
     } catch {}
+
+    // Fallback: Check bpo_pacing_scripts_custom but strictly remove deleted or legacy drills
+    try {
+      const custom = localStorage.getItem("bpo_pacing_scripts_custom");
+      if (custom) {
+        const parsed = JSON.parse(custom);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(
+            (p) =>
+              !deletedIds.includes(p.id) &&
+              !deletedIds.includes(String(p.id)) &&
+              !deletedIds.includes(Number(p.id)) &&
+              !p.title?.toLowerCase().includes("optimal speech pacing practice")
+          );
+          if (valid.length > 0) return valid;
+        }
+      }
+    } catch {}
+
+    localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(defaultPacingScripts));
     return defaultPacingScripts;
   });
 
@@ -69,13 +100,26 @@ const SpeechPacingExercise = () => {
   const currentScript = scripts[selectedScriptIdx] || scripts[0] || defaultPacingScripts[0];
 
   useEffect(() => {
+    let deletedIds = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+    } catch {}
+
     fetch(`${API_BASE}/api/exercises?target_flaw=speech_pacing`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data
-            .filter((d) => d.is_active !== false)
-            .map((d, idx) => {
+        if (Array.isArray(data)) {
+          const valid = data.filter(
+            (d) =>
+              d.is_active !== false &&
+              !deletedIds.includes(d.id) &&
+              !deletedIds.includes(String(d.id)) &&
+              !deletedIds.includes(Number(d.id)) &&
+              !d.title?.toLowerCase().includes("optimal speech pacing practice")
+          );
+
+          if (valid.length > 0) {
+            const mapped = valid.map((d, idx) => {
               const txt = d.prompt_text || d.exercise_content || "";
               const words = txt ? txt.trim().split(/\s+/).length : 60;
               return {
@@ -86,11 +130,46 @@ const SpeechPacingExercise = () => {
                 text: txt,
               };
             });
-          if (mapped.length > 0) {
             setScripts(mapped);
             localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(mapped));
+            return;
           }
         }
+
+        // If backend has no custom speech pacing items, ensure we show active admin drills or default 3 passages
+        try {
+          const allEx = localStorage.getItem("bpo_custom_exercises");
+          if (allEx) {
+            const parsed = JSON.parse(allEx);
+            const pacing = parsed.filter(
+              (e) =>
+                e.target_flaw === "speech_pacing" &&
+                e.is_active !== false &&
+                !deletedIds.includes(e.id) &&
+                !deletedIds.includes(String(e.id)) &&
+                !deletedIds.includes(Number(e.id)) &&
+                !e.title?.toLowerCase().includes("optimal speech pacing practice")
+            );
+            if (pacing.length > 0) {
+              const mapped = pacing.map((p, idx) => {
+                const words = p.prompt_text ? p.prompt_text.trim().split(/\s+/).length : 60;
+                return {
+                  id: p.id,
+                  title: p.title?.replace(/^Passage\s*\d+:\s*/i, "") || `Passage ${idx + 1}`,
+                  targetWords: words,
+                  estimatedSeconds: Math.round((words / 135) * 60) || 25,
+                  text: p.prompt_text,
+                };
+              });
+              setScripts(mapped);
+              localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(mapped));
+              return;
+            }
+          }
+        } catch {}
+
+        setScripts(defaultPacingScripts);
+        localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(defaultPacingScripts));
       })
       .catch(() => {});
   }, []);

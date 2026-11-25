@@ -86,8 +86,21 @@ const defaultExercises = [
 
 const syncPacingStorage = (list) => {
   try {
+    let deletedIds = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem("bpo_deleted_exercise_ids") || "[]");
+    } catch {}
+
     const pacing = list
-      .filter((e) => e.target_flaw === "speech_pacing" && e.is_active !== false)
+      .filter(
+        (e) =>
+          e.target_flaw === "speech_pacing" &&
+          e.is_active !== false &&
+          !deletedIds.includes(e.id) &&
+          !deletedIds.includes(String(e.id)) &&
+          !deletedIds.includes(Number(e.id)) &&
+          !e.title?.toLowerCase().includes("optimal speech pacing practice")
+      )
       .map((p, idx) => {
         const words = p.prompt_text ? p.prompt_text.trim().split(/\s+/).length : 60;
         return {
@@ -98,9 +111,7 @@ const syncPacingStorage = (list) => {
           text: p.prompt_text,
         };
       });
-    if (pacing.length > 0) {
-      localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(pacing));
-    }
+    localStorage.setItem("bpo_pacing_scripts_custom", JSON.stringify(pacing));
   } catch {}
 };
 
@@ -324,11 +335,10 @@ const ManageExercises = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                    isSuperAdmin
-                      ? "bg-purple-100 text-purple-700 border border-purple-200"
-                      : "bg-blue-100 text-blue-700 border border-blue-200"
-                  }`}
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${isSuperAdmin
+                    ? "bg-purple-100 text-purple-700 border border-purple-200"
+                    : "bg-blue-100 text-blue-700 border border-blue-200"
+                    }`}
                 >
                   {isSuperAdmin ? "👑 Super Admin" : "🏢 Company Admin"}
                 </span>
@@ -405,11 +415,10 @@ const ManageExercises = () => {
               <button
                 key={f.key}
                 onClick={() => setFilterFlaw(f.key)}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl transition ${
-                  filterFlaw === f.key
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                }`}
+                className={`px-4 py-2 text-xs font-semibold rounded-xl transition ${filterFlaw === f.key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  }`}
               >
                 {f.label} ({f.key === "all" ? exercises.length : exercises.filter((e) => e.target_flaw?.toLowerCase() === f.key).length})
               </button>
@@ -423,8 +432,8 @@ const ManageExercises = () => {
                 ex.target_flaw === "filler_words"
                   ? "bg-amber-100 text-amber-800"
                   : ex.target_flaw === "grammar"
-                  ? "bg-indigo-100 text-indigo-800"
-                  : "bg-emerald-100 text-emerald-800";
+                    ? "bg-indigo-100 text-indigo-800"
+                    : "bg-emerald-100 text-emerald-800";
 
               const status = ex.approval_status || "approved";
 

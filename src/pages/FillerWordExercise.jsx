@@ -214,8 +214,8 @@ const FillerWordExercise = () => {
         feedback: recording.score === 0
           ? "No audible speech detected during your recording. Please ensure your microphone is enabled and speak clearly."
           : (recording.aiFeedback || (recording.score >= 85
-              ? "Exceptional filler control! Your delivery was smooth and articulate."
-              : `Detected ${recording.fillerCount} filler word(s). Take a conscious 1-second pause when forming thoughts instead of using fillers.`)),
+            ? "Exceptional filler control! Your delivery was smooth and articulate."
+            : `Detected ${recording.fillerCount} filler word(s). Take a conscious 1-second pause when forming thoughts instead of using fillers.`)),
       });
     } catch {
       setResult({
