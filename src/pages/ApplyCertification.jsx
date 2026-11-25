@@ -9,6 +9,7 @@ import {
   getActiveEvaluationCriteria,
   getActiveMockInterviewCriteria,
   getActiveCallSimulationCriteria,
+  getActiveCertificationPrerequisites,
 } from "../utils/assessmentScoring";
 import { CALL_SCENARIOS } from "../data/callScenariosData";
 import { getApplicantSummary, getApplicantHistory } from "../api/adminApi";
@@ -45,6 +46,7 @@ const CERTIFICATION_INTERVIEW_QUESTIONS = [
 export default function ApplyCertification() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser() || { id: 19, name: "Applicant" };
+  const prereqs = getActiveCertificationPrerequisites();
 
   // Stepper State: 'GATEKEEPER' -> 'STAGE_1_READING' -> 'STAGE_2_INTERVIEW' -> 'STAGE_3_CALL' -> 'STAGE_4_RESULT'
   const [currentStep, setCurrentStep] = useState("LOADING");
@@ -189,14 +191,20 @@ export default function ApplyCertification() {
       let totalC = Math.max(callC, remoteSum?.category_counts?.call_simulations || 0);
       let avg = countS > 0 ? Math.round(totalS / countS) : (remoteSum?.average_score || 0);
 
+      const prereqs = getActiveCertificationPrerequisites();
+
       if (isEligibleAccount) {
-        totalR = Math.max(12, totalR);
-        totalM = Math.max(11, totalM);
-        totalC = Math.max(10, totalC);
-        avg = Math.max(86, avg);
+        totalR = Math.max(prereqs.required_readings + 2, totalR);
+        totalM = Math.max(prereqs.required_mock_interviews + 1, totalM);
+        totalC = Math.max(prereqs.required_call_simulations, totalC);
+        avg = Math.max(Math.max(86, prereqs.min_performance_avg + 5), avg);
       }
 
-      const meetsQuotas = totalR >= 10 && totalM >= 10 && totalC >= 10 && avg >= 75;
+      const meetsQuotas =
+        totalR >= prereqs.required_readings &&
+        totalM >= prereqs.required_mock_interviews &&
+        totalC >= prereqs.required_call_simulations &&
+        avg >= prereqs.min_performance_avg;
 
       setEligibilityData({
         readingCount: totalR,
@@ -574,8 +582,12 @@ export default function ApplyCertification() {
       };
     });
 
-    // Passing criteria: Composite >= 85% AND each individual stage >= 70%
-    const isPassed = finalAverage >= 85 && rScore >= 70 && iScore >= 70 && cScore >= 70;
+    // Passing criteria calibrated from Admin Standards: Composite >= min_exam_composite AND each individual stage >= min_stage_score
+    const prereqs = getActiveCertificationPrerequisites();
+    const isPassed = finalAverage >= prereqs.min_exam_composite &&
+      rScore >= prereqs.min_stage_score &&
+      iScore >= prereqs.min_stage_score &&
+      cScore >= prereqs.min_stage_score;
 
     const certObject = {
       passed: isPassed,
@@ -591,7 +603,7 @@ export default function ApplyCertification() {
       stage1Criteria: stage1Factors,
       stage2Criteria: stage2Factors,
       stage3Criteria: stage3Factors,
-      cefrLevel: finalAverage >= 90 ? "CEFR C1 (Advanced Voice)" : (finalAverage >= 85 ? "CEFR B2 (BPO Hiring Benchmark)" : "Certification Standard Not Achieved"),
+      cefrLevel: finalAverage >= 90 ? "CEFR C1 (Advanced Voice)" : (finalAverage >= prereqs.min_exam_composite ? "CEFR B2 (BPO Hiring Benchmark)" : "Certification Standard Not Achieved"),
     };
 
     saveUserData("bpoReadyCertificate", certObject);
@@ -901,35 +913,35 @@ export default function ApplyCertification() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
                     <span>📖 Paragraph Readings:</span>
-                    <span className={`font-bold ${eligibilityData.readingCount >= 10 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {eligibilityData.readingCount} / 10 required
+                    <span className={`font-bold ${eligibilityData.readingCount >= prereqs.required_readings ? "text-emerald-600" : "text-rose-600"}`}>
+                      {eligibilityData.readingCount} / {prereqs.required_readings} required
                     </span>
                   </div>
 
                   <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
                     <span>💼 Mock Interviews:</span>
-                    <span className={`font-bold ${eligibilityData.mockCount >= 10 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {eligibilityData.mockCount} / 10 required
+                    <span className={`font-bold ${eligibilityData.mockCount >= prereqs.required_mock_interviews ? "text-emerald-600" : "text-rose-600"}`}>
+                      {eligibilityData.mockCount} / {prereqs.required_mock_interviews} required
                     </span>
                   </div>
 
                   <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
                     <span>📞 Call Simulations:</span>
-                    <span className={`font-bold ${eligibilityData.callCount >= 10 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {eligibilityData.callCount} / 10 required
+                    <span className={`font-bold ${eligibilityData.callCount >= prereqs.required_call_simulations ? "text-emerald-600" : "text-rose-600"}`}>
+                      {eligibilityData.callCount} / {prereqs.required_call_simulations} required
                     </span>
                   </div>
 
                   <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between">
                     <span>📊 Performance Summary Avg:</span>
-                    <span className={`font-bold ${eligibilityData.averageScore >= 75 ? "text-emerald-600" : "text-rose-600"}`}>
-                      {eligibilityData.averageScore}% / 75% min
+                    <span className={`font-bold ${eligibilityData.averageScore >= prereqs.min_performance_avg ? "text-emerald-600" : "text-rose-600"}`}>
+                      {eligibilityData.averageScore}% / {prereqs.min_performance_avg}% min
                     </span>
                   </div>
                 </div>
 
                 <div className="pt-2 text-[11px] text-gray-500 leading-relaxed">
-                  * Passing standard: You must achieve an overall average of <strong>85% or higher</strong> across the 3 exam stages to unlock the official certificate.
+                  * Passing standard: You must achieve an overall average of <strong>{prereqs.min_exam_composite}% or higher</strong> across the 3 exam stages (and minimum {prereqs.min_stage_score}% per stage) to unlock the official certificate.
                 </div>
               </div>
 
@@ -979,7 +991,7 @@ export default function ApplyCertification() {
               ) : (
                 <div className="pt-2 space-y-3">
                   <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium">
-                    🔒 <strong>Certification Exam Locked:</strong> You have not yet achieved "BPO Interview Ready" status. Please complete at least 10 sessions in each practice category to unlock this exam.
+                    🔒 <strong>Certification Exam Locked:</strong> You have not yet achieved "BPO Interview Ready" status. Please complete the required practice quotas ({prereqs.required_readings} Readings, {prereqs.required_mock_interviews} Mock Interviews, {prereqs.required_call_simulations} Call Simulations, and ≥{prereqs.min_performance_avg}% Avg) to unlock this exam.
                   </div>
                   <Link
                     to="/PerformanceSummary"
@@ -1291,8 +1303,8 @@ export default function ApplyCertification() {
                     </div>
                     <p className="text-xs text-gray-600 mt-1">
                       {savedCertificate.passed 
-                        ? "★ Minimum 85% accreditation benchmark achieved across all 3 examination stages."
-                        : "⚠️ Standard Not Achieved: Composite score is below the 85% accreditation threshold."}
+                        ? `★ Minimum ${prereqs.min_exam_composite}% accreditation benchmark achieved across all 3 examination stages.`
+                        : `⚠️ Standard Not Achieved: Composite score is below the ${prereqs.min_exam_composite}% accreditation threshold.`}
                     </p>
                   </div>
                   <div className="text-right">
@@ -1301,7 +1313,7 @@ export default function ApplyCertification() {
                     }`}>
                       {savedCertificate.cefrLevel}
                     </span>
-                    <p className="text-[10px] text-gray-500 mt-1 font-medium">Accreditation Standard: 85% Min Passing</p>
+                    <p className="text-[10px] text-gray-500 mt-1 font-medium">Accreditation Standard: {prereqs.min_exam_composite}% Min Passing</p>
                   </div>
                 </div>
 
@@ -1324,9 +1336,9 @@ export default function ApplyCertification() {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 1: Reading</span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage1ReadingScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                            (savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                           }`}>
-                            {(savedCertificate.stage1ReadingScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                            {(savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
@@ -1354,9 +1366,9 @@ export default function ApplyCertification() {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 2: HR Interview</span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage2InterviewScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                            (savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                           }`}>
-                            {(savedCertificate.stage2InterviewScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                            {(savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
@@ -1384,9 +1396,9 @@ export default function ApplyCertification() {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 3: Inbound Call</span>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage3CallScore || 0) >= 70 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                            (savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                           }`}>
-                            {(savedCertificate.stage3CallScore || 0) >= 70 ? "Passed" : "Needs Retake"}
+                            {(savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
                           </span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
@@ -1486,7 +1498,7 @@ export default function ApplyCertification() {
                     Certification Standard Not Achieved
                   </h3>
                   <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
-                    You achieved a composite score of <strong>{savedCertificate.overallScore}%</strong>. The official BPOReady accreditation threshold requires an average of <strong>85% or higher</strong> across all 3 exam stages.
+                    You achieved a composite score of <strong>{savedCertificate.overallScore}%</strong>. The official BPOReady accreditation threshold requires an average of <strong>{prereqs.min_exam_composite}% or higher</strong> across all 3 exam stages (with at least {prereqs.min_stage_score}% in each stage).
                   </p>
                   <div className="pt-2">
                     <button

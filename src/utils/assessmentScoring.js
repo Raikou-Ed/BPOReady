@@ -586,6 +586,32 @@ export function getActiveCallSimulationCriteria() {
   return DEFAULT_CALL_SIMULATION_CRITERIA;
 }
 
+export const DEFAULT_CERTIFICATION_PREREQUISITES = {
+  required_readings: 10,
+  required_mock_interviews: 10,
+  required_call_simulations: 10,
+  min_performance_avg: 75,
+  min_exam_composite: 85,
+  min_stage_score: 70,
+};
+
+export function getActiveCertificationPrerequisites() {
+  try {
+    const saved = getUserData('bpoReadyCertificationPrerequisites');
+    if (saved && typeof saved === 'object') {
+      return {
+        required_readings: Number(saved.required_readings ?? DEFAULT_CERTIFICATION_PREREQUISITES.required_readings),
+        required_mock_interviews: Number(saved.required_mock_interviews ?? DEFAULT_CERTIFICATION_PREREQUISITES.required_mock_interviews),
+        required_call_simulations: Number(saved.required_call_simulations ?? DEFAULT_CERTIFICATION_PREREQUISITES.required_call_simulations),
+        min_performance_avg: Number(saved.min_performance_avg ?? DEFAULT_CERTIFICATION_PREREQUISITES.min_performance_avg),
+        min_exam_composite: Number(saved.min_exam_composite ?? DEFAULT_CERTIFICATION_PREREQUISITES.min_exam_composite),
+        min_stage_score: Number(saved.min_stage_score ?? DEFAULT_CERTIFICATION_PREREQUISITES.min_stage_score),
+      };
+    }
+  } catch { }
+  return DEFAULT_CERTIFICATION_PREREQUISITES;
+}
+
 export function formatScore(score) {
   if (score == null) return "0";
   const num = Number(score);

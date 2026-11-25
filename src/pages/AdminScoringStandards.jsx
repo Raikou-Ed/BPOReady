@@ -6,6 +6,8 @@ import {
   DEFAULT_READING_CRITERIA,
   DEFAULT_MOCK_INTERVIEW_CRITERIA,
   DEFAULT_CALL_SIMULATION_CRITERIA,
+  DEFAULT_CERTIFICATION_PREREQUISITES,
+  getActiveCertificationPrerequisites,
 } from "../utils/assessmentScoring";
 
 const defaultStandards = [
@@ -69,6 +71,11 @@ const AdminScoringStandards = () => {
     return DEFAULT_CALL_SIMULATION_CRITERIA;
   });
 
+  // 4. Certification Prerequisites & Passing Standards
+  const [certificationPrerequisites, setCertificationPrerequisites] = useState(() => {
+    return getActiveCertificationPrerequisites();
+  });
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -101,6 +108,10 @@ const AdminScoringStandards = () => {
           if (data.callSimulationCriteria && Array.isArray(data.callSimulationCriteria) && data.callSimulationCriteria.length > 0) {
             setCallCriteriaList(data.callSimulationCriteria);
             saveUserData("bpoReadyCallSimulationCriteria", data.callSimulationCriteria);
+          }
+          if (data.certificationPrerequisites && typeof data.certificationPrerequisites === "object") {
+            setCertificationPrerequisites(data.certificationPrerequisites);
+            saveUserData("bpoReadyCertificationPrerequisites", data.certificationPrerequisites);
           }
         }
       } catch (err) {
@@ -234,6 +245,21 @@ const AdminScoringStandards = () => {
     }
   };
 
+  // Certification Prerequisites Handlers
+  const handlePrerequisiteChange = (field, value) => {
+    setCertificationPrerequisites((prev) => ({
+      ...prev,
+      [field]: Number(value) < 0 ? 0 : Number(value),
+    }));
+  };
+
+  const handleResetPrerequisites = () => {
+    if (window.confirm("Reset certification prerequisites to institutional defaults (10 Readings, 10 Mock Interviews, 10 Call Simulations, 75% Avg, 85% Passing, 70% Stage Min)?")) {
+      setCertificationPrerequisites(DEFAULT_CERTIFICATION_PREREQUISITES);
+      saveUserData("bpoReadyCertificationPrerequisites", DEFAULT_CERTIFICATION_PREREQUISITES);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -244,6 +270,7 @@ const AdminScoringStandards = () => {
     saveUserData("bpoReadyMockInterviewCriteria", interviewCriteriaList);
     saveUserData("bpoReadyCallSimulationCriteria", callCriteriaList);
     saveUserData("bpoReadyScoringStandards", standards);
+    saveUserData("bpoReadyCertificationPrerequisites", certificationPrerequisites);
 
     try {
       await updateScoringStandards({
@@ -252,10 +279,11 @@ const AdminScoringStandards = () => {
         criteria: readingCriteriaList,
         mockInterviewCriteria: interviewCriteriaList,
         callSimulationCriteria: callCriteriaList,
+        certificationPrerequisites,
       });
-      setToastMessage("All scoring standards & evaluation criteria successfully updated and synced with the evaluation engine!");
+      setToastMessage("All scoring standards, evaluation criteria & certification prerequisites successfully updated and synced!");
     } catch {
-      setToastMessage("Standards & criteria saved locally. Changes are actively reflected in the application.");
+      setToastMessage("Standards, criteria & prerequisites saved locally. Changes are actively reflected in the application.");
     } finally {
       setSaving(false);
       setTimeout(() => setToastMessage(""), 4500);
@@ -698,6 +726,201 @@ const AdminScoringStandards = () => {
               >
                 Reset to Standard (40% Interaction, 30% Fluency, 30% Accuracy)
               </button>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* SECTION 4: CERTIFICATION PREREQUISITES & ACCREDITATION STANDARDS */}
+          {/* ======================================================== */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-100 gap-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-gray-900">
+                    BPO Certification Exam Prerequisites &amp; Gatekeeper Standards
+                  </h2>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Accreditation Controls
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Manage the required number of completed training drills and minimum score standards candidates must satisfy to unlock and pass the 3-stage Certification Exam.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetPrerequisites}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition cursor-pointer self-start sm:self-auto"
+              >
+                Reset to Default Standards
+              </button>
+            </div>
+
+            {/* Configurable Quotas & Thresholds Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {/* 1. Paragraph Readings */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>📖</span> Required Readings
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                    Drill Count
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={certificationPrerequisites.required_readings}
+                  onChange={(e) => handlePrerequisiteChange("required_readings", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Minimum paragraph reading sessions completed
+                </p>
+              </div>
+
+              {/* 2. Mock Interviews */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>💼</span> Required Mock Interviews
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                    Interview Count
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={certificationPrerequisites.required_mock_interviews}
+                  onChange={(e) => handlePrerequisiteChange("required_mock_interviews", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Minimum completed initial/final interview drills
+                </p>
+              </div>
+
+              {/* 3. Call Simulations */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>📞</span> Required Call Simulations
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                    Call Count
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={certificationPrerequisites.required_call_simulations}
+                  onChange={(e) => handlePrerequisiteChange("required_call_simulations", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Minimum inbound/outbound telephony scenarios
+                </p>
+              </div>
+
+              {/* 4. Performance Summary Average */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>📊</span> Min Performance Avg (%)
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                    Quality Gate
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="50"
+                  max="100"
+                  value={certificationPrerequisites.min_performance_avg}
+                  onChange={(e) => handlePrerequisiteChange("min_performance_avg", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Overall practice average across all completed sessions
+                </p>
+              </div>
+
+              {/* 5. Exam Composite Passing Score */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>🏆</span> Exam Passing Standard (%)
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    Composite Benchmark
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="60"
+                  max="100"
+                  value={certificationPrerequisites.min_exam_composite}
+                  onChange={(e) => handlePrerequisiteChange("min_exam_composite", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Overall composite score required across the 3 exam stages
+                </p>
+              </div>
+
+              {/* 6. Individual Stage Minimum Score */}
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <span>🎯</span> Individual Stage Min (%)
+                  </label>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                    Per-Stage Floor
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="50"
+                  max="90"
+                  value={certificationPrerequisites.min_stage_score}
+                  onChange={(e) => handlePrerequisiteChange("min_stage_score", e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+                <p className="text-[10px] text-gray-500">
+                  Minimum passing threshold on each individual stage
+                </p>
+              </div>
+            </div>
+
+            {/* Candidate Live Preview Box */}
+            <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base">👁️</span>
+                <span className="font-semibold">Candidate Prerequisite Audit Display Preview:</span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-700">
+                  Readings: {certificationPrerequisites.required_readings} required
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-700">
+                  Interviews: {certificationPrerequisites.required_mock_interviews} required
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-700">
+                  Calls: {certificationPrerequisites.required_call_simulations} required
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 text-blue-700">
+                  Min Avg: {certificationPrerequisites.min_performance_avg}%
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 text-emerald-700">
+                  Pass Standard: {certificationPrerequisites.min_exam_composite}%
+                </span>
+              </div>
             </div>
           </div>
 

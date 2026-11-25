@@ -82,12 +82,22 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
+        $certificationPrerequisites = cache()->get('certification_prerequisites', [
+            'required_readings' => 10,
+            'required_mock_interviews' => 10,
+            'required_call_simulations' => 10,
+            'min_performance_avg' => 75,
+            'min_exam_composite' => 85,
+            'min_stage_score' => 70,
+        ]);
+
         return response()->json([
             'standards' => $standards,
             'criteria' => $readingCriteria,
             'readingCriteria' => $readingCriteria,
             'mockInterviewCriteria' => $mockInterviewCriteria,
             'callSimulationCriteria' => $callSimulationCriteria,
+            'certificationPrerequisites' => $certificationPrerequisites,
         ]);
     }
 
@@ -123,10 +133,22 @@ class ScoringStandardController extends Controller
             cache()->forever('call_simulation_criteria', $request->input('callSimulationCriteria'));
         }
 
+        if ($request->has('certificationPrerequisites') && is_array($request->input('certificationPrerequisites'))) {
+            cache()->forever('certification_prerequisites', $request->input('certificationPrerequisites'));
+        }
+
         $updated = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
         $readingCriteria = cache()->get('spoken_reading_criteria', []);
         $mockInterviewCriteria = cache()->get('mock_interview_criteria', []);
         $callSimulationCriteria = cache()->get('call_simulation_criteria', []);
+        $certificationPrerequisites = cache()->get('certification_prerequisites', [
+            'required_readings' => 10,
+            'required_mock_interviews' => 10,
+            'required_call_simulations' => 10,
+            'min_performance_avg' => 75,
+            'min_exam_composite' => 85,
+            'min_stage_score' => 70,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -136,6 +158,7 @@ class ScoringStandardController extends Controller
             'readingCriteria' => $readingCriteria,
             'mockInterviewCriteria' => $mockInterviewCriteria,
             'callSimulationCriteria' => $callSimulationCriteria,
+            'certificationPrerequisites' => $certificationPrerequisites,
         ]);
     }
 }

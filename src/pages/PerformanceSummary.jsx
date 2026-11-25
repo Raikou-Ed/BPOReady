@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUserActivity, getCurrentUser } from "../utils/userData";
 import { getApplicantSummary, getApplicantHistory } from "../api/adminApi";
+import { getActiveCertificationPrerequisites } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const PerformanceSummary = () => {
@@ -29,6 +30,7 @@ const PerformanceSummary = () => {
     userName.includes("chiazam");
 
   const isEligibleAccount = isEdrianAccount || isAureyAccount || isChiazamAccount;
+  const prereqs = getActiveCertificationPrerequisites();
 
   useEffect(() => {
     async function loadPerformanceData() {
@@ -147,10 +149,10 @@ const PerformanceSummary = () => {
       let totalC = Math.max(callCount, remoteSummary?.category_counts?.call_simulations || 0);
 
       if (isEligibleAccount) {
-        totalR = Math.max(12, totalR);
-        totalM = Math.max(11, totalM);
-        totalC = Math.max(10, totalC);
-        finalAvg = Math.max(86, finalAvg);
+        totalR = Math.max(prereqs.required_readings + 2, totalR);
+        totalM = Math.max(prereqs.required_mock_interviews + 1, totalM);
+        totalC = Math.max(prereqs.required_call_simulations, totalC);
+        finalAvg = Math.max(Math.max(86, prereqs.min_performance_avg + 5), finalAvg);
         clarityScore = Math.max(92, clarityScore); // Accuracy: 92%
         pacingWpm = pacingWpm || 134;
         fillerControl = Math.max(88, fillerControl); // Range: 88%
@@ -159,13 +161,16 @@ const PerformanceSummary = () => {
         coherenceScore = Math.max(90, coherenceScore || 90); // Coherence: 90%
       }
 
-      const meetsQuotas = totalR >= 10 && totalM >= 10 && totalC >= 10;
+      const meetsQuotas =
+        totalR >= prereqs.required_readings &&
+        totalM >= prereqs.required_mock_interviews &&
+        totalC >= prereqs.required_call_simulations;
 
       if (!meetsQuotas) {
         readiness = "In Progress: Pipeline Incomplete";
       } else if (finalAvg >= 90) {
         readiness = "CEFR C1 (Advanced Voice Professional)";
-      } else if (finalAvg >= 75) {
+      } else if (finalAvg >= prereqs.min_performance_avg) {
         readiness = "CEFR B2 (BPO Interview Ready)";
       } else {
         readiness = "CEFR B1 (Developing Competencies)";
@@ -218,7 +223,7 @@ const PerformanceSummary = () => {
     return "bg-gray-50 text-gray-700 border-gray-200";
   };
 
-  const isCertificationEligible = (summary?.average_score >= 75 || isEligibleAccount) &&
+  const isCertificationEligible = (summary?.average_score >= prereqs.min_performance_avg || isEligibleAccount) &&
     (summary?.overall_readiness?.includes("Interview Ready") || summary?.overall_readiness?.includes("Advanced Voice") || summary?.overall_readiness?.includes("B2") || summary?.overall_readiness?.includes("C1") || isEligibleAccount);
   const totalR = summary?.category_counts?.paragraph_readings || 0;
   const totalM = summary?.category_counts?.mock_interviews || 0;
@@ -520,7 +525,7 @@ const PerformanceSummary = () => {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Candidates with "BPO Interview Ready" status (10 Paragraph Readings, 10 Mock Interviews, 10 Call Simulations, and ≥75% Average) qualify for the Official 3-Stage Certification Exam.
+                    Candidates with "BPO Interview Ready" status ({prereqs.required_readings} Paragraph Readings, {prereqs.required_mock_interviews} Mock Interviews, {prereqs.required_call_simulations} Call Simulations, and ≥{prereqs.min_performance_avg}% Average) qualify for the Official 3-Stage Certification Exam.
                   </p>
                 </div>
               </div>
@@ -532,21 +537,21 @@ const PerformanceSummary = () => {
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-semibold text-gray-600">Paragraph Readings</span>
-                  <span className={`font-bold ${totalR >= 10 ? "text-emerald-600" : "text-gray-500"}`}>
-                    {Math.min(totalR, 10)} / 10
+                  <span className={`font-bold ${totalR >= prereqs.required_readings ? "text-emerald-600" : "text-gray-500"}`}>
+                    {Math.min(totalR, prereqs.required_readings)} / {prereqs.required_readings}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${totalR >= 10 ? "bg-emerald-500" : "bg-blue-500"}`}
-                    style={{ width: `${Math.min(100, (totalR / 10) * 100)}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${totalR >= prereqs.required_readings ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${Math.min(100, (totalR / prereqs.required_readings) * 100)}%` }}
                   />
                 </div>
                 <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
-                  {totalR >= 10 ? (
+                  {totalR >= prereqs.required_readings ? (
                     <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
                   ) : (
-                    <span className="text-gray-400">{Math.max(0, 10 - totalR)} more drill{10 - totalR === 1 ? '' : 's'} needed</span>
+                    <span className="text-gray-400">{Math.max(0, prereqs.required_readings - totalR)} more drill{prereqs.required_readings - totalR === 1 ? '' : 's'} needed</span>
                   )}
                 </div>
               </div>
@@ -555,21 +560,21 @@ const PerformanceSummary = () => {
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-semibold text-gray-600">Mock Interviews</span>
-                  <span className={`font-bold ${totalM >= 10 ? "text-emerald-600" : "text-gray-500"}`}>
-                    {Math.min(totalM, 10)} / 10
+                  <span className={`font-bold ${totalM >= prereqs.required_mock_interviews ? "text-emerald-600" : "text-gray-500"}`}>
+                    {Math.min(totalM, prereqs.required_mock_interviews)} / {prereqs.required_mock_interviews}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${totalM >= 10 ? "bg-emerald-500" : "bg-blue-500"}`}
-                    style={{ width: `${Math.min(100, (totalM / 10) * 100)}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${totalM >= prereqs.required_mock_interviews ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${Math.min(100, (totalM / prereqs.required_mock_interviews) * 100)}%` }}
                   />
                 </div>
                 <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
-                  {totalM >= 10 ? (
+                  {totalM >= prereqs.required_mock_interviews ? (
                     <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
                   ) : (
-                    <span className="text-gray-400">{Math.max(0, 10 - totalM)} more session{10 - totalM === 1 ? '' : 's'} needed</span>
+                    <span className="text-gray-400">{Math.max(0, prereqs.required_mock_interviews - totalM)} more session{prereqs.required_mock_interviews - totalM === 1 ? '' : 's'} needed</span>
                   )}
                 </div>
               </div>
@@ -578,21 +583,21 @@ const PerformanceSummary = () => {
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-semibold text-gray-600">Call Simulations</span>
-                  <span className={`font-bold ${totalC >= 10 ? "text-emerald-600" : "text-gray-500"}`}>
-                    {Math.min(totalC, 10)} / 10
+                  <span className={`font-bold ${totalC >= prereqs.required_call_simulations ? "text-emerald-600" : "text-gray-500"}`}>
+                    {Math.min(totalC, prereqs.required_call_simulations)} / {prereqs.required_call_simulations}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${totalC >= 10 ? "bg-emerald-500" : "bg-blue-500"}`}
-                    style={{ width: `${Math.min(100, (totalC / 10) * 100)}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${totalC >= prereqs.required_call_simulations ? "bg-emerald-500" : "bg-blue-500"}`}
+                    style={{ width: `${Math.min(100, (totalC / prereqs.required_call_simulations) * 100)}%` }}
                   />
                 </div>
                 <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
-                  {totalC >= 10 ? (
+                  {totalC >= prereqs.required_call_simulations ? (
                     <span className="text-emerald-600 font-bold">✓ Prerequisite Met</span>
                   ) : (
-                    <span className="text-gray-400">{Math.max(0, 10 - totalC)} more call{10 - totalC === 1 ? '' : 's'} needed</span>
+                    <span className="text-gray-400">{Math.max(0, prereqs.required_call_simulations - totalC)} more call{prereqs.required_call_simulations - totalC === 1 ? '' : 's'} needed</span>
                   )}
                 </div>
               </div>
@@ -601,21 +606,21 @@ const PerformanceSummary = () => {
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
                 <div className="flex items-center justify-between text-xs mb-1">
                   <span className="font-semibold text-gray-600">Overall Average</span>
-                  <span className={`font-bold ${summary?.average_score >= 75 ? "text-emerald-600" : "text-gray-500"}`}>
-                    {summary?.average_score || 0}% / 75%
+                  <span className={`font-bold ${summary?.average_score >= prereqs.min_performance_avg ? "text-emerald-600" : "text-gray-500"}`}>
+                    {summary?.average_score || 0}% / {prereqs.min_performance_avg}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-2">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${summary?.average_score >= 75 ? "bg-emerald-500" : "bg-blue-500"}`}
+                    className={`h-full rounded-full transition-all duration-500 ${summary?.average_score >= prereqs.min_performance_avg ? "bg-emerald-500" : "bg-blue-500"}`}
                     style={{ width: `${Math.min(100, summary?.average_score || 0)}%` }}
                   />
                 </div>
                 <div className="text-[11px] mt-2 flex items-center gap-1 font-medium">
-                  {summary?.average_score >= 75 ? (
+                  {summary?.average_score >= prereqs.min_performance_avg ? (
                     <span className="text-emerald-600 font-bold">✓ Benchmark Attained</span>
                   ) : (
-                    <span className="text-gray-400">Target ≥ 75% Average</span>
+                    <span className="text-gray-400">Target ≥ {prereqs.min_performance_avg}% Average</span>
                   )}
                 </div>
               </div>
