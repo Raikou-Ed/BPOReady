@@ -110,7 +110,7 @@ const CallSimulation = () => {
                       {s.call_type === "inbound" ? "📥 Inbound Call" : "📤 Outbound Call"}
                     </span>
                     <span
-                      className={`text-xs font-semibold capitalize px-2 py-0.5 rounded ${
+                      className={`text-xs font-semibold px-2 py-0.5 rounded ${
                         s.difficulty === "easy"
                           ? "bg-green-100 text-green-700"
                           : s.difficulty === "medium"
@@ -118,7 +118,7 @@ const CallSimulation = () => {
                           : "bg-orange-100 text-orange-700"
                       }`}
                     >
-                      {s.difficulty || "Medium"} Difficulty
+                      Difficulty: {s.difficulty ? (s.difficulty.charAt(0).toUpperCase() + s.difficulty.slice(1).toLowerCase()) : "Medium"}
                     </span>
                   </div>
 
