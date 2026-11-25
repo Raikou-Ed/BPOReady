@@ -511,9 +511,19 @@ const CallSimulationSession = () => {
       };
       setEvaluation(zeroEvaluation);
       addUserActivity({
+        id: `cs_${Date.now()}`,
         activity: `Call Simulation: ${scenario.title}`,
         level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-        result: "0%",
+        result: "0/100",
+        score: 0,
+        criteria: [
+          { name: "Interaction", value: 0, weight: 40, contribution: 0, detail: "Dead air / Silence detected" },
+          { name: "Fluency", value: 0, weight: 30, contribution: 0, detail: "No spoken responses" },
+          { name: "Accuracy", value: 0, weight: 30, contribution: 0, detail: "Customer request unaddressed" },
+        ],
+        feedbackText: "Dead air or silence detected. Agent responses were absent or inaudible during customer turns.",
+        suggestions: ["Acknowledge customer statements immediately upon line connection.", "Maintain proactive conversational control."],
+        date: new Date().toISOString(),
         type: "call_simulation",
       });
       try {
@@ -562,9 +572,19 @@ const CallSimulationSession = () => {
           quiz_score: quizPercent,
         });
         addUserActivity({
+          id: `cs_${Date.now()}`,
           activity: `Call Simulation: ${scenario.title}`,
           level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-          result: `${finalOverall}%`,
+          result: `${finalOverall}/100`,
+          score: finalOverall,
+          criteria: [
+            { name: "Interaction", value: Math.round(finalInteraction), weight: 40, contribution: Number(((finalInteraction * 0.40)).toFixed(1)), detail: "Empathy, turn-taking & listening quiz" },
+            { name: "Fluency", value: Math.round(Number(res.fluency_score ?? finalOverall)), weight: 30, contribution: Number(((Number(res.fluency_score ?? finalOverall) * 0.30)).toFixed(1)), detail: "Cadence, pacing & dead-air management" },
+            { name: "Accuracy", value: Math.round(Number(res.accuracy_score ?? finalOverall)), weight: 30, contribution: Number(((Number(res.accuracy_score ?? finalOverall) * 0.30)).toFixed(1)), detail: "Milestone resolution & verification" },
+          ],
+          feedbackText: finalFeedback,
+          suggestions: res.suggestions || [],
+          date: new Date().toISOString(),
           type: "call_simulation",
         });
       } else {
@@ -700,9 +720,19 @@ const CallSimulationSession = () => {
       };
       setEvaluation(fallbackEvaluation);
       addUserActivity({
+        id: `cs_${Date.now()}`,
         activity: `Call Simulation: ${scenario.title}`,
         level: scenario.call_type === "inbound" ? "Inbound Call" : "Outbound Call",
-        result: `${calcOverall}%`,
+        result: `${calcOverall}/100`,
+        score: calcOverall,
+        criteria: [
+          { name: "Interaction", value: Math.round(calcInteraction), weight: 40, contribution: Number(((calcInteraction * 0.40)).toFixed(1)), detail: "Empathy, turn-taking & listening quiz" },
+          { name: "Fluency", value: Math.round(calcFluency), weight: 30, contribution: Number(((calcFluency * 0.30)).toFixed(1)), detail: "Cadence, pacing & dead-air management" },
+          { name: "Accuracy", value: Math.round(calcAccuracy), weight: 30, contribution: Number(((calcAccuracy * 0.30)).toFixed(1)), detail: "Milestone resolution & verification" },
+        ],
+        feedbackText: fallbackEvaluation.feedback_text,
+        suggestions: fallbackEvaluation.suggestions || [],
+        date: new Date().toISOString(),
         type: "call_simulation",
       });
     } finally {

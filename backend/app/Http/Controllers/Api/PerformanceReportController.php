@@ -113,8 +113,13 @@ class PerformanceReportController extends Controller
                 );
             }
 
-            $clarityVal = round($pr->clarity_score ?? 0);
-            $pacingVal = round($pr->pacing_score ?? 0);
+            // Normalize legacy volume floor bug (90 * 0.20 = 18) when speech was actually 0
+            if ($computedScore === 18 || ($pr->clarity_score == 0 && $pr->pacing_score == 0)) {
+                $computedScore = 0;
+            }
+
+            $clarityVal = $computedScore === 0 ? 0 : round($pr->clarity_score ?? 0);
+            $pacingVal = $computedScore === 0 ? 0 : round($pr->pacing_score ?? 0);
 
             $activities[] = [
                 'id' => 'pr_' . $pr->id,
@@ -124,8 +129,12 @@ class PerformanceReportController extends Controller
                 'result' => $computedScore !== null ? "{$computedScore}/100" : 'Completed',
                 'score' => $computedScore,
                 'type' => 'paragraph_reading',
-                'feedbackText' => $pr->feedback_text,
-                'suggestions' => is_string($pr->suggestions) ? array_values(array_filter(array_map('trim', explode("\n", $pr->suggestions)))) : [],
+                'feedbackText' => $computedScore === 0
+                    ? 'No clear speech or passage match detected. Please re-read the passage aloud.'
+                    : $pr->feedback_text,
+                'suggestions' => $computedScore === 0
+                    ? ["Speak closer to the microphone.", "Follow the provided passage closely.", "Avoid background noise or unrelated speech."]
+                    : (is_string($pr->suggestions) ? array_values(array_filter(array_map('trim', explode("\n", $pr->suggestions)))) : []),
                 'criteria' => [
                     [
                         'name' => 'Accuracy',

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getUserActivity, getCurrentUser } from "../utils/userData";
+import { getUserActivity, getCurrentUser, getUserData, saveUserData } from "../utils/userData";
 import { getApplicantHistory, getMockInterviewFeedback } from "../api/adminApi";
 import { getActiveEvaluationCriteria, getActiveMockInterviewCriteria, getActiveCallSimulationCriteria } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
@@ -60,11 +60,16 @@ const PracticeHistory = () => {
             let scoreVal = r.score != null ? Number(r.score) : undefined;
             let resultVal = r.result || (scoreVal != null ? `${scoreVal}/100` : "Completed");
 
-            // Normalize legacy 18/100 backend volume floor bug (90 * 0.20 = 18) when speech was actually 0
+            // Normalize legacy volume floor bug (90 * 0.20 = 18) or zero-score reading attempts
             const isReading = (r.type === 'paragraph_reading' || r.activity_type === 'paragraph_reading' || (r.activity && r.activity.toLowerCase().includes('paragraph')));
-            if (isReading && (scoreVal === 18 || resultVal === '18/100')) {
+            if (isReading && (scoreVal === 18 || resultVal === '18/100' || scoreVal === 0 || resultVal === '0/100')) {
               scoreVal = 0;
               resultVal = '0/100';
+              r.criteria = [
+                { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+                { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+              ];
+              r.feedbackText = "No clear speech or passage match detected. Please re-read the passage aloud.";
             }
 
             return {
@@ -84,7 +89,20 @@ const PracticeHistory = () => {
           // Merge local and remote activities, ensuring local freshest records take priority
           const map = new Map();
           remoteList.forEach((r) => map.set(String(r.id), r));
-          local.forEach((l) => map.set(String(l.id || `${l.type}_${l.date}`), l));
+          local.forEach((l) => {
+            const isRead = (l.type === 'paragraph_reading' || (l.activity && l.activity.toLowerCase().includes('paragraph')));
+            let lScore = l.score != null ? Number(l.score) : getScoreNum(l.result);
+            if (isRead && (lScore === 18 || l.result === '18/100' || lScore === 0 || l.result === '0/100')) {
+              l.score = 0;
+              l.result = '0/100';
+              l.criteria = [
+                { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+                { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+              ];
+              l.feedbackText = "No clear speech or passage match detected. Please re-read the passage aloud.";
+            }
+            map.set(String(l.id || `${l.type}_${l.date}`), l);
+          });
 
           const combined = Array.from(map.values());
           combined.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -319,7 +337,7 @@ const PracticeHistory = () => {
               const type = (selectedActivity.type || "").toLowerCase();
               const act = (selectedActivity.activity || "").toLowerCase();
               const isReading = type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment");
-              if (isReading && (score === 18 || selectedActivity.result === '18/100') && !selectedActivity.criteria) {
+              if (isReading && (score === 18 || selectedActivity.result === '18/100')) {
                 score = 0;
               }
               const cefr = getCefrBadge(score);
@@ -350,13 +368,40 @@ const PracticeHistory = () => {
               const type = (selectedActivity.type || "").toLowerCase();
               const act = (selectedActivity.activity || "").toLowerCase();
               const isReading = type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment");
-              if (isReading && (score === 18 || selectedActivity.result === '18/100') && !selectedActivity.criteria) {
+              if (isReading && (score === 18 || selectedActivity.result === '18/100')) {
                 score = 0;
               }
 
               let pillars = [];
 
-              if (Array.isArray(selectedActivity.criteria) && selectedActivity.criteria.length > 0) {
+              if (score === 0 && isReading) {
+                const activeCrit = getActiveEvaluationCriteria();
+                pillars = activeCrit.map((c) => ({
+                  name: c.name,
+                  weight: `${c.weight}%`,
+                  score: 0,
+                  contribution: 0,
+                  label: "Passage not read",
+                }));
+              } else if (score === 0 && (type.includes("simulation") || act.includes("call"))) {
+                const activeCallCrit = getActiveCallSimulationCriteria();
+                pillars = activeCallCrit.map((c) => ({
+                  name: c.name,
+                  weight: `${c.weight}%`,
+                  score: 0,
+                  contribution: 0,
+                  label: "Dead air / Silence",
+                }));
+              } else if (score === 0 && (type.includes("interview") || act.includes("interview"))) {
+                const activeInterviewCrit = getActiveMockInterviewCriteria();
+                pillars = activeInterviewCrit.map((c) => ({
+                  name: c.name,
+                  weight: `${c.weight}%`,
+                  score: 0,
+                  contribution: 0,
+                  label: "No response recorded",
+                }));
+              } else if (Array.isArray(selectedActivity.criteria) && selectedActivity.criteria.length > 0) {
                 // Exact criteria saved directly from the session!
                 pillars = selectedActivity.criteria.map((c) => ({
                   name: c.name === "Pronunciation" ? "Accuracy" : c.name,
@@ -438,14 +483,30 @@ const PracticeHistory = () => {
                 </h4>
               </div>
               <p className="text-xs text-amber-950 leading-relaxed font-medium">
-                {selectedActivity.feedbackText ||
-                  selectedActivity.feedback_text ||
-                  detailedSession?.feedback?.feedback_text ||
-                  (getScoreNum(selectedActivity.result) === 0
-                    ? "No clear speech or passage match detected. Please re-read the passage aloud clearly."
-                    : getScoreNum(selectedActivity.result) >= 75
-                    ? "Session successfully completed with solid articulation and adherence to BPO voice communication benchmarks. Conversational rhythm remained steady with professional composure."
-                    : "Foundational practice session completed. Continue focusing on eliminating hesitation words and maintaining smooth sentence transitions to meet higher hiring benchmarks.")}
+                {(() => {
+                  let score = selectedActivity.score != null
+                    ? Number(selectedActivity.score)
+                    : (detailedSession?.overall_score ?? getScoreNum(selectedActivity.result));
+                  const type = (selectedActivity.type || "").toLowerCase();
+                  const act = (selectedActivity.activity || "").toLowerCase();
+                  const isReading = type.includes("reading") || act.includes("paragraph") || act.includes("pre-assessment");
+                  if (isReading && (score === 18 || selectedActivity.result === '18/100')) {
+                    score = 0;
+                  }
+
+                  if (score === 0) {
+                    if (isReading) return "No clear speech or passage match detected. Please re-read the passage aloud.";
+                    if (type.includes("simulation") || act.includes("call")) return "Dead air or silence detected. Agent responses were absent or inaudible during customer turns.";
+                    return "No verbal response was detected for the interview questions. Please speak clearly into your microphone.";
+                  }
+
+                  return selectedActivity.feedbackText ||
+                    selectedActivity.feedback_text ||
+                    detailedSession?.feedback?.feedback_text ||
+                    (score >= 75
+                      ? "Session successfully completed with solid articulation and adherence to BPO voice communication benchmarks. Conversational rhythm remained steady with professional composure."
+                      : "Foundational practice session completed. Continue focusing on eliminating hesitation words and maintaining smooth sentence transitions to meet higher hiring benchmarks.");
+                })()}
               </p>
               {Array.isArray(selectedActivity.suggestions) && selectedActivity.suggestions.length > 0 && (
                 <div className="pt-2 border-t border-amber-200/60 mt-2">

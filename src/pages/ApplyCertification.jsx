@@ -3,7 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import AudioRecorder from "../components/AudioRecorder";
 import { getCurrentUser, getUserData, saveUserData, addUserActivity, getUserActivity } from "../utils/userData";
-import { calculateAssessmentScore, hasMeaningfulSpeech } from "../utils/assessmentScoring";
+import {
+  calculateAssessmentScore,
+  hasMeaningfulSpeech,
+  getActiveEvaluationCriteria,
+  getActiveMockInterviewCriteria,
+  getActiveCallSimulationCriteria,
+} from "../utils/assessmentScoring";
 import { CALL_SCENARIOS } from "../data/callScenariosData";
 import { getApplicantSummary, getApplicantHistory } from "../api/adminApi";
 
@@ -244,12 +250,13 @@ export default function ApplyCertification() {
     setCurrentStep("STAGE_1_READING");
   };
 
-  // Submit Stage 1 (Reading Passage) using Real Paragraph Reading Speech Engine
+  // Submit Stage 1 (Reading Passage) using Real Paragraph Reading Speech Engine & Active Admin Standards
   const handleSubmitStage1 = () => {
     const rawTranscript = (stage1RecordingData?.transcript || "").trim();
     const duration = stage1RecordingData?.durationSeconds || 0;
     const words = rawTranscript.split(/\s+/).filter(Boolean);
     const meaningful = hasMeaningfulSpeech(rawTranscript) && duration >= 4 && words.length >= 8;
+    const activeReadingCrit = getActiveEvaluationCriteria();
 
     if (!meaningful || words.length < 8) {
       // Inaudible, silent, or single-word/filler response (e.g. just said "hello")
@@ -257,10 +264,13 @@ export default function ApplyCertification() {
         score: 0,
         placedLevel: 'easy',
         wordsPerMinute: 0,
-        criteria: [
-          { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read aloud' },
-          { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read aloud' }
-        ],
+        criteria: activeReadingCrit.map((c) => ({
+          name: c.name,
+          value: 0,
+          weight: Number(c.weight || 50),
+          contribution: 0,
+          detail: 'Passage not read aloud',
+        })),
         feedbackText: 'No clear speech or passage match detected. Please re-read the passage aloud clearly.',
         passed: false,
       });
@@ -284,10 +294,13 @@ export default function ApplyCertification() {
           score: 0,
           placedLevel: 'easy',
           wordsPerMinute: 0,
-          criteria: [
-            { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Scoring error' },
-            { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Scoring error' }
-          ],
+          criteria: activeReadingCrit.map((c) => ({
+            name: c.name,
+            value: 0,
+            weight: Number(c.weight || 50),
+            contribution: 0,
+            detail: 'Scoring error',
+          })),
           passed: false,
         });
       }
@@ -296,7 +309,7 @@ export default function ApplyCertification() {
     setCurrentStep("STAGE_2_INTERVIEW");
   };
 
-  // Save Interview Question Answer & Advance using Real Mock Interview Evaluation Logic
+  // Save Interview Question Answer & Advance dynamically calibrated by Admin Mock Interview Standards
   const handleSaveInterviewAnswer = () => {
     const rawTranscript = (stage2RecordingData?.transcript || "").trim();
     const duration = stage2RecordingData?.durationSeconds || 0;
@@ -318,13 +331,33 @@ export default function ApplyCertification() {
       const confidenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.5) + (fillerCleanliness * 0.3) + (pacingScore * 0.2))));
       const coherenceScore = Math.max(10, Math.min(95, Math.round((depthScore * 0.6) + (clarityScore * 0.4))));
 
-      answerScore = Math.round(
-        (clarityScore * 0.25) +
+      // Calibrated dynamically against active Admin Mock Interview standards
+      const activeInterviewCrit = getActiveMockInterviewCriteria();
+      const scoreMap = {
+        accuracy: clarityScore,
+        fluency: pacingScore,
+        range: fillerCleanliness,
+        interaction: confidenceScore,
+        coherence: coherenceScore,
+      };
+
+      let weightedSum = 0;
+      let totalWeight = 0;
+      activeInterviewCrit.forEach((c) => {
+        const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
+        const val = scoreMap[key] ?? 50;
+        const w = Number(c.weight || 20);
+        weightedSum += (val * (w / 100));
+        totalWeight += w;
+      });
+
+      answerScore = Math.round(totalWeight > 0 ? (weightedSum / (totalWeight / 100)) : (
+        (clarityScore * 0.20) +
         (pacingScore * 0.20) +
         (fillerCleanliness * 0.20) +
         (confidenceScore * 0.20) +
-        (coherenceScore * 0.15)
-      );
+        (coherenceScore * 0.20)
+      ));
     } else {
       // Very brief, dismissive, or single-word answer (e.g. just said "hello")
       answerScore = words.length > 0 ? Math.min(15, words.length * 3) : 0;
@@ -392,7 +425,7 @@ export default function ApplyCertification() {
     }
   };
 
-  // Submit Comprehension Quiz & Calculate Official Certification Results using Real Call Simulation Engine
+  // Submit Comprehension Quiz & Calculate Official Certification Results using Dynamic Admin Call Simulation Standards
   const handleQuizSubmitAndEvaluate = () => {
     const questions = CERTIFICATION_CALL_SCENARIO?.comprehension_quiz || [];
     let correctCount = 0;
@@ -449,12 +482,29 @@ export default function ApplyCertification() {
     // Blend Comprehension Quiz into Interaction (50% Speech Interaction + 50% Quiz)
     let finalInteraction = Math.round((speechInteraction * 0.50) + (quizPercent * 0.50));
 
-    // Active institutional weights (Interaction 40%, Fluency 30%, Accuracy 30%)
-    let callQA = Math.round(
+    // Dynamic institutional weights from Admin Scoring Standards
+    const activeCallCrit = getActiveCallSimulationCriteria();
+    const callScoreMap = {
+      interaction: finalInteraction,
+      fluency: fluencyScore,
+      accuracy: accuracyScore,
+    };
+
+    let callWeightedSum = 0;
+    let callTotalWeight = 0;
+    activeCallCrit.forEach((c) => {
+      const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
+      const val = callScoreMap[key] ?? 50;
+      const w = Number(c.weight || 30);
+      callWeightedSum += (val * (w / 100));
+      callTotalWeight += w;
+    });
+
+    let callQA = Math.round(callTotalWeight > 0 ? (callWeightedSum / (callTotalWeight / 100)) : (
       (finalInteraction * 0.40) +
       (fluencyScore * 0.30) +
       (accuracyScore * 0.30)
-    );
+    ));
 
     // Critical impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)
     if (quizPercent === 0) {
