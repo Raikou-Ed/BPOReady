@@ -23,6 +23,10 @@ const visibleCriteria = new Set(['pronunciation', 'fluency', 'accuracy']);
 
 export default function PreAssessment() {
   const navigate = useNavigate();
+  const activeReadingCrit = getActiveEvaluationCriteria();
+  const accuracyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
+  const fluencyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
+
   const existingAssessment = getAssignedLevel();
   const [result, setResult] = useState(
     existingAssessment && Number(existingAssessment.score) > 0 ? existingAssessment : null
@@ -160,10 +164,6 @@ export default function PreAssessment() {
         expectedText: activePassage.content,
         audioMetrics: recording.audioMetrics,
       });
-
-      const activeReadingCrit = getActiveEvaluationCriteria();
-      const accuracyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
-      const fluencyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
 
       const score = apiResult.fallback || !apiResult.criteria
         ? localScore

@@ -674,7 +674,10 @@ export function getAssignedLevel() {
     let num = Number(data.score);
     data.score = Number.isInteger(num) ? num : Number(num.toFixed(2));
     const lvl = String(data.placedLevel || 'easy').toLowerCase();
-    const activeCount = getActiveEvaluationCriteria().length;
+    const activeCriteria = getActiveEvaluationCriteria();
+    const activeCount = activeCriteria.length;
+    const accWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+    const fluWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
 
     // Check if criteria is missing, invalid, or length does not match active factors
     const hasCorruptOrLegacyCriteria = !Array.isArray(data.criteria) || data.criteria.length !== activeCount ||
@@ -685,6 +688,30 @@ export function getAssignedLevel() {
       data.wordsPerMinute = data.wordsPerMinute && data.wordsPerMinute >= 115 ? data.wordsPerMinute : (lvl === 'hard' ? 145 : lvl === 'medium' ? 135 : 115);
       data.criteria = generatePreAssessmentCriteria(data.score, data.placedLevel, data.wordsPerMinute);
       saveUserData('bpoReadyAssessment', data);
+    } else {
+      let changed = false;
+      data.criteria = data.criteria.map((c, idx) => {
+        const isAcc = (c.name || '').toLowerCase().includes('accura') || idx === 0;
+        const targetWeight = isAcc ? accWeight : fluWeight;
+        if (Number(c.weight) !== targetWeight) {
+          changed = true;
+          const val = Number(c.value ?? 0);
+          return {
+            ...c,
+            name: isAcc ? 'Accuracy' : 'Fluency',
+            weight: targetWeight,
+            contribution: Number(((val * targetWeight) / 100).toFixed(2)),
+          };
+        }
+        return c;
+      });
+      if (changed) {
+        data.score = Number((
+          (Number(data.criteria[0]?.contribution || 0)) +
+          (Number(data.criteria[1]?.contribution || 0))
+        ).toFixed(2));
+        saveUserData('bpoReadyAssessment', data);
+      }
     }
 
     return data;

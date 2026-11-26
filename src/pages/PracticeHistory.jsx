@@ -21,6 +21,25 @@ const PracticeHistory = () => {
   useEffect(() => {
     async function loadHistory() {
       const local = getUserActivity() || [];
+      const activeCrit = getActiveEvaluationCriteria();
+      const accWeight = Number(activeCrit.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+      const fluWeight = Number(activeCrit.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
+
+      // Auto-correct any wrongly labeled "Paragraph Reading (Hard)" that was generated from easy/medium drills
+      let localModified = false;
+      local.forEach((l) => {
+        if (l.activity === "Paragraph Reading (Hard)" && (Number(l.score) <= 75 || (l.id && String(l.id).startsWith("reading_")))) {
+          const lastReading = getUserData('bpoReadyLastParagraphResult');
+          const correctLevel = lastReading?.currentLevel || (Number(l.score) >= 90 ? 'Hard' : Number(l.score) >= 76 ? 'Medium' : 'Easy');
+          const titleCase = correctLevel.charAt(0).toUpperCase() + correctLevel.slice(1);
+          l.activity = `${titleCase} Level Paragraph Reading`;
+          l.level = `${titleCase} Level`;
+          localModified = true;
+        }
+      });
+      if (localModified) {
+        saveUserData('bpoReadyActivity', local);
+      }
 
       // Auto-heal: If user has a recent paragraph reading in localStorage that wasn't logged into activity history yet, add it
       try {
@@ -28,21 +47,21 @@ const PracticeHistory = () => {
         if (lastReading && lastReading.score != null) {
           const alreadyInLocal = local.some((l) =>
             (l.type === 'paragraph_reading' || (l.activity && l.activity.includes('Paragraph Reading'))) &&
-            String(l.score) === String(lastReading.score)
+            (String(l.score) === String(lastReading.score) || (l.id && lastReading.assessmentId && String(l.id).includes(String(lastReading.assessmentId))))
           );
           if (!alreadyInLocal) {
-            const rawLvl = lastReading.assignedLevel || 'Hard';
+            const rawLvl = lastReading.currentLevel || lastReading.placedLevel || lastReading.level || 'Easy';
             const titleCaseLevel = rawLvl.charAt(0).toUpperCase() + rawLvl.slice(1);
             const autoLogged = {
               id: `reading_${rawLvl.toLowerCase()}_${Date.now()}`,
-              activity: `Paragraph Reading (${titleCaseLevel})`,
-              level: titleCaseLevel,
+              activity: `${titleCaseLevel} Level Paragraph Reading`,
+              level: `${titleCaseLevel} Level`,
               result: `${lastReading.score}/100`,
               score: lastReading.score,
               criteria: lastReading.criteria,
               feedbackText: lastReading.feedbackText || (lastReading.score === 0 ? "No clear speech or passage match detected. Please re-read the passage aloud." : null),
               suggestions: lastReading.suggestions || [],
-              date: new Date().toISOString(),
+              date: lastReading.completedAt || new Date().toISOString(),
               type: 'paragraph_reading',
             };
             local.unshift(autoLogged);
@@ -66,8 +85,8 @@ const PracticeHistory = () => {
               scoreVal = 0;
               resultVal = '0/100';
               r.criteria = [
-                { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
-                { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+                { name: 'Accuracy', value: 0, weight: accWeight, contribution: 0, detail: 'Passage not read' },
+                { name: 'Fluency', value: 0, weight: fluWeight, contribution: 0, detail: 'Passage not read' },
               ];
               r.feedbackText = "No clear speech or passage match detected. Please re-read the passage aloud.";
             }
@@ -96,8 +115,8 @@ const PracticeHistory = () => {
               l.score = 0;
               l.result = '0/100';
               l.criteria = [
-                { name: 'Accuracy', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
-                { name: 'Fluency', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+                { name: 'Accuracy', value: 0, weight: accWeight, contribution: 0, detail: 'Passage not read' },
+                { name: 'Fluency', value: 0, weight: fluWeight, contribution: 0, detail: 'Passage not read' },
               ];
               l.feedbackText = "No clear speech or passage match detected. Please re-read the passage aloud.";
             }
@@ -402,14 +421,29 @@ const PracticeHistory = () => {
                   label: "No response recorded",
                 }));
               } else if (Array.isArray(selectedActivity.criteria) && selectedActivity.criteria.length > 0) {
-                // Exact criteria saved directly from the session!
-                pillars = selectedActivity.criteria.map((c) => ({
-                  name: c.name === "Pronunciation" ? "Accuracy" : c.name,
-                  weight: `${c.weight ?? 50}%`,
-                  score: Number(c.value ?? 0),
-                  contribution: c.contribution,
-                  label: c.detail || `${c.name} Standard`,
-                }));
+                // Exact criteria saved directly from the session, dynamically reconciled with live weights
+                const activeCrit = getActiveEvaluationCriteria();
+                const accWeight = Number(activeCrit.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+                const fluWeight = Number(activeCrit.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
+
+                pillars = selectedActivity.criteria.map((c, idx) => {
+                  const factorName = c.name === "Pronunciation" ? "Accuracy" : c.name;
+                  let weight = c.weight;
+                  let contribution = c.contribution;
+                  if (isReading) {
+                    const isAcc = factorName.toLowerCase().includes('accura') || idx === 0;
+                    weight = isAcc ? accWeight : fluWeight;
+                    const val = Number(c.value ?? 0);
+                    contribution = Number(((val * weight) / 100).toFixed(2));
+                  }
+                  return {
+                    name: factorName,
+                    weight: `${weight ?? 50}%`,
+                    score: Number(c.value ?? 0),
+                    contribution,
+                    label: c.detail || `${c.name} Standard`,
+                  };
+                });
               } else if (type.includes("interview") || act.includes("interview")) {
                 // Mock Interview: Dynamic institutional criteria
                 const fb = detailedSession?.feedback || {};
