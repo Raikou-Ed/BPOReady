@@ -390,10 +390,12 @@ export default function PreAssessment() {
                     </div>
                     {result.criteria?.map((criterion, idx, arr) => {
                       const factorName = criterion.name === 'Pronunciation' ? 'Accuracy' : criterion.name;
-                      const weight = criterion.weight != null ? criterion.weight : 50;
-                      const contribution = criterion.contribution != null
-                        ? criterion.contribution
-                        : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
+                      const isAccuracy = factorName.toLowerCase().includes('accura') || idx === 0;
+                      const weight = isAccuracy ? accuracyWeight : fluencyWeight;
+                      const value = criterion.value != null ? Number(criterion.value) : null;
+                      const contribution = value != null
+                        ? Number(((value * weight) / 100).toFixed(2))
+                        : 0;
                       return (
                         <div
                           key={criterion.name || idx}
@@ -406,13 +408,13 @@ export default function PreAssessment() {
                             <PillarFormulaTooltip pillarName={factorName} />
                           </div>
                           <div className="flex flex-col justify-center">
-                            <span className={criterion.value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
-                              {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                            <span className={value == null ? 'text-gray-400' : 'font-bold text-gray-900'}>
+                              {value == null ? 'Not measured' : `${value}/100`}
                             </span>
                             {criterion.detail ? <span className="text-[10px] text-gray-400 font-normal">{criterion.detail}</span> : null}
                           </div>
                           <span className="flex items-center text-gray-500 font-semibold">{weight}%</span>
-                          <span className="flex items-center font-bold text-emerald-700">{Number(contribution).toFixed(2)}</span>
+                          <span className="flex items-center font-bold text-emerald-700">{contribution.toFixed(2)}</span>
                         </div>
                       );
                     })}

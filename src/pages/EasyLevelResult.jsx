@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { formatScore, getAssignedLevel, getScoreTieredFeedback, sanitizeReadingResult } from "../utils/assessmentScoring";
+import { formatScore, getAssignedLevel, getScoreTieredFeedback, sanitizeReadingResult, getActiveEvaluationCriteria } from "../utils/assessmentScoring";
 import { getUserData } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
@@ -13,6 +13,10 @@ const EasyLevelResult = () => {
   const canProceedToMedium = Number(result?.score ?? 0) >= 76;
   const numScore = Number(result?.score ?? 0);
   const tiered = getScoreTieredFeedback(numScore);
+
+  const activeCriteria = getActiveEvaluationCriteria();
+  const accWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+  const fluWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-poppins">
@@ -91,10 +95,12 @@ const EasyLevelResult = () => {
                   </div>
                   {result.criteria?.map((criterion, idx, arr) => {
                     const factorName = criterion.name === 'Pronunciation' ? 'Accuracy' : criterion.name;
-                    const weight = criterion.weight != null ? criterion.weight : 50;
-                    const contribution = criterion.contribution != null
-                      ? criterion.contribution
-                      : Number(((Number(criterion.value || 0) * weight) / 100).toFixed(2));
+                    const isAccuracy = factorName.toLowerCase().includes('accura') || idx === 0;
+                    const weight = isAccuracy ? accWeight : fluWeight;
+                    const value = criterion.value != null ? Number(criterion.value) : null;
+                    const contribution = value != null
+                      ? Number(((value * weight) / 100).toFixed(2))
+                      : 0;
                     return (
                       <div
                         key={criterion.name || idx}
@@ -107,12 +113,12 @@ const EasyLevelResult = () => {
                           <PillarFormulaTooltip pillarName={factorName} />
                         </span>
                         <span className="font-medium">
-                          {criterion.value == null ? 'Not measured' : `${criterion.value}/100`}
+                          {value == null ? 'Not measured' : `${value}/100`}
                           {criterion.detail ? <span className="text-xs text-gray-400 font-normal"> ({criterion.detail})</span> : null}
                         </span>
-                        <span>{weight}%</span>
+                        <span className="font-semibold text-gray-700">{weight}%</span>
                         <span className={`font-semibold ${numScore >= 76 ? 'text-emerald-700' : numScore >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
-                          {Number(contribution || 0).toFixed(2)}
+                          {contribution.toFixed(2)}
                         </span>
                       </div>
                     );

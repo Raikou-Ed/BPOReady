@@ -26,9 +26,20 @@ export function getCurrentUser() {
   }
 }
 
+// Institutional / System-wide calibration standards that must be globally shared across all users (Admin & Candidates)
+export const INSTITUTIONAL_STORAGE_KEYS = new Set([
+  'bpoReadyScoringCriteria',
+  'bpoReadyMockInterviewCriteria',
+  'bpoReadyCallSimulationCriteria',
+  'bpoReadyScoringStandards',
+  'bpoReadyCertificationPrerequisites',
+]);
+
 export function getUserStorageKey(name) {
   // 'user' is the primary session object and must NEVER be scoped or removed
   if (name === 'user') return null;
+  // Institutional calibration configuration is global across all roles and accounts
+  if (INSTITUTIONAL_STORAGE_KEYS.has(name)) return null;
   const user = getCurrentUser();
   const identity = user?.id || user?.email;
   return identity ? `${name}:${identity}` : null;
@@ -37,6 +48,35 @@ export function getUserStorageKey(name) {
 export function getUserData(name, fallback = null) {
   if (name === 'user') {
     return getCurrentUser() || fallback;
+  }
+
+  // Institutional configuration: global across candidates and admins
+  if (INSTITUTIONAL_STORAGE_KEYS.has(name)) {
+    try {
+      const globalVal = localStorage.getItem(name);
+      if (globalVal !== null) {
+        return JSON.parse(globalVal);
+      }
+      // Check legacy scoped keys in case an admin previously saved under an email or id
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`${name}:`)) {
+            const legacyVal = localStorage.getItem(key);
+            if (legacyVal !== null) {
+              try {
+                const parsed = JSON.parse(legacyVal);
+                localStorage.setItem(name, JSON.stringify(parsed));
+                return parsed;
+              } catch {}
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return fallback;
   }
 
   const userStorageKey = getUserStorageKey(name);
@@ -74,6 +114,24 @@ export function saveUserData(name, value) {
     return;
   }
 
+  // Institutional configuration: write directly to global unscoped key
+  if (INSTITUTIONAL_STORAGE_KEYS.has(name)) {
+    localStorage.setItem(name, JSON.stringify(value));
+    // Also sync to any existing legacy scoped keys
+    if (typeof window !== 'undefined') {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`${name}:`)) {
+            localStorage.setItem(key, JSON.stringify(value));
+          }
+        }
+        window.dispatchEvent(new CustomEvent('bpo-scoring-standards-updated', { detail: { name, value } }));
+      } catch {}
+    }
+    return;
+  }
+
   const userStorageKey = getUserStorageKey(name);
   if (userStorageKey) {
     localStorage.setItem(userStorageKey, JSON.stringify(value));
@@ -88,6 +146,21 @@ export function clearUserData(name) {
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     localStorage.removeItem('token');
+    return;
+  }
+
+  if (INSTITUTIONAL_STORAGE_KEYS.has(name)) {
+    localStorage.removeItem(name);
+    if (typeof window !== 'undefined') {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`${name}:`)) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch {}
+    }
     return;
   }
 

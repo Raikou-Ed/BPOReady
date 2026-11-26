@@ -445,6 +445,8 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
   const numScore = Number(raw.score || 0);
   const activeCriteria = getActiveEvaluationCriteria();
   const activeCount = activeCriteria.length;
+  const accWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+  const fluWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
 
   const hasLegacyCriteria =
     !Array.isArray(raw.criteria) ||
@@ -458,7 +460,7 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
         c.name === 'Coherence'
     );
 
-  let criteria = raw.criteria;
+  let criteria;
   if (hasLegacyCriteria) {
     if (numScore === 0) {
       criteria = [
@@ -466,7 +468,7 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
           name: 'Accuracy',
           pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
           value: 0,
-          weight: 50,
+          weight: accWeight,
           contribution: 0,
           detail: 'Passage not read',
         },
@@ -474,7 +476,7 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
           name: 'Fluency',
           pillar: 'Fluency (Speech Rate & Pause Smoothness)',
           value: 0,
-          weight: 50,
+          weight: fluWeight,
           contribution: 0,
           detail: 'Passage not read',
         },
@@ -482,22 +484,46 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
     } else {
       criteria = generatePreAssessmentCriteria(numScore, raw.placedLevel || defaultLevel, raw.wordsPerMinute);
     }
+  } else {
+    // Reconcile existing criteria dynamically with live institutional weights and contributions
+    criteria = raw.criteria.map((c, idx) => {
+      const isAccuracy = (c.name || '').toLowerCase().includes('accura') || idx === 0;
+      const weight = isAccuracy ? accWeight : fluWeight;
+      const value = c.value != null ? Number(c.value) : 0;
+      const contribution = Number(((value * weight) / 100).toFixed(2));
+      const activeObj = isAccuracy ? activeCriteria[0] : activeCriteria[1];
+      return {
+        ...c,
+        name: isAccuracy ? 'Accuracy' : 'Fluency',
+        pillar: activeObj?.pillar || c.pillar,
+        weight,
+        value,
+        contribution,
+        detail: c.detail || activeObj?.detail || '',
+      };
+    });
   }
+
+  // Recalculate composite score from criteria contributions to ensure exact consistency
+  const reconciledScore = Number((
+    (Number(criteria[0]?.contribution || 0)) +
+    (Number(criteria[1]?.contribution || 0))
+  ).toFixed(2));
 
   // Determine correct placedLevel for this practice attempt according to level rules:
   // 1–75 Easy · 76–89 Medium · 90–100 Hard
   let placedLevel = defaultLevel;
   if (defaultLevel === 'medium') {
-    placedLevel = numScore >= 90 ? 'hard' : 'medium';
+    placedLevel = reconciledScore >= 90 ? 'hard' : 'medium';
   } else if (defaultLevel === 'easy') {
-    placedLevel = numScore >= 76 ? 'medium' : 'easy';
+    placedLevel = reconciledScore >= 76 ? 'medium' : 'easy';
   } else if (defaultLevel === 'hard') {
     placedLevel = 'hard';
   }
 
   const sanitized = {
     ...raw,
-    score: numScore,
+    score: reconciledScore,
     placedLevel,
     criteria,
   };

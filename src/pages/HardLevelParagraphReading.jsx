@@ -207,11 +207,11 @@ const HardLevelParagraphReading = () => {
                     });
 
                     let finalResult;
-                    if (apiResponse && apiResponse.success) {
-                      const activeCrit = getActiveEvaluationCriteria();
-                      const accWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
-                      const fluWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
+                    const activeCrit = getActiveEvaluationCriteria();
+                    const accWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
+                    const fluWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
 
+                    if (apiResponse && apiResponse.success) {
                       let finalCriteria = apiResponse.criteria || localScore.criteria;
                       if (Array.isArray(finalCriteria) && finalCriteria.length === 2) {
                         finalCriteria = [
@@ -243,9 +243,31 @@ const HardLevelParagraphReading = () => {
                         completedAt: new Date().toISOString(),
                       };
                     } else {
-                      const tiered = getScoreTieredFeedback(localScore.score);
+                      let fallbackCriteria = localScore.criteria;
+                      if (Array.isArray(fallbackCriteria) && fallbackCriteria.length === 2) {
+                        fallbackCriteria = [
+                          {
+                            ...fallbackCriteria[0],
+                            weight: accWeight,
+                            contribution: Number(((Number(fallbackCriteria[0].value || 0) * accWeight) / 100).toFixed(2)),
+                          },
+                          {
+                            ...fallbackCriteria[1],
+                            weight: fluWeight,
+                            contribution: Number(((Number(fallbackCriteria[1].value || 0) * fluWeight) / 100).toFixed(2)),
+                          },
+                        ];
+                      }
+                      const resolvedScore = fallbackCriteria && fallbackCriteria.length === 2
+                        ? Number((fallbackCriteria[0].contribution + fallbackCriteria[1].contribution).toFixed(2))
+                        : localScore.score;
+
+                      const tiered = getScoreTieredFeedback(resolvedScore);
                       finalResult = {
                         ...localScore,
+                        score: resolvedScore,
+                        placedLevel: 'hard',
+                        criteria: fallbackCriteria,
                         feedbackText: apiResponse?.feedback?.feedback_text || tiered.feedbackText,
                         suggestions: apiResponse?.suggestions || tiered.suggestions,
                         aiEvaluated: false,
