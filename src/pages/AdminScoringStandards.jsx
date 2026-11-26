@@ -44,12 +44,10 @@ const AdminScoringStandards = () => {
   const [readingCriteriaList, setReadingCriteriaList] = useState(() => {
     try {
       const saved = getUserData("bpoReadyScoringCriteria");
-      if (Array.isArray(saved) && saved.length === 2) {
-        const isValid = saved.every((c) => (c.name === "Accuracy" || c.name === "Fluency") && Number(c.weight) === 50);
-        if (isValid) return saved;
+      if (Array.isArray(saved) && saved.length > 0) {
+        return saved;
       }
     } catch {}
-    saveUserData("bpoReadyScoringCriteria", DEFAULT_READING_CRITERIA);
     return DEFAULT_READING_CRITERIA;
   });
 

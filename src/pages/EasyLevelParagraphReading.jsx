@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getParagraphs, submitReadingSession } from "../api/paragraphsApi";
 import AudioRecorder from "../components/AudioRecorder";
-import { calculateAssessmentScore, getAssignedLevel, hasMeaningfulSpeech, saveAssessmentResult, getScoreTieredFeedback } from "../utils/assessmentScoring";
+import { calculateAssessmentScore, getAssignedLevel, hasMeaningfulSpeech, saveAssessmentResult, getScoreTieredFeedback, getActiveEvaluationCriteria } from "../utils/assessmentScoring";
 import { getCurrentUser, addUserActivity } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
@@ -206,13 +206,38 @@ const EasyLevelParagraphReading = () => {
 
                     let finalResult;
                     if (apiResponse && apiResponse.success) {
+                      const activeCrit = getActiveEvaluationCriteria();
+                      let finalCriteria = localScore.criteria;
+                      if (Array.isArray(apiResponse.criteria) && apiResponse.criteria.length === activeCrit.length) {
+                        finalCriteria = apiResponse.criteria;
+                      } else {
+                        finalCriteria = activeCrit.map((c) => {
+                          const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
+                          const apiMatch = Array.isArray(apiResponse.criteria)
+                            ? apiResponse.criteria.find(ac => (ac.name || '').toLowerCase().replace(/[^a-z]/g, '') === key)
+                            : null;
+                          const localMatch = localScore.criteria.find(lc => (lc.name || '').toLowerCase().replace(/[^a-z]/g, '') === key);
+                          const val = apiMatch ? Number(apiMatch.value ?? apiMatch.score ?? 0) : (localMatch ? Number(localMatch.value || 0) : 75);
+                          const weight = Number(c.weight || 0);
+                          return {
+                            name: c.name,
+                            pillar: c.pillar || `CEFR ${c.name}`,
+                            value: Math.round(val),
+                            weight,
+                            contribution: Number(((val * weight) / 100).toFixed(2)),
+                            detail: c.detail || `${Math.round(localScore.wordsPerMinute)} WPM cadence`,
+                          };
+                        });
+                      }
+                      const resolvedScore = Number(finalCriteria.reduce((sum, c) => sum + (c.contribution || 0), 0).toFixed(2)) || apiResponse.score || localScore.score;
+
                       finalResult = {
-                        score: apiResponse.score,
-                        placedLevel: Number(apiResponse.score) >= 76 ? 'medium' : 'easy',
+                        score: resolvedScore,
+                        placedLevel: Number(resolvedScore) >= 76 ? 'medium' : 'easy',
                         wordsPerMinute: localScore.wordsPerMinute,
-                        criteria: apiResponse.criteria || localScore.criteria,
-                        feedbackText: apiResponse.feedbackText || apiResponse?.feedback?.feedback_text || getScoreTieredFeedback(apiResponse.score).feedbackText,
-                        suggestions: apiResponse.suggestions || (apiResponse?.feedback?.suggestions ? apiResponse.feedback.suggestions.split('\n') : getScoreTieredFeedback(apiResponse.score).suggestions),
+                        criteria: finalCriteria,
+                        feedbackText: apiResponse.feedbackText || apiResponse?.feedback?.feedback_text || getScoreTieredFeedback(resolvedScore).feedbackText,
+                        suggestions: apiResponse.suggestions || (apiResponse?.feedback?.suggestions ? apiResponse.feedback.suggestions.split('\n') : getScoreTieredFeedback(resolvedScore).suggestions),
                         aiEvaluated: apiResponse.aiEvaluated ?? true,
                         assessmentId: currentParagraph.id,
                         completedAt: new Date().toISOString(),

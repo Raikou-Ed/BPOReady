@@ -118,24 +118,40 @@ class PreAssessmentController extends Controller
             ? (int) $parsed['vocabulary']
             : $coverageScore;
 
-        $criteria = [
-            'pronunciation' => [
-                'score' => (int) ($parsed['pronunciation'] ?? 0),
-                'weight' => 50,
-                'name' => 'Accuracy',
-                'detail' => 'Articulation & vowel/consonant clarity',
-            ],
-            'fluency' => [
-                'score' => (int) ($parsed['fluency'] ?? $parsed['speakingPace'] ?? 0),
-                'weight' => 50,
-                'name' => 'Fluency',
-                'detail' => 'Rhythm, speech rate & pause control',
-            ],
-        ];
+        $activeReadingCriteria = cache()->get('spoken_reading_criteria');
+        if (!is_array($activeReadingCriteria) || empty($activeReadingCriteria)) {
+            $activeReadingCriteria = [
+                ['name' => 'Accuracy', 'weight' => 50, 'detail' => 'Articulation & vowel/consonant clarity'],
+                ['name' => 'Fluency', 'weight' => 50, 'detail' => 'Rhythm, speech rate & pause control'],
+            ];
+        }
 
+        $pronScore = (int) ($parsed['pronunciation'] ?? 0);
+        $flScore = (int) ($parsed['fluency'] ?? $parsed['speakingPace'] ?? 0);
+
+        $criteria = [];
         $score = 0;
-        foreach ($criteria as $item) {
-            $score += $item['score'] * ($item['weight'] / 100);
+        foreach ($activeReadingCriteria as $c) {
+            $name = $c['name'] ?? 'Factor';
+            $key = strtolower(preg_replace('/[^a-z]/', '', $name));
+            $weight = (float) ($c['weight'] ?? 0);
+            $val = $pronScore;
+            if (str_contains($key, 'fluenc') || str_contains($key, 'pace')) {
+                $val = $flScore;
+            } elseif (str_contains($key, 'accura') || str_contains($key, 'pronunc') || str_contains($key, 'clarit')) {
+                $val = $pronScore;
+            } elseif (str_contains($key, 'confid') || str_contains($key, 'energy') || str_contains($key, 'compos')) {
+                $val = (int) round(($pronScore * 0.5) + ($flScore * 0.5));
+            } else {
+                $val = (int) round(($pronScore + $flScore) / 2);
+            }
+            $score += $val * ($weight / 100);
+            $criteria[$key] = [
+                'score' => $val,
+                'weight' => $weight,
+                'name' => $name,
+                'detail' => $c['detail'] ?? '',
+            ];
         }
         $score = max(0, min(100, round($score)));
         $placedLevel = $this->levelFromScore($score);
