@@ -857,7 +857,15 @@ export async function syncInstitutionalStandards(force = false) {
       : (Array.isArray(data.criteria) && data.criteria.length > 0 ? data.criteria : null);
 
     if (readingCrit) {
-      saveUserData('bpoReadyScoringCriteria', readingCrit);
+      // Only overwrite local custom weights if the server has genuinely custom (non-default) weights.
+      // This prevents an old backend returning 50/50 from wiping admin-configured custom weights
+      // that exist in the local store from a previous admin save.
+      const serverHasCustom = readingCrit.some(c => Number(c.weight) !== 50);
+      const localSaved = getUserData('bpoReadyScoringCriteria');
+      const localHasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
+      if (serverHasCustom || !localHasCustom) {
+        saveUserData('bpoReadyScoringCriteria', readingCrit);
+      }
     }
     if (Array.isArray(data.mockInterviewCriteria) && data.mockInterviewCriteria.length > 0) {
       saveUserData('bpoReadyMockInterviewCriteria', data.mockInterviewCriteria);

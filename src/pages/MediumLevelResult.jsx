@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { formatScore, getAssignedLevel, getScoreTieredFeedback, sanitizeReadingResult, getActiveEvaluationCriteria } from "../utils/assessmentScoring";
+import { formatScore, getAssignedLevel, getScoreTieredFeedback, sanitizeReadingResult, getActiveEvaluationCriteria, syncInstitutionalStandards } from "../utils/assessmentScoring";
 import { getUserData } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 import { SuggestedExerciseBadge } from "../utils/exerciseRecommender";
@@ -14,7 +14,17 @@ const MediumLevelResult = () => {
   const canProceedToHard = numScore >= 90;
   const tiered = getScoreTieredFeedback(numScore);
 
-  const activeCriteria = getActiveEvaluationCriteria();
+  const [activeCriteria, setActiveCriteria] = useState(() => getActiveEvaluationCriteria());
+
+  useEffect(() => {
+    syncInstitutionalStandards(true).then(() => {
+      setActiveCriteria(getActiveEvaluationCriteria());
+    });
+    const handleUpdate = () => setActiveCriteria(getActiveEvaluationCriteria());
+    window.addEventListener('bpo-scoring-standards-updated', handleUpdate);
+    return () => window.removeEventListener('bpo-scoring-standards-updated', handleUpdate);
+  }, []);
+
   const accWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
   const fluWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
 

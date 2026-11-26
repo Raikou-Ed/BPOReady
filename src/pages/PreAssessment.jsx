@@ -11,6 +11,7 @@ import {
   getActiveEvaluationCriteria,
   formatScore,
   hasMeaningfulSpeech,
+  syncInstitutionalStandards,
 } from '../utils/assessmentScoring';
 import { submitPreAssessmentAudio, getUserPreAssessment, savePreAssessmentResult } from '../api/preAssessmentApi';
 import { addUserActivity, getCurrentUser } from '../utils/userData';
@@ -23,7 +24,19 @@ const visibleCriteria = new Set(['pronunciation', 'fluency', 'accuracy']);
 
 export default function PreAssessment() {
   const navigate = useNavigate();
-  const activeReadingCrit = getActiveEvaluationCriteria();
+
+  const [activeReadingCrit, setActiveReadingCrit] = useState(() => getActiveEvaluationCriteria());
+
+  // Sync live institutional weights from backend on mount
+  useEffect(() => {
+    syncInstitutionalStandards(true).then(() => {
+      setActiveReadingCrit(getActiveEvaluationCriteria());
+    });
+    const handleUpdate = () => setActiveReadingCrit(getActiveEvaluationCriteria());
+    window.addEventListener('bpo-scoring-standards-updated', handleUpdate);
+    return () => window.removeEventListener('bpo-scoring-standards-updated', handleUpdate);
+  }, []);
+
   const accuracyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
   const fluencyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
 
