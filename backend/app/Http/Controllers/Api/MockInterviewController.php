@@ -136,7 +136,7 @@ class MockInterviewController extends Controller
                 $pacingScore = max(0, min(100, (float) ($geminiData['pacing_score'] ?? 86)));
                 $grammarScore = max(0, min(100, (float) ($geminiData['grammar_score'] ?? 85)));
                 $answerQuality = max(0, min(100, (float) ($geminiData['answer_quality_score'] ?? 84)));
-                $interviewCriteria = cache()->get('mock_interview_criteria');
+                $interviewCriteria = ScoringStandardController::getSetting('mock_interview_criteria');
                 $wAcc = 0.20;
                 $wFlu = 0.20;
                 $wRan = 0.20;
@@ -190,7 +190,7 @@ class MockInterviewController extends Controller
                 $grammarScore = max(20, min(95, round(85 - ($fillerCount * 3))));
                 $answerQuality = max(10, min(95, round(($depthScore * 0.6) + ($clarityScore * 0.4))));
 
-                $interviewCriteria = cache()->get('mock_interview_criteria');
+                $interviewCriteria = ScoringStandardController::getSetting('mock_interview_criteria');
                 $wAcc = 0.20;
                 $wFlu = 0.20;
                 $wRan = 0.20;

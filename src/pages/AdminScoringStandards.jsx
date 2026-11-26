@@ -92,19 +92,16 @@ const AdminScoringStandards = () => {
           } else if (data.standards && Array.isArray(data.standards) && data.standards.length > 0) {
             setStandards(data.standards);
           }
-          if (data.readingCriteria && Array.isArray(data.readingCriteria) && data.readingCriteria.length > 0) {
+          const incomingReading = (Array.isArray(data.readingCriteria) && data.readingCriteria.length > 0)
+            ? data.readingCriteria
+            : (Array.isArray(data.criteria) && data.criteria.length > 0 ? data.criteria : null);
+          if (incomingReading) {
             const localSaved = getUserData("bpoReadyScoringCriteria");
-            const hasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
-            if (!hasCustom) {
-              setReadingCriteriaList(data.readingCriteria);
-              saveUserData("bpoReadyScoringCriteria", data.readingCriteria);
-            }
-          } else if (data.criteria && Array.isArray(data.criteria) && data.criteria.length > 0) {
-            const localSaved = getUserData("bpoReadyScoringCriteria");
-            const hasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
-            if (!hasCustom) {
-              setReadingCriteriaList(data.criteria);
-              saveUserData("bpoReadyScoringCriteria", data.criteria);
+            const localHasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
+            const serverHasCustom = incomingReading.some(c => Number(c.weight) !== 50);
+            if (serverHasCustom || !localHasCustom) {
+              setReadingCriteriaList(incomingReading);
+              saveUserData("bpoReadyScoringCriteria", incomingReading);
             }
           }
           if (data.mockInterviewCriteria && Array.isArray(data.mockInterviewCriteria) && data.mockInterviewCriteria.length > 0) {

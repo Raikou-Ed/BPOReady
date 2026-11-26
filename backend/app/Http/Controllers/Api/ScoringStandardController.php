@@ -6,14 +6,63 @@ use App\Http\Controllers\Controller;
 use App\Models\ScoringStandard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class ScoringStandardController extends Controller
 {
+    private static bool $tableChecked = false;
+
+    private static function ensureSettingsTable(): void
+    {
+        if (self::$tableChecked) {
+            return;
+        }
+        try {
+            DB::statement('CREATE TABLE IF NOT EXISTS institutional_settings (setting_key VARCHAR(120) PRIMARY KEY, setting_value TEXT NOT NULL, updated_at TIMESTAMP NULL)');
+            self::$tableChecked = true;
+        } catch (\Throwable $e) {
+            // Fall back silently to cache if DDL not permitted
+        }
+    }
+
+    public static function getSetting(string $key, $default = null)
+    {
+        self::ensureSettingsTable();
+        try {
+            $row = DB::table('institutional_settings')->where('setting_key', $key)->first();
+            if ($row && isset($row->setting_value)) {
+                $decoded = json_decode($row->setting_value, true);
+                if (json_last_error() === JSON_ERROR_NONE && $decoded !== null) {
+                    return $decoded;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback to cache below
+        }
+        return cache()->get($key, $default);
+    }
+
+    public static function setSetting(string $key, $value): void
+    {
+        cache()->forever($key, $value);
+        self::ensureSettingsTable();
+        try {
+            DB::table('institutional_settings')->updateOrInsert(
+                ['setting_key' => $key],
+                [
+                    'setting_value' => json_encode($value),
+                    'updated_at' => now(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Cache still updated
+        }
+    }
+
     public function index()
     {
         $standards = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
-        $readingCriteria = cache()->get('spoken_reading_criteria', [
+
+        $readingCriteria = self::getSetting('spoken_reading_criteria', [
             [
                 'id' => 1,
                 'name' => 'Accuracy',
@@ -28,7 +77,7 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
-        $mockInterviewCriteria = cache()->get('mock_interview_criteria', [
+        $mockInterviewCriteria = self::getSetting('mock_interview_criteria', [
             [
                 'id' => 1,
                 'name' => 'Accuracy',
@@ -61,7 +110,7 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
-        $callSimulationCriteria = cache()->get('call_simulation_criteria', [
+        $callSimulationCriteria = self::getSetting('call_simulation_criteria', [
             [
                 'id' => 1,
                 'name' => 'Interaction',
@@ -82,7 +131,7 @@ class ScoringStandardController extends Controller
             ],
         ]);
 
-        $certificationPrerequisites = cache()->get('certification_prerequisites', [
+        $certificationPrerequisites = self::getSetting('certification_prerequisites', [
             'required_readings' => 10,
             'required_mock_interviews' => 10,
             'required_call_simulations' => 10,
@@ -118,30 +167,30 @@ class ScoringStandardController extends Controller
         }
 
         if ($request->has('criteria') && is_array($request->input('criteria'))) {
-            cache()->forever('spoken_reading_criteria', $request->input('criteria'));
+            self::setSetting('spoken_reading_criteria', $request->input('criteria'));
         }
 
         if ($request->has('readingCriteria') && is_array($request->input('readingCriteria'))) {
-            cache()->forever('spoken_reading_criteria', $request->input('readingCriteria'));
+            self::setSetting('spoken_reading_criteria', $request->input('readingCriteria'));
         }
 
         if ($request->has('mockInterviewCriteria') && is_array($request->input('mockInterviewCriteria'))) {
-            cache()->forever('mock_interview_criteria', $request->input('mockInterviewCriteria'));
+            self::setSetting('mock_interview_criteria', $request->input('mockInterviewCriteria'));
         }
 
         if ($request->has('callSimulationCriteria') && is_array($request->input('callSimulationCriteria'))) {
-            cache()->forever('call_simulation_criteria', $request->input('callSimulationCriteria'));
+            self::setSetting('call_simulation_criteria', $request->input('callSimulationCriteria'));
         }
 
         if ($request->has('certificationPrerequisites') && is_array($request->input('certificationPrerequisites'))) {
-            cache()->forever('certification_prerequisites', $request->input('certificationPrerequisites'));
+            self::setSetting('certification_prerequisites', $request->input('certificationPrerequisites'));
         }
 
         $updated = ScoringStandard::where('is_active', true)->orderBy('min_score')->get();
-        $readingCriteria = cache()->get('spoken_reading_criteria', []);
-        $mockInterviewCriteria = cache()->get('mock_interview_criteria', []);
-        $callSimulationCriteria = cache()->get('call_simulation_criteria', []);
-        $certificationPrerequisites = cache()->get('certification_prerequisites', [
+        $readingCriteria = self::getSetting('spoken_reading_criteria', []);
+        $mockInterviewCriteria = self::getSetting('mock_interview_criteria', []);
+        $callSimulationCriteria = self::getSetting('call_simulation_criteria', []);
+        $certificationPrerequisites = self::getSetting('certification_prerequisites', [
             'required_readings' => 10,
             'required_mock_interviews' => 10,
             'required_call_simulations' => 10,

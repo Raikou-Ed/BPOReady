@@ -832,3 +832,49 @@ export function getScoreTieredFeedback(score) {
   }
 }
 
+let lastStandardsSyncAt = 0;
+
+/**
+ * Syncs institutional scoring standards, weights, and prerequisites from the backend API
+ * into shared client storage so candidate sessions immediately match admin changes across browsers.
+ */
+export async function syncInstitutionalStandards(force = false) {
+  const now = Date.now();
+  if (!force && now - lastStandardsSyncAt < 2500) {
+    return null;
+  }
+  lastStandardsSyncAt = now;
+
+  try {
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+    const res = await fetch(`${API_BASE}/api/scoring-standards`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || Array.isArray(data)) return null;
+
+    const readingCrit = (Array.isArray(data.readingCriteria) && data.readingCriteria.length > 0)
+      ? data.readingCriteria
+      : (Array.isArray(data.criteria) && data.criteria.length > 0 ? data.criteria : null);
+
+    if (readingCrit) {
+      saveUserData('bpoReadyScoringCriteria', readingCrit);
+    }
+    if (Array.isArray(data.mockInterviewCriteria) && data.mockInterviewCriteria.length > 0) {
+      saveUserData('bpoReadyMockInterviewCriteria', data.mockInterviewCriteria);
+    }
+    if (Array.isArray(data.callSimulationCriteria) && data.callSimulationCriteria.length > 0) {
+      saveUserData('bpoReadyCallSimulationCriteria', data.callSimulationCriteria);
+    }
+    if (data.certificationPrerequisites && typeof data.certificationPrerequisites === 'object') {
+      saveUserData('bpoReadyCertificationPrerequisites', data.certificationPrerequisites);
+    }
+    if (Array.isArray(data.standards) && data.standards.length > 0) {
+      saveUserData('bpoReadyScoringStandards', data.standards);
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+

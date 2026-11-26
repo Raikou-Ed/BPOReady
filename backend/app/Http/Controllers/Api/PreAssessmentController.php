@@ -118,7 +118,7 @@ class PreAssessmentController extends Controller
             ? (int) $parsed['vocabulary']
             : $coverageScore;
 
-        $readingCriteria = cache()->get('spoken_reading_criteria');
+        $readingCriteria = ScoringStandardController::getSetting('spoken_reading_criteria');
         $accWeight = 50.0;
         $fluWeight = 50.0;
         if (is_array($readingCriteria)) {

@@ -157,7 +157,7 @@ class ParagraphController extends Controller
                 $feedbackText = 'The recorded audio did not match the required passage. Please read the passage text clearly from start to finish.';
                 $suggestions = "Speak closer to the microphone.\nFollow the provided passage closely.\nAvoid background noise or unrelated speech.";
             } else {
-                $readingCriteria = cache()->get('spoken_reading_criteria');
+                $readingCriteria = ScoringStandardController::getSetting('spoken_reading_criteria');
                 $accWeight = 50.0;
                 $fluWeight = 50.0;
                 if (is_array($readingCriteria)) {
@@ -270,7 +270,7 @@ class ParagraphController extends Controller
                 ->update(['assigned_level' => $newLevel, 'updated_at' => now()]);
         }
 
-        $readingCriteria = cache()->get('spoken_reading_criteria');
+        $readingCriteria = ScoringStandardController::getSetting('spoken_reading_criteria');
         $accWeight = 50.0;
         $fluWeight = 50.0;
         if (is_array($readingCriteria)) {

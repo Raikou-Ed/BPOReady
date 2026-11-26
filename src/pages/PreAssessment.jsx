@@ -371,7 +371,21 @@ export default function PreAssessment() {
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] uppercase font-bold text-gray-400">Composite Score</span>
-                    <p className="text-3xl font-extrabold text-emerald-700">{formatScore(result.score)}/100</p>
+                    <p className="text-3xl font-extrabold text-emerald-700">
+                      {formatScore(
+                        Array.isArray(result.criteria) && result.criteria.length === 2
+                          ? Number(
+                              result.criteria.reduce((sum, c, idx) => {
+                                const fName = c.name === 'Pronunciation' ? 'Accuracy' : (c.name || '');
+                                const isAcc = fName.toLowerCase().includes('accura') || idx === 0;
+                                const w = isAcc ? accuracyWeight : fluencyWeight;
+                                const v = c.value != null ? Number(c.value) : 0;
+                                return sum + (v * w) / 100;
+                              }, 0).toFixed(2)
+                            )
+                          : result.score
+                      )}/100
+                    </p>
                   </div>
                 </div>
 

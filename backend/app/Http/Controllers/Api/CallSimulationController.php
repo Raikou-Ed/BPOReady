@@ -193,7 +193,7 @@ class CallSimulationController extends Controller
                     $interactionScore = $speechInteraction;
                 }
 
-                $callCriteria = cache()->get('call_simulation_criteria');
+                $callCriteria = ScoringStandardController::getSetting('call_simulation_criteria');
                 $wInt = 0.40;
                 $wFlu = 0.30;
                 $wAcc = 0.30;
@@ -252,7 +252,7 @@ class CallSimulationController extends Controller
                     $interactionScore = $speechInteraction;
                 }
 
-                $callCriteria = cache()->get('call_simulation_criteria');
+                $callCriteria = ScoringStandardController::getSetting('call_simulation_criteria');
                 $wInt = 0.40;
                 $wFlu = 0.30;
                 $wAcc = 0.30;
