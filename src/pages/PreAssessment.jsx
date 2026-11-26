@@ -8,7 +8,6 @@ import {
   saveAssessmentResult,
   getAssignedLevel,
   generatePreAssessmentCriteria,
-  getActiveEvaluationCriteria,
   formatScore,
   hasMeaningfulSpeech,
 } from '../utils/assessmentScoring';
@@ -161,52 +160,65 @@ export default function PreAssessment() {
         audioMetrics: recording.audioMetrics,
       });
 
-      let score;
-      if (apiResult.fallback || !apiResult.criteria) {
-        score = localScore;
-      } else {
-        const activeCrit = getActiveEvaluationCriteria();
-        const apiCrit = apiResult.criteria || {};
-        const apiAccuracy = apiCrit.pronunciation?.score ?? apiCrit.accuracy?.score;
-        const apiFluency = apiCrit.fluency?.score ?? apiCrit.speakingPace?.score;
-
-        const evaluatedCriteria = activeCrit.map((c) => {
-          const key = (c.name || '').toLowerCase().replace(/[^a-z]/g, '');
-          let val = localScore.criteria.find(lc => lc.name.toLowerCase() === c.name.toLowerCase())?.value;
-          if (apiAccuracy != null && (key.includes('accura') || key.includes('pronunc') || key.includes('clarit'))) {
-            val = Number(apiAccuracy);
-          } else if (apiFluency != null && (key.includes('fluenc') || key.includes('pace'))) {
-            val = Number(apiFluency);
-          } else if (val == null) {
-            val = Math.round(((apiAccuracy ?? localScore.metrics.accuracy) + (apiFluency ?? localScore.metrics.fluency)) / 2);
-          }
-          const weight = Number(c.weight || 0);
-          const contribution = Number(((Number(val || 0) * weight) / 100).toFixed(2));
-          return {
-            name: c.name,
-            pillar: c.pillar || `CEFR ${c.name}`,
-            value: Math.round(Number(val || 0)),
-            weight,
-            contribution,
-            detail: c.detail || `${Math.round(localScore.wordsPerMinute)} WPM cadence`,
-          };
-        });
-
-        const calculatedTotal = Number(evaluatedCriteria.reduce((sum, c) => sum + c.contribution, 0).toFixed(2));
-
-        score = {
-          score: calculatedTotal,
-          placedLevel: apiResult.placedLevel || (calculatedTotal >= 90 ? 'hard' : calculatedTotal >= 76 ? 'medium' : 'easy'),
+      const score = apiResult.fallback || !apiResult.criteria
+        ? localScore
+        : {
+          score: Number(Object.entries(apiResult.criteria || {})
+            .filter(([name]) => scoreCriteria.has(name))
+            .reduce((total, [name, value]) => {
+              const localMetricMap = {
+                pronunciation: localScore.metrics.pronunciation,
+                accuracy: localScore.metrics.accuracy,
+                fluency: localScore.metrics.fluency,
+                speakingPace: localScore.metrics.fluency,
+              };
+              const metricValue = value?.score ?? localMetricMap[name] ?? 0;
+              const weight = 50;
+              return total + ((Number(metricValue) * weight) / 100);
+            }, 0).toFixed(2)),
+          placedLevel: apiResult.placedLevel || localScore.placedLevel,
           wordsPerMinute: localScore.wordsPerMinute,
           metrics: {
             ...localScore.metrics,
-            pronunciation: apiAccuracy ?? localScore.metrics.pronunciation,
-            accuracy: apiAccuracy ?? localScore.metrics.accuracy,
-            fluency: apiFluency ?? localScore.metrics.fluency,
+            pronunciation: apiResult.criteria?.pronunciation?.score ?? localScore.metrics.pronunciation,
+            accuracy: apiResult.criteria?.pronunciation?.score ?? localScore.metrics.accuracy,
+            fluency: apiResult.criteria?.fluency?.score ?? localScore.metrics.fluency,
           },
-          criteria: evaluatedCriteria,
+          criteria: Object.entries(apiResult.criteria || {})
+            .filter(([name]) => visibleCriteria.has(name))
+            .map(([name, value]) => {
+              const localMetricMap = {
+                pronunciation: localScore.metrics.pronunciation,
+                accuracy: localScore.metrics.accuracy,
+                fluency: localScore.metrics.fluency,
+              };
+              const nameLabelMap = {
+                accuracy: 'Accuracy',
+                fluency: 'Fluency',
+                pronunciation: 'Accuracy',
+              };
+              const pillarLabelMap = {
+                accuracy: 'Acoustic Enunciation & Phonetic Clarity',
+                fluency: 'Rhythm, Cadence & Pause Smoothness',
+                pronunciation: 'Acoustic Enunciation & Phonetic Clarity',
+              };
+              const detailMap = {
+                accuracy: 'Vowel & consonant articulation clarity',
+                fluency: `${Math.round(localScore.wordsPerMinute)} WPM • Target: 115–145 WPM cadence`,
+                pronunciation: 'Vowel & consonant articulation clarity',
+              };
+              const resolvedScore = value?.score ?? localMetricMap[name] ?? null;
+              const resolvedWeight = 50;
+              return {
+                name: nameLabelMap[name] || name,
+                pillar: pillarLabelMap[name] || nameLabelMap[name] || name,
+                value: resolvedScore,
+                weight: resolvedWeight,
+                contribution: resolvedScore == null ? 0 : Number(((Number(resolvedScore) * resolvedWeight) / 100).toFixed(2)),
+                detail: resolvedScore == null ? 'Not measured' : (detailMap[name] || ''),
+              };
+            }),
         };
-      }
 
       const finalScoreNum = Number(score.score || 0);
 

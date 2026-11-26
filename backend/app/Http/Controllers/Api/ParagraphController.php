@@ -256,44 +256,22 @@ class ParagraphController extends Controller
                 ->update(['assigned_level' => $newLevel, 'updated_at' => now()]);
         }
 
-        $activeReadingCriteria = cache()->get('spoken_reading_criteria');
-        if (!is_array($activeReadingCriteria) || empty($activeReadingCriteria)) {
-            $activeReadingCriteria = [
-                ['name' => 'Accuracy', 'weight' => 50, 'detail' => 'Articulation & sound clarity'],
-                ['name' => 'Fluency', 'weight' => 50, 'detail' => 'Rhythm & pause control'],
-            ];
-        }
-
-        $criteria = [];
-        $totalWeightedScore = 0.0;
-        foreach ($activeReadingCriteria as $c) {
-            $name = $c['name'] ?? 'Factor';
-            $key = strtolower(preg_replace('/[^a-z]/', '', $name));
-            $weight = (float) ($c['weight'] ?? 0);
-            $val = round($pronunciationScore);
-            if (str_contains($key, 'fluenc') || str_contains($key, 'pace')) {
-                $val = round($fluencyScore);
-            } elseif (str_contains($key, 'accura') || str_contains($key, 'pronunc') || str_contains($key, 'clarit')) {
-                $val = round($pronunciationScore);
-            } elseif (str_contains($key, 'confid') || str_contains($key, 'energy') || str_contains($key, 'compos')) {
-                $val = round(($pronunciationScore * 0.5) + ($fluencyScore * 0.5));
-            } else {
-                $val = round(($pronunciationScore + $fluencyScore) / 2);
-            }
-            $contrib = round(($val * $weight) / 100, 2);
-            $totalWeightedScore += $contrib;
-            $criteria[] = [
-                'name' => $name,
-                'value' => $score === 0 ? 0 : $val,
-                'weight' => $weight,
-                'contribution' => $score === 0 ? 0 : $contrib,
-                'detail' => $score === 0 ? 'Passage not read' : ($c['detail'] ?? ''),
-            ];
-        }
-
-        if ($score > 0 && $totalWeightedScore > 0) {
-            $score = min(100.0, max(0.0, round($totalWeightedScore, 2)));
-        }
+        $criteria = [
+            [
+                'name' => 'Accuracy',
+                'value' => round($pronunciationScore),
+                'weight' => 50,
+                'contribution' => round($pronunciationScore * 0.50, 2),
+                'detail' => $score === 0 ? 'Passage not read' : 'Articulation & sound clarity',
+            ],
+            [
+                'name' => 'Fluency',
+                'value' => round($fluencyScore),
+                'weight' => 50,
+                'contribution' => round($fluencyScore * 0.50, 2),
+                'detail' => $score === 0 ? 'Passage not read' : 'Rhythm & pause control',
+            ],
+        ];
 
         return response()->json([
             'success' => true,

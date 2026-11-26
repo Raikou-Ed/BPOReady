@@ -113,19 +113,14 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   const hasAudio = hasMeaningfulSpeech({ transcript, audioMetrics, durationSeconds: rawDuration });
 
   if (!hasAudio) {
-    const activeReadingCrit = getActiveEvaluationCriteria();
     return {
       score: 0,
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
-      criteria: activeReadingCrit.map((c) => ({
-        name: c.name,
-        pillar: c.pillar || `CEFR ${c.name}`,
-        value: 0,
-        weight: Number(c.weight) || 0,
-        contribution: 0,
-        detail: 'No speech detected',
-      })),
+      criteria: [
+        { name: 'Accuracy', pillar: 'Accuracy (Acoustic & Phonetic Articulation)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
+        { name: 'Fluency', pillar: 'Fluency (Speech Rate & Pause Smoothness)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
+      ],
       metrics: {
         accuracy: 0,
         fluency: 0,
@@ -182,19 +177,14 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   // If speech was transcribed, but fewer than 3 words matched OR coverage is under 15%:
   // (Prevents scoring unrelated speech that only shares coincidental words like 'and', 'the', 'is')
   if (isSpeechTranscribed && (matchedWords < 3 || coverageRatio < 0.15)) {
-    const activeReadingCrit = getActiveEvaluationCriteria();
     return {
       score: 0,
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
-      criteria: activeReadingCrit.map((c) => ({
-        name: c.name,
-        pillar: c.pillar || `CEFR ${c.name}`,
-        value: 0,
-        weight: Number(c.weight) || 0,
-        contribution: 0,
-        detail: 'Passage not read',
-      })),
+      criteria: [
+        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
+        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 50, contribution: 0, detail: 'Off-topic speech' },
+      ],
       metrics: {
         accuracy: 0,
         fluency: 0,
@@ -297,18 +287,11 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     (contentScore * 0.70) + (completionScore * 0.30)
   )));
 
-  // Dynamic Dimension 5: Confidence & Vocal Composure (acoustic projection, pacing control & filler suppression)
-  const confidenceScore = Math.max(10, Math.min(100, Math.round(
-    (audioBlendScore * 0.40) + (paceScore * 0.30) + (fillerCleanliness * 0.30)
-  )));
-
   const activeCriteria = getActiveEvaluationCriteria();
 
   const scoreLookup = {
     accuracy: accuracyScore,
     pronunciation: accuracyScore,
-    clarity: accuracyScore,
-    articulation: accuracyScore,
     fluency: fluencyScore,
     pacing: fluencyScore,
     speakingpace: fluencyScore,
@@ -316,9 +299,6 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
     sentencemastery: rangeScore,
     coherence: coherenceScore,
     vocabulary: coherenceScore,
-    confidence: confidenceScore,
-    vocalenergy: confidenceScore,
-    composure: confidenceScore,
   };
 
   const calculatedCriteria = activeCriteria.map(c => {
@@ -447,15 +427,17 @@ export const DEFAULT_READING_CRITERIA = [
 export function getActiveEvaluationCriteria() {
   try {
     const custom = getUserData('bpoReadyScoringCriteria');
-    if (Array.isArray(custom) && custom.length > 0) {
-      return custom.map((c, idx) => ({
-        id: c.id || idx + 1,
-        name: c.name || `Factor ${idx + 1}`,
-        pillar: c.pillar || `CEFR ${c.name || 'Factor'}`,
-        weight: Number(c.weight) || 0,
-        detail: c.detail || '',
-      }));
+    if (Array.isArray(custom) && custom.length === 2) {
+      const isValid = custom.every(
+        (c) =>
+          (c.name === 'Accuracy' || c.name === 'Fluency') &&
+          Number(c.weight) === 50
+      );
+      if (isValid) return custom;
     }
+  } catch { }
+  try {
+    saveUserData('bpoReadyScoringCriteria', DEFAULT_READING_CRITERIA);
   } catch { }
   return DEFAULT_READING_CRITERIA;
 }
@@ -475,20 +457,31 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
         c.name === 'Sentence Mastery' ||
         c.name === 'Vocabulary' ||
         c.name === 'Range' ||
-        c.name === 'Coherence'
+        c.name === 'Coherence' ||
+        Number(c.weight) !== 50
     );
 
   let criteria = raw.criteria;
   if (hasLegacyCriteria) {
     if (numScore === 0) {
-      criteria = activeCriteria.map((c) => ({
-        name: c.name,
-        pillar: c.pillar || `CEFR ${c.name}`,
-        value: 0,
-        weight: Number(c.weight) || 0,
-        contribution: 0,
-        detail: 'Passage not read',
-      }));
+      criteria = [
+        {
+          name: 'Accuracy',
+          pillar: 'Accuracy (Acoustic & Phonetic Articulation)',
+          value: 0,
+          weight: 50,
+          contribution: 0,
+          detail: 'Passage not read',
+        },
+        {
+          name: 'Fluency',
+          pillar: 'Fluency (Speech Rate & Pause Smoothness)',
+          value: 0,
+          weight: 50,
+          contribution: 0,
+          detail: 'Passage not read',
+        },
+      ];
     } else {
       criteria = generatePreAssessmentCriteria(numScore, raw.placedLevel || defaultLevel, raw.wordsPerMinute);
     }
