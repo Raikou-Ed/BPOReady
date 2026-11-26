@@ -53,25 +53,46 @@ export function getUserData(name, fallback = null) {
   // Institutional configuration: global across candidates and admins
   if (INSTITUTIONAL_STORAGE_KEYS.has(name)) {
     try {
-      const globalVal = localStorage.getItem(name);
-      if (globalVal !== null) {
-        return JSON.parse(globalVal);
+      let candidateValues = [];
+
+      // A) Check global un-scoped key
+      const globalRaw = localStorage.getItem(name);
+      if (globalRaw !== null) {
+        try {
+          candidateValues.push({ key: name, val: JSON.parse(globalRaw) });
+        } catch {}
       }
-      // Check legacy scoped keys in case an admin previously saved under an email or id
+
+      // B) Check all legacy or role-scoped keys (e.g. bpoReadyScoringCriteria:admin@bpoready.com, bpoReadyScoringCriteria:2)
       if (typeof window !== 'undefined') {
         for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(`${name}:`)) {
-            const legacyVal = localStorage.getItem(key);
-            if (legacyVal !== null) {
+          const k = localStorage.key(i);
+          if (k && k !== name && k.startsWith(`${name}:`)) {
+            const val = localStorage.getItem(k);
+            if (val !== null) {
               try {
-                const parsed = JSON.parse(legacyVal);
-                localStorage.setItem(name, JSON.stringify(parsed));
-                return parsed;
+                candidateValues.push({ key: k, val: JSON.parse(val) });
               } catch {}
             }
           }
         }
+      }
+
+      if (candidateValues.length > 0) {
+        // Priority 1: Check if any entry has customized non-default weights (e.g. Accuracy != 50 or Fluency != 50)
+        const customEntry = candidateValues.find(entry => {
+          if (Array.isArray(entry.val) && entry.val.length === 2 && name === 'bpoReadyScoringCriteria') {
+            return entry.val.some(c => Number(c.weight) !== 50);
+          }
+          if (entry.key.includes('admin')) return true;
+          return false;
+        });
+
+        const selected = customEntry ? customEntry.val : candidateValues[0].val;
+
+        // Migrate/sync selected back to global unscoped key so all users read it
+        localStorage.setItem(name, JSON.stringify(selected));
+        return selected;
       }
     } catch {
       // ignore

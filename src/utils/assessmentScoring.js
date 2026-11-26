@@ -111,6 +111,9 @@ function getSpeechCriteria({ transcript = '', expectedText = '', wordCount = 0, 
 export function calculateAssessmentScore({ durationSeconds, wordCount, transcript, expectedText, audioMetrics = null, currentLevel = null }) {
   const rawDuration = Number(durationSeconds) || 0;
   const hasAudio = hasMeaningfulSpeech({ transcript, audioMetrics, durationSeconds: rawDuration });
+  const activeCriteria = getActiveEvaluationCriteria();
+  const accWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('accura'))?.weight ?? 50);
+  const fluWeight = Number(activeCriteria.find(c => (c.name || '').toLowerCase().includes('fluenc'))?.weight ?? 50);
 
   if (!hasAudio) {
     return {
@@ -118,8 +121,8 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Accuracy', pillar: 'Accuracy (Acoustic & Phonetic Articulation)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
-        { name: 'Fluency', pillar: 'Fluency (Speech Rate & Pause Smoothness)', value: 0, weight: 50, contribution: 0, detail: 'No speech detected' },
+        { name: 'Accuracy', pillar: 'Accuracy (Acoustic & Phonetic Articulation)', value: 0, weight: accWeight, contribution: 0, detail: 'No speech detected' },
+        { name: 'Fluency', pillar: 'Fluency (Speech Rate & Pause Smoothness)', value: 0, weight: fluWeight, contribution: 0, detail: 'No speech detected' },
       ],
       metrics: {
         accuracy: 0,
@@ -136,17 +139,17 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
-        accuracyWeight: 50,
-        fluencyWeight: 50,
+        accuracyWeight: accWeight,
+        fluencyWeight: fluWeight,
         rangeWeight: 0,
         coherenceWeight: 0,
-        pronunciationWeight: 50,
+        pronunciationWeight: accWeight,
         sentenceMasteryWeight: 0,
         vocabularyWeight: 0,
-        pacingWeight: 50,
+        pacingWeight: fluWeight,
         contentWeight: 0,
         clarityConfidenceWeight: 0,
-        deliveryConsistencyWeight: 50,
+        deliveryConsistencyWeight: fluWeight,
         completionWeight: 0,
         accuracyContribution: 0,
         fluencyContribution: 0,
@@ -182,8 +185,8 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
       placedLevel: currentLevel || 'easy',
       wordsPerMinute: 0,
       criteria: [
-        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: 50, contribution: 0, detail: 'Passage not read' },
-        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: 50, contribution: 0, detail: 'Off-topic speech' },
+        { name: 'Accuracy', pillar: 'Accuracy (Pronunciation & Articulation)', value: 0, weight: accWeight, contribution: 0, detail: 'Passage not read' },
+        { name: 'Fluency', pillar: 'Fluency (Pacing & Smoothness: 115–145 WPM)', value: 0, weight: fluWeight, contribution: 0, detail: 'Off-topic speech' },
       ],
       metrics: {
         accuracy: 0,
@@ -200,17 +203,17 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
         deliveryConsistency: 0,
         completion: 0,
         targetWordsPerMinute: 125,
-        accuracyWeight: 50,
-        fluencyWeight: 50,
+        accuracyWeight: accWeight,
+        fluencyWeight: fluWeight,
         rangeWeight: 0,
         coherenceWeight: 0,
-        pronunciationWeight: 50,
+        pronunciationWeight: accWeight,
         sentenceMasteryWeight: 0,
         vocabularyWeight: 0,
-        pacingWeight: 50,
+        pacingWeight: fluWeight,
         contentWeight: 0,
         clarityConfidenceWeight: 0,
-        deliveryConsistencyWeight: 50,
+        deliveryConsistencyWeight: fluWeight,
         completionWeight: 0,
         accuracyContribution: 0,
         fluencyContribution: 0,
@@ -286,8 +289,6 @@ export function calculateAssessmentScore({ durationSeconds, wordCount, transcrip
   const coherenceScore = Math.max(0, Math.min(100, Math.round(
     (contentScore * 0.70) + (completionScore * 0.30)
   )));
-
-  const activeCriteria = getActiveEvaluationCriteria();
 
   const scoreLookup = {
     accuracy: accuracyScore,

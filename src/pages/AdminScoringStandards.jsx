@@ -93,11 +93,19 @@ const AdminScoringStandards = () => {
             setStandards(data.standards);
           }
           if (data.readingCriteria && Array.isArray(data.readingCriteria) && data.readingCriteria.length > 0) {
-            setReadingCriteriaList(data.readingCriteria);
-            saveUserData("bpoReadyScoringCriteria", data.readingCriteria);
+            const localSaved = getUserData("bpoReadyScoringCriteria");
+            const hasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
+            if (!hasCustom) {
+              setReadingCriteriaList(data.readingCriteria);
+              saveUserData("bpoReadyScoringCriteria", data.readingCriteria);
+            }
           } else if (data.criteria && Array.isArray(data.criteria) && data.criteria.length > 0) {
-            setReadingCriteriaList(data.criteria);
-            saveUserData("bpoReadyScoringCriteria", data.criteria);
+            const localSaved = getUserData("bpoReadyScoringCriteria");
+            const hasCustom = Array.isArray(localSaved) && localSaved.some(c => Number(c.weight) !== 50);
+            if (!hasCustom) {
+              setReadingCriteriaList(data.criteria);
+              saveUserData("bpoReadyScoringCriteria", data.criteria);
+            }
           }
           if (data.mockInterviewCriteria && Array.isArray(data.mockInterviewCriteria) && data.mockInterviewCriteria.length > 0) {
             setInterviewCriteriaList(data.mockInterviewCriteria);
@@ -140,10 +148,11 @@ const AdminScoringStandards = () => {
       [field]: field === "weight" ? (value === "" ? "" : Number(value)) : value,
     };
     setReadingCriteriaList(updated);
+    saveUserData("bpoReadyScoringCriteria", updated);
   };
 
   const handleAddReadingCriteria = () => {
-    setReadingCriteriaList([
+    const updated = [
       ...readingCriteriaList,
       {
         id: Date.now(),
@@ -151,7 +160,9 @@ const AdminScoringStandards = () => {
         weight: 0,
         detail: "Describe evaluation focus and speech metrics...",
       },
-    ]);
+    ];
+    setReadingCriteriaList(updated);
+    saveUserData("bpoReadyScoringCriteria", updated);
   };
 
   const handleRemoveReadingCriteria = (index) => {
@@ -159,7 +170,9 @@ const AdminScoringStandards = () => {
       alert("At least one evaluation factor must be maintained for Spoken Reading.");
       return;
     }
-    setReadingCriteriaList(readingCriteriaList.filter((_, idx) => idx !== index));
+    const updated = readingCriteriaList.filter((_, idx) => idx !== index);
+    setReadingCriteriaList(updated);
+    saveUserData("bpoReadyScoringCriteria", updated);
   };
 
   const handleResetReadingCriteria = () => {
@@ -177,10 +190,11 @@ const AdminScoringStandards = () => {
       [field]: field === "weight" ? (value === "" ? "" : Number(value)) : value,
     };
     setInterviewCriteriaList(updated);
+    saveUserData("bpoReadyMockInterviewCriteria", updated);
   };
 
   const handleAddInterviewCriteria = () => {
-    setInterviewCriteriaList([
+    const updated = [
       ...interviewCriteriaList,
       {
         id: Date.now(),
@@ -188,7 +202,9 @@ const AdminScoringStandards = () => {
         weight: 0,
         detail: "Define candidate interview response evaluation standard...",
       },
-    ]);
+    ];
+    setInterviewCriteriaList(updated);
+    saveUserData("bpoReadyMockInterviewCriteria", updated);
   };
 
   const handleRemoveInterviewCriteria = (index) => {
@@ -196,7 +212,9 @@ const AdminScoringStandards = () => {
       alert("At least one evaluation factor must be maintained for Mock Interview.");
       return;
     }
-    setInterviewCriteriaList(interviewCriteriaList.filter((_, idx) => idx !== index));
+    const updated = interviewCriteriaList.filter((_, idx) => idx !== index);
+    setInterviewCriteriaList(updated);
+    saveUserData("bpoReadyMockInterviewCriteria", updated);
   };
 
   const handleResetInterviewCriteria = () => {
@@ -214,10 +232,11 @@ const AdminScoringStandards = () => {
       [field]: field === "weight" ? (value === "" ? "" : Number(value)) : value,
     };
     setCallCriteriaList(updated);
+    saveUserData("bpoReadyCallSimulationCriteria", updated);
   };
 
   const handleAddCallCriteria = () => {
-    setCallCriteriaList([
+    const updated = [
       ...callCriteriaList,
       {
         id: Date.now(),
@@ -225,7 +244,9 @@ const AdminScoringStandards = () => {
         weight: 0,
         detail: "Define candidate call handling and active listening standard...",
       },
-    ]);
+    ];
+    setCallCriteriaList(updated);
+    saveUserData("bpoReadyCallSimulationCriteria", updated);
   };
 
   const handleRemoveCallCriteria = (index) => {
@@ -233,7 +254,9 @@ const AdminScoringStandards = () => {
       alert("At least one evaluation factor must be maintained for Call Simulation.");
       return;
     }
-    setCallCriteriaList(callCriteriaList.filter((_, idx) => idx !== index));
+    const updated = callCriteriaList.filter((_, idx) => idx !== index);
+    setCallCriteriaList(updated);
+    saveUserData("bpoReadyCallSimulationCriteria", updated);
   };
 
   const handleResetCallCriteria = () => {
@@ -245,10 +268,14 @@ const AdminScoringStandards = () => {
 
   // Certification Prerequisites Handlers
   const handlePrerequisiteChange = (field, value) => {
-    setCertificationPrerequisites((prev) => ({
-      ...prev,
-      [field]: Number(value) < 0 ? 0 : Number(value),
-    }));
+    setCertificationPrerequisites((prev) => {
+      const updated = {
+        ...prev,
+        [field]: Number(value) < 0 ? 0 : Number(value),
+      };
+      saveUserData("bpoReadyCertificationPrerequisites", updated);
+      return updated;
+    });
   };
 
   const handleResetPrerequisites = () => {
