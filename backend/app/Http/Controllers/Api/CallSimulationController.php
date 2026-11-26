@@ -193,7 +193,21 @@ class CallSimulationController extends Controller
                     $interactionScore = $speechInteraction;
                 }
 
-                $overallScore = (int) round(($interactionScore * 0.40) + ($fluencyScore * 0.30) + ($accuracyScore * 0.30));
+                $callCriteria = cache()->get('call_simulation_criteria');
+                $wInt = 0.40;
+                $wFlu = 0.30;
+                $wAcc = 0.30;
+                if (is_array($callCriteria)) {
+                    foreach ($callCriteria as $c) {
+                        $n = strtolower($c['name'] ?? '');
+                        $w = ((float) ($c['weight'] ?? 30)) / 100;
+                        if (str_contains($n, 'interact')) $wInt = $w;
+                        elseif (str_contains($n, 'fluenc')) $wFlu = $w;
+                        elseif (str_contains($n, 'accura')) $wAcc = $w;
+                    }
+                }
+
+                $overallScore = (int) round(($interactionScore * $wInt) + ($fluencyScore * $wFlu) + ($accuracyScore * $wAcc));
                 $feedbackText = $evalResult['feedback_text'] ?? "Well-managed call interaction with solid customer rapport and clear problem-solving delivery.";
                 $suggestions = is_array($evalResult['suggestions'] ?? null)
                     ? $evalResult['suggestions']
@@ -238,7 +252,21 @@ class CallSimulationController extends Controller
                     $interactionScore = $speechInteraction;
                 }
 
-                $overallScore = (int) round(($interactionScore * 0.40) + ($fluencyScore * 0.30) + ($accuracyScore * 0.30));
+                $callCriteria = cache()->get('call_simulation_criteria');
+                $wInt = 0.40;
+                $wFlu = 0.30;
+                $wAcc = 0.30;
+                if (is_array($callCriteria)) {
+                    foreach ($callCriteria as $c) {
+                        $n = strtolower($c['name'] ?? '');
+                        $w = ((float) ($c['weight'] ?? 30)) / 100;
+                        if (str_contains($n, 'interact')) $wInt = $w;
+                        elseif (str_contains($n, 'fluenc')) $wFlu = $w;
+                        elseif (str_contains($n, 'accura')) $wAcc = $w;
+                    }
+                }
+
+                $overallScore = (int) round(($interactionScore * $wInt) + ($fluencyScore * $wFlu) + ($accuracyScore * $wAcc));
             }
 
             // 2. Comprehension Quiz Critical Impact: If quiz is 0%, cap overall QA score at maximum 35% (Auto-Fail)

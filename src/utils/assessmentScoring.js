@@ -428,16 +428,14 @@ export function getActiveEvaluationCriteria() {
   try {
     const custom = getUserData('bpoReadyScoringCriteria');
     if (Array.isArray(custom) && custom.length === 2) {
-      const isValid = custom.every(
-        (c) =>
-          (c.name === 'Accuracy' || c.name === 'Fluency') &&
-          Number(c.weight) === 50
-      );
-      if (isValid) return custom;
+      return custom.map((c, idx) => ({
+        id: c.id || idx + 1,
+        name: c.name || (idx === 0 ? 'Accuracy' : 'Fluency'),
+        pillar: c.pillar || (idx === 0 ? 'Accuracy (Acoustic & Phonetic Articulation)' : 'Fluency (Speech Rate & Pause Smoothness)'),
+        weight: Number(c.weight) != null ? Number(c.weight) : 50,
+        detail: c.detail || '',
+      }));
     }
-  } catch { }
-  try {
-    saveUserData('bpoReadyScoringCriteria', DEFAULT_READING_CRITERIA);
   } catch { }
   return DEFAULT_READING_CRITERIA;
 }
@@ -457,8 +455,7 @@ export function sanitizeReadingResult(raw, defaultLevel = 'medium') {
         c.name === 'Sentence Mastery' ||
         c.name === 'Vocabulary' ||
         c.name === 'Range' ||
-        c.name === 'Coherence' ||
-        Number(c.weight) !== 50
+        c.name === 'Coherence'
     );
 
   let criteria = raw.criteria;

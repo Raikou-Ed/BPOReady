@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getParagraphs, submitReadingSession } from "../api/paragraphsApi";
 import AudioRecorder from "../components/AudioRecorder";
-import { calculateAssessmentScore, getAssignedLevel, hasMeaningfulSpeech, saveAssessmentResult, LEVEL_RANK, getScoreTieredFeedback } from "../utils/assessmentScoring";
+import { calculateAssessmentScore, getAssignedLevel, hasMeaningfulSpeech, saveAssessmentResult, LEVEL_RANK, getScoreTieredFeedback, getActiveEvaluationCriteria } from "../utils/assessmentScoring";
 import { getCurrentUser, addUserActivity } from "../utils/userData";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
@@ -208,13 +208,36 @@ const HardLevelParagraphReading = () => {
 
                     let finalResult;
                     if (apiResponse && apiResponse.success) {
+                      const activeCrit = getActiveEvaluationCriteria();
+                      const accWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
+                      const fluWeight = Number(activeCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
+
+                      let finalCriteria = apiResponse.criteria || localScore.criteria;
+                      if (Array.isArray(finalCriteria) && finalCriteria.length === 2) {
+                        finalCriteria = [
+                          {
+                            ...finalCriteria[0],
+                            weight: accWeight,
+                            contribution: Number(((Number(finalCriteria[0].value || 0) * accWeight) / 100).toFixed(2)),
+                          },
+                          {
+                            ...finalCriteria[1],
+                            weight: fluWeight,
+                            contribution: Number(((Number(finalCriteria[1].value || 0) * fluWeight) / 100).toFixed(2)),
+                          },
+                        ];
+                      }
+                      const resolvedScore = finalCriteria && finalCriteria.length === 2
+                        ? Number((finalCriteria[0].contribution + finalCriteria[1].contribution).toFixed(2))
+                        : (apiResponse.score || localScore.score);
+
                       finalResult = {
-                        score: apiResponse.score,
+                        score: resolvedScore,
                         placedLevel: apiResponse.placedLevel || apiResponse.assigned_level || localScore.placedLevel,
                         wordsPerMinute: localScore.wordsPerMinute,
-                        criteria: apiResponse.criteria || localScore.criteria,
-                        feedbackText: apiResponse.feedbackText || apiResponse?.feedback?.feedback_text || getScoreTieredFeedback(apiResponse.score).feedbackText,
-                        suggestions: apiResponse.suggestions || (apiResponse?.feedback?.suggestions ? apiResponse.feedback.suggestions.split('\n') : getScoreTieredFeedback(apiResponse.score).suggestions),
+                        criteria: finalCriteria,
+                        feedbackText: apiResponse.feedbackText || apiResponse?.feedback?.feedback_text || getScoreTieredFeedback(resolvedScore).feedbackText,
+                        suggestions: apiResponse.suggestions || (apiResponse?.feedback?.suggestions ? apiResponse.feedback.suggestions.split('\n') : getScoreTieredFeedback(resolvedScore).suggestions),
                         aiEvaluated: apiResponse.aiEvaluated ?? true,
                         assessmentId: currentParagraph.id,
                         completedAt: new Date().toISOString(),

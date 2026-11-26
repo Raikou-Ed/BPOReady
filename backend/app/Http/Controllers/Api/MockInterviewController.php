@@ -136,12 +136,30 @@ class MockInterviewController extends Controller
                 $pacingScore = max(0, min(100, (float) ($geminiData['pacing_score'] ?? 86)));
                 $grammarScore = max(0, min(100, (float) ($geminiData['grammar_score'] ?? 85)));
                 $answerQuality = max(0, min(100, (float) ($geminiData['answer_quality_score'] ?? 84)));
+                $interviewCriteria = cache()->get('mock_interview_criteria');
+                $wAcc = 0.20;
+                $wFlu = 0.20;
+                $wRan = 0.20;
+                $wInt = 0.20;
+                $wCoh = 0.20;
+                if (is_array($interviewCriteria)) {
+                    foreach ($interviewCriteria as $c) {
+                        $n = strtolower($c['name'] ?? '');
+                        $w = ((float) ($c['weight'] ?? 20)) / 100;
+                        if (str_contains($n, 'accura') || str_contains($n, 'grammar')) $wAcc = $w;
+                        elseif (str_contains($n, 'fluenc') || str_contains($n, 'pacing')) $wFlu = $w;
+                        elseif (str_contains($n, 'range') || str_contains($n, 'vocabu')) $wRan = $w;
+                        elseif (str_contains($n, 'interact') || str_contains($n, 'confiden')) $wInt = $w;
+                        elseif (str_contains($n, 'coher') || str_contains($n, 'answer')) $wCoh = $w;
+                    }
+                }
+
                 $overallScore = max(0, min(100, (float) ($geminiData['overall_score'] ?? round(
-                    ($clarityScore * 0.25) +
-                    ($confidenceScore * 0.20) +
-                    ($pacingScore * 0.20) +
-                    ($grammarScore * 0.15) +
-                    ($answerQuality * 0.20)
+                    ($clarityScore * $wAcc) +
+                    ($pacingScore * $wFlu) +
+                    ($grammarScore * $wRan) +
+                    ($confidenceScore * $wInt) +
+                    ($answerQuality * $wCoh)
                 ))));
 
                 $feedbackText = $geminiData['feedback_text'] ?? "Well-structured {$interviewType} interview responses.";
@@ -172,12 +190,30 @@ class MockInterviewController extends Controller
                 $grammarScore = max(20, min(95, round(85 - ($fillerCount * 3))));
                 $answerQuality = max(10, min(95, round(($depthScore * 0.6) + ($clarityScore * 0.4))));
 
+                $interviewCriteria = cache()->get('mock_interview_criteria');
+                $wAcc = 0.20;
+                $wFlu = 0.20;
+                $wRan = 0.20;
+                $wInt = 0.20;
+                $wCoh = 0.20;
+                if (is_array($interviewCriteria)) {
+                    foreach ($interviewCriteria as $c) {
+                        $n = strtolower($c['name'] ?? '');
+                        $w = ((float) ($c['weight'] ?? 20)) / 100;
+                        if (str_contains($n, 'accura') || str_contains($n, 'grammar')) $wAcc = $w;
+                        elseif (str_contains($n, 'fluenc') || str_contains($n, 'pacing')) $wFlu = $w;
+                        elseif (str_contains($n, 'range') || str_contains($n, 'vocabu')) $wRan = $w;
+                        elseif (str_contains($n, 'interact') || str_contains($n, 'confiden')) $wInt = $w;
+                        elseif (str_contains($n, 'coher') || str_contains($n, 'answer')) $wCoh = $w;
+                    }
+                }
+
                 $overallScore = round(
-                    ($clarityScore * 0.25) +
-                    ($confidenceScore * 0.20) +
-                    ($pacingScore * 0.20) +
-                    ($fillerScore * 0.15) +
-                    ($answerQuality * 0.20)
+                    ($clarityScore * $wAcc) +
+                    ($confidenceScore * $wInt) +
+                    ($pacingScore * $wFlu) +
+                    ($fillerScore * $wRan) +
+                    ($answerQuality * $wCoh)
                 );
 
                 if ($overallScore < 50) {

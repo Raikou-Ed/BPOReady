@@ -157,7 +157,21 @@ class ParagraphController extends Controller
                 $feedbackText = 'The recorded audio did not match the required passage. Please read the passage text clearly from start to finish.';
                 $suggestions = "Speak closer to the microphone.\nFollow the provided passage closely.\nAvoid background noise or unrelated speech.";
             } else {
-                $score = ($pronunciationScore * 0.50) + ($fluencyScore * 0.50);
+                $readingCriteria = cache()->get('spoken_reading_criteria');
+                $accWeight = 50.0;
+                $fluWeight = 50.0;
+                if (is_array($readingCriteria)) {
+                    foreach ($readingCriteria as $c) {
+                        $name = strtolower($c['name'] ?? '');
+                        if (str_contains($name, 'accura') || str_contains($name, 'pronunc')) {
+                            $accWeight = (float) ($c['weight'] ?? 50);
+                        } elseif (str_contains($name, 'fluenc') || str_contains($name, 'pace')) {
+                            $fluWeight = (float) ($c['weight'] ?? 50);
+                        }
+                    }
+                }
+
+                $score = ($pronunciationScore * ($accWeight / 100)) + ($fluencyScore * ($fluWeight / 100));
                 $score = max(0, min(100, round($score, 2)));
 
                 $feedbackText = $evalResult['feedbackText'] ?? 'Good reading pace and clear pronunciation throughout the passage.';
@@ -256,19 +270,33 @@ class ParagraphController extends Controller
                 ->update(['assigned_level' => $newLevel, 'updated_at' => now()]);
         }
 
+        $readingCriteria = cache()->get('spoken_reading_criteria');
+        $accWeight = 50.0;
+        $fluWeight = 50.0;
+        if (is_array($readingCriteria)) {
+            foreach ($readingCriteria as $c) {
+                $name = strtolower($c['name'] ?? '');
+                if (str_contains($name, 'accura') || str_contains($name, 'pronunc')) {
+                    $accWeight = (float) ($c['weight'] ?? 50);
+                } elseif (str_contains($name, 'fluenc') || str_contains($name, 'pace')) {
+                    $fluWeight = (float) ($c['weight'] ?? 50);
+                }
+            }
+        }
+
         $criteria = [
             [
                 'name' => 'Accuracy',
                 'value' => round($pronunciationScore),
-                'weight' => 50,
-                'contribution' => round($pronunciationScore * 0.50, 2),
+                'weight' => $accWeight,
+                'contribution' => round($pronunciationScore * ($accWeight / 100), 2),
                 'detail' => $score === 0 ? 'Passage not read' : 'Articulation & sound clarity',
             ],
             [
                 'name' => 'Fluency',
                 'value' => round($fluencyScore),
-                'weight' => 50,
-                'contribution' => round($fluencyScore * 0.50, 2),
+                'weight' => $fluWeight,
+                'contribution' => round($fluencyScore * ($fluWeight / 100), 2),
                 'detail' => $score === 0 ? 'Passage not read' : 'Rhythm & pause control',
             ],
         ];

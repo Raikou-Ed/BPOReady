@@ -726,9 +726,9 @@ const CallSimulationSession = () => {
         result: `${calcOverall}/100`,
         score: calcOverall,
         criteria: [
-          { name: "Interaction", value: Math.round(calcInteraction), weight: 40, contribution: Number(((calcInteraction * 0.40)).toFixed(1)), detail: "Empathy, turn-taking & listening quiz" },
-          { name: "Fluency", value: Math.round(calcFluency), weight: 30, contribution: Number(((calcFluency * 0.30)).toFixed(1)), detail: "Cadence, pacing & dead-air management" },
-          { name: "Accuracy", value: Math.round(calcAccuracy), weight: 30, contribution: Number(((calcAccuracy * 0.30)).toFixed(1)), detail: "Milestone resolution & verification" },
+          { name: "Interaction", value: Math.round(calcInteraction), weight: Math.round(weightInteraction * 100), contribution: Number(((calcInteraction * weightInteraction)).toFixed(1)), detail: "Empathy, turn-taking & listening quiz" },
+          { name: "Fluency", value: Math.round(calcFluency), weight: Math.round(weightFluency * 100), contribution: Number(((calcFluency * weightFluency)).toFixed(1)), detail: "Cadence, pacing & dead-air management" },
+          { name: "Accuracy", value: Math.round(calcAccuracy), weight: Math.round(weightAccuracy * 100), contribution: Number(((calcAccuracy * weightAccuracy)).toFixed(1)), detail: "Milestone resolution & verification" },
         ],
         feedbackText: fallbackEvaluation.feedback_text,
         suggestions: fallbackEvaluation.suggestions || [],

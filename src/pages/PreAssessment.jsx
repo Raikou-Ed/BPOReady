@@ -8,6 +8,7 @@ import {
   saveAssessmentResult,
   getAssignedLevel,
   generatePreAssessmentCriteria,
+  getActiveEvaluationCriteria,
   formatScore,
   hasMeaningfulSpeech,
 } from '../utils/assessmentScoring';
@@ -160,6 +161,10 @@ export default function PreAssessment() {
         audioMetrics: recording.audioMetrics,
       });
 
+      const activeReadingCrit = getActiveEvaluationCriteria();
+      const accuracyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 50);
+      const fluencyWeight = Number(activeReadingCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 50);
+
       const score = apiResult.fallback || !apiResult.criteria
         ? localScore
         : {
@@ -173,7 +178,7 @@ export default function PreAssessment() {
                 speakingPace: localScore.metrics.fluency,
               };
               const metricValue = value?.score ?? localMetricMap[name] ?? 0;
-              const weight = 50;
+              const weight = (name === 'accuracy' || name === 'pronunciation') ? accuracyWeight : fluencyWeight;
               return total + ((Number(metricValue) * weight) / 100);
             }, 0).toFixed(2)),
           placedLevel: apiResult.placedLevel || localScore.placedLevel,
@@ -208,7 +213,7 @@ export default function PreAssessment() {
                 pronunciation: 'Vowel & consonant articulation clarity',
               };
               const resolvedScore = value?.score ?? localMetricMap[name] ?? null;
-              const resolvedWeight = 50;
+              const resolvedWeight = (name === 'accuracy' || name === 'pronunciation') ? accuracyWeight : fluencyWeight;
               return {
                 name: nameLabelMap[name] || name,
                 pillar: pillarLabelMap[name] || nameLabelMap[name] || name,

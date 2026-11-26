@@ -40,33 +40,31 @@ const defaultStandards = [
 const AdminScoringStandards = () => {
   const [standards, setStandards] = useState(defaultStandards);
 
-  // 1. Spoken Reading Criteria (Pre-Assessment & Paragraph Reading)
+  // 1. Spoken Reading Criteria (Pre-Assessment & Paragraph Reading: Accuracy & Fluency)
   const [readingCriteriaList, setReadingCriteriaList] = useState(() => {
     try {
       const saved = getUserData("bpoReadyScoringCriteria");
       if (Array.isArray(saved) && saved.length === 2) {
-        const isValid = saved.every((c) => (c.name === "Accuracy" || c.name === "Fluency") && Number(c.weight) === 50);
-        if (isValid) return saved;
+        return saved;
       }
     } catch {}
-    saveUserData("bpoReadyScoringCriteria", DEFAULT_READING_CRITERIA);
     return DEFAULT_READING_CRITERIA;
   });
 
-  // 2. Mock Interview Criteria
+  // 2. Mock Interview Criteria (CEFR 5 Dimensions: Accuracy, Fluency, Range, Interaction, Coherence)
   const [interviewCriteriaList, setInterviewCriteriaList] = useState(() => {
     try {
       const saved = getUserData("bpoReadyMockInterviewCriteria");
-      if (Array.isArray(saved) && saved.length > 0) return saved;
+      if (Array.isArray(saved) && saved.length === 5) return saved;
     } catch {}
     return DEFAULT_MOCK_INTERVIEW_CRITERIA;
   });
 
-  // 3. Call Simulation Criteria
+  // 3. Call Simulation Criteria (Interaction, Fluency, Accuracy)
   const [callCriteriaList, setCallCriteriaList] = useState(() => {
     try {
       const saved = getUserData("bpoReadyCallSimulationCriteria");
-      if (Array.isArray(saved) && saved.length > 0) return saved;
+      if (Array.isArray(saved) && saved.length === 3) return saved;
     } catch {}
     return DEFAULT_CALL_SIMULATION_CRITERIA;
   });
@@ -349,7 +347,7 @@ const AdminScoringStandards = () => {
                 </p>
               </div>
 
-              {/* Total Weight Indicator & Add Factor Button */}
+              {/* Total Weight Indicator */}
               <div className="flex items-center gap-2.5">
                 <div
                   className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
@@ -366,17 +364,6 @@ const AdminScoringStandards = () => {
                     </span>
                   )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddReadingCriteria}
-                  className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition border border-blue-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>+ Add Factor</span>
-                </button>
               </div>
             </div>
 
@@ -392,13 +379,9 @@ const AdminScoringStandards = () => {
                       <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                         Factor Name
                       </label>
-                      <input
-                        type="text"
-                        value={crit.name}
-                        onChange={(e) => handleReadingCriteriaChange(idx, "name", e.target.value)}
-                        placeholder="e.g. Accuracy, Fluency, Pronunciation"
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                      />
+                      <div className="px-3.5 py-2 bg-gray-100 border border-gray-300 rounded-xl text-xs font-bold text-gray-900">
+                        {crit.name}
+                      </div>
                     </div>
 
                     <div className="w-28">
@@ -417,19 +400,6 @@ const AdminScoringStandards = () => {
                         <span className="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">%</span>
                       </div>
                     </div>
-
-                    {readingCriteriaList.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveReadingCriteria(idx)}
-                        title="Remove Factor"
-                        className="mt-5 p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
                   </div>
 
                   <div>
@@ -482,7 +452,7 @@ const AdminScoringStandards = () => {
                 </p>
               </div>
 
-              {/* Total Weight Indicator & Add Factor Button */}
+              {/* Total Weight Indicator */}
               <div className="flex items-center gap-2.5">
                 <div
                   className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
@@ -499,17 +469,6 @@ const AdminScoringStandards = () => {
                     </span>
                   )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddInterviewCriteria}
-                  className="px-3.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl text-xs transition border border-purple-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>+ Add Factor</span>
-                </button>
               </div>
             </div>
 
@@ -525,13 +484,9 @@ const AdminScoringStandards = () => {
                       <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                         Factor Name
                       </label>
-                      <input
-                        type="text"
-                        value={crit.name}
-                        onChange={(e) => handleInterviewCriteriaChange(idx, "name", e.target.value)}
-                        placeholder="e.g. Accuracy, Fluency, Range, Interaction, Coherence"
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-                      />
+                      <div className="px-3.5 py-2 bg-gray-100 border border-gray-300 rounded-xl text-xs font-bold text-gray-900">
+                        {crit.name}
+                      </div>
                     </div>
 
                     <div className="w-28">
@@ -550,19 +505,6 @@ const AdminScoringStandards = () => {
                         <span className="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">%</span>
                       </div>
                     </div>
-
-                    {interviewCriteriaList.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveInterviewCriteria(idx)}
-                        title="Remove Factor"
-                        className="mt-5 p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
                   </div>
 
                   <div>
@@ -615,7 +557,7 @@ const AdminScoringStandards = () => {
                 </p>
               </div>
 
-              {/* Total Weight Indicator & Add Factor Button */}
+              {/* Total Weight Indicator */}
               <div className="flex items-center gap-2.5">
                 <div
                   className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
@@ -632,17 +574,6 @@ const AdminScoringStandards = () => {
                     </span>
                   )}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddCallCriteria}
-                  className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold rounded-xl text-xs transition border border-teal-200 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>+ Add Factor</span>
-                </button>
               </div>
             </div>
 
@@ -658,13 +589,9 @@ const AdminScoringStandards = () => {
                       <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                         Factor Name
                       </label>
-                      <input
-                        type="text"
-                        value={crit.name}
-                        onChange={(e) => handleCallCriteriaChange(idx, "name", e.target.value)}
-                        placeholder="e.g. Interaction, Fluency, Accuracy"
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
-                      />
+                      <div className="px-3.5 py-2 bg-gray-100 border border-gray-300 rounded-xl text-xs font-bold text-gray-900">
+                        {crit.name}
+                      </div>
                     </div>
 
                     <div className="w-24">
@@ -683,19 +610,6 @@ const AdminScoringStandards = () => {
                         <span className="absolute right-2.5 top-2 text-xs font-bold text-gray-400 pointer-events-none">%</span>
                       </div>
                     </div>
-
-                    {callCriteriaList.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCallCriteria(idx)}
-                        title="Remove Factor"
-                        className="mt-5 p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    )}
                   </div>
 
                   <div>

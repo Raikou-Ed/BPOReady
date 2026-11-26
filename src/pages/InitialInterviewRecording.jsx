@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AudioRecorder from "../components/AudioRecorder";
 import { getMockInterviewQuestions, submitMockInterview } from "../api/adminApi";
 import { addUserActivity, getCurrentUser } from "../utils/userData";
+import { getActiveMockInterviewCriteria } from "../utils/assessmentScoring";
 import ApplicantSidebar from "../components/ApplicantSidebar";
 
 const defaultQuestions = [
@@ -244,12 +245,19 @@ const InitialInterviewRecording = () => {
           const interactionScore = confidenceScore;
           const coherenceScore = answerQuality;
 
+          const activeInterviewCrit = getActiveMockInterviewCriteria();
+          const wAcc = (activeInterviewCrit.find(c => c.name.toLowerCase().includes('accura'))?.weight ?? 20) / 100;
+          const wFlu = (activeInterviewCrit.find(c => c.name.toLowerCase().includes('fluenc'))?.weight ?? 20) / 100;
+          const wRan = (activeInterviewCrit.find(c => c.name.toLowerCase().includes('range'))?.weight ?? 20) / 100;
+          const wInt = (activeInterviewCrit.find(c => c.name.toLowerCase().includes('interact'))?.weight ?? 20) / 100;
+          const wCoh = (activeInterviewCrit.find(c => c.name.toLowerCase().includes('coher'))?.weight ?? 20) / 100;
+
           overallScore = Math.round(
-            (accuracyScore * 0.20) +
-            (fluencyScore * 0.20) +
-            (rangeScore * 0.20) +
-            (interactionScore * 0.20) +
-            (coherenceScore * 0.20)
+            (accuracyScore * wAcc) +
+            (fluencyScore * wFlu) +
+            (rangeScore * wRan) +
+            (interactionScore * wInt) +
+            (coherenceScore * wCoh)
           );
 
           if (overallScore < 50) {

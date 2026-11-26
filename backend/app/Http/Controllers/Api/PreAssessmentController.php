@@ -118,16 +118,30 @@ class PreAssessmentController extends Controller
             ? (int) $parsed['vocabulary']
             : $coverageScore;
 
+        $readingCriteria = cache()->get('spoken_reading_criteria');
+        $accWeight = 50.0;
+        $fluWeight = 50.0;
+        if (is_array($readingCriteria)) {
+            foreach ($readingCriteria as $c) {
+                $name = strtolower($c['name'] ?? '');
+                if (str_contains($name, 'accura') || str_contains($name, 'pronunc')) {
+                    $accWeight = (float) ($c['weight'] ?? 50);
+                } elseif (str_contains($name, 'fluenc') || str_contains($name, 'pace')) {
+                    $fluWeight = (float) ($c['weight'] ?? 50);
+                }
+            }
+        }
+
         $criteria = [
             'pronunciation' => [
                 'score' => (int) ($parsed['pronunciation'] ?? 0),
-                'weight' => 50,
+                'weight' => $accWeight,
                 'name' => 'Accuracy',
                 'detail' => 'Articulation & vowel/consonant clarity',
             ],
             'fluency' => [
                 'score' => (int) ($parsed['fluency'] ?? $parsed['speakingPace'] ?? 0),
-                'weight' => 50,
+                'weight' => $fluWeight,
                 'name' => 'Fluency',
                 'detail' => 'Rhythm, speech rate & pause control',
             ],
