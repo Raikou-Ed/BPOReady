@@ -1329,98 +1329,104 @@ export default function ApplyCertification() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Stage 1: Paragraph Reading */}
-                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2.5 flex flex-col justify-between">
-                      <div className="space-y-2">
+                  {/* ── Bar Chart ── */}
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 space-y-5">
+                    {[
+                      {
+                        label: "Stage 1: Reading",
+                        score: savedCertificate.stage1ReadingScore || 0,
+                        passed: (savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score,
+                        color: "bg-blue-500",
+                        trackColor: "bg-blue-100",
+                        textColor: "text-blue-700",
+                        sub: savedCertificate.stage1ReadingScore === 0
+                          ? "Passage not read aloud"
+                          : `Speech Articulation & Pacing (${stage1Score?.wordsPerMinute || 0} WPM)`,
+                        criteria: savedCertificate.stage1Criteria || getActiveEvaluationCriteria(),
+                        critColor: "bg-blue-50 text-blue-700 border-blue-200",
+                        critVal: (crit) => crit.value ?? savedCertificate.stage1ReadingScore,
+                      },
+                      {
+                        label: "Stage 2: HR Interview",
+                        score: savedCertificate.stage2InterviewScore || 0,
+                        passed: (savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score,
+                        color: "bg-purple-500",
+                        trackColor: "bg-purple-100",
+                        textColor: "text-purple-700",
+                        sub: "3 Competency Questions (STAR, Cadence & Composure)",
+                        criteria: savedCertificate.stage2Criteria || getActiveMockInterviewCriteria(),
+                        critColor: "bg-purple-50 text-purple-700 border-purple-200",
+                        critVal: (crit) => crit.value ?? savedCertificate.stage2InterviewScore,
+                      },
+                      {
+                        label: "Stage 3: Inbound Call",
+                        score: savedCertificate.stage3CallScore || 0,
+                        passed: (savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score,
+                        color: "bg-emerald-500",
+                        trackColor: "bg-emerald-100",
+                        textColor: "text-emerald-700",
+                        sub: `Technical Support QA • Quiz: ${savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%`,
+                        criteria: savedCertificate.stage3Criteria || getActiveCallSimulationCriteria(),
+                        critColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                        critVal: (crit) => crit.value ?? savedCertificate.stage3CallScore,
+                        extraBadge: `Quiz: ${savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%`,
+                      },
+                    ].map((stage) => (
+                      <div key={stage.label} className="space-y-1.5">
+                        {/* Row header */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 1: Reading</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                          }`}>
-                            {(savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600">{stage.label}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stage.passed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                              {stage.passed ? "Passed" : "Needs Retake"}
+                            </span>
+                          </div>
+                          <span className={`text-sm font-black ${stage.textColor}`}>{stage.score}%</span>
                         </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-2xl font-black text-gray-900">{savedCertificate.stage1ReadingScore}%</span>
-                          <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
-                        </div>
-                        <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
-                          {savedCertificate.stage1ReadingScore === 0 ? "Passage not read aloud" : `Speech Articulation & Pacing (${stage1Score?.wordsPerMinute || 0} WPM)`}
-                        </p>
-                      </div>
 
-                      {/* Active Criteria Breakdown */}
-                      <div className="pt-2 border-t border-slate-200/80 flex flex-wrap gap-1.5">
-                        {(savedCertificate.stage1Criteria || getActiveEvaluationCriteria()).map((crit) => (
-                          <span key={crit.name} className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
-                            {crit.name} ({crit.weight}%): {crit.value ?? savedCertificate.stage1ReadingScore}%
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Stage 2: Mock Interview */}
-                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2.5 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 2: HR Interview</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                          }`}>
-                            {(savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
-                          </span>
+                        {/* Bar track */}
+                        <div className={`w-full h-5 rounded-full ${stage.trackColor} overflow-hidden relative`}>
+                          {/* Passing threshold marker */}
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-gray-400/60 z-10"
+                            style={{ left: `${prereqs.min_stage_score}%` }}
+                            title={`Min passing: ${prereqs.min_stage_score}%`}
+                          />
+                          {/* Fill bar */}
+                          <div
+                            className={`h-full rounded-full ${stage.color} transition-all duration-700 ease-out flex items-center justify-end pr-2`}
+                            style={{ width: `${Math.min(stage.score, 100)}%` }}
+                          >
+                            {stage.score >= 20 && (
+                              <span className="text-[10px] font-black text-white">{stage.score}%</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-2xl font-black text-gray-900">{savedCertificate.stage2InterviewScore}%</span>
-                          <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
-                        </div>
-                        <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
-                          3 Competency Questions (STAR, Cadence &amp; Composure)
-                        </p>
-                      </div>
 
-                      {/* Active Criteria Breakdown */}
-                      <div className="pt-2 border-t border-slate-200/80 flex flex-wrap gap-1.5">
-                        {(savedCertificate.stage2Criteria || getActiveMockInterviewCriteria()).map((crit) => (
-                          <span key={crit.name} className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-bold border border-purple-200">
-                            {crit.name} ({crit.weight}%): {crit.value ?? savedCertificate.stage2InterviewScore}%
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Stage 3: Call Simulation */}
-                    <div className="p-5 rounded-2xl border bg-slate-50 border-slate-200 space-y-2.5 flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Stage 3: Inbound Call</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            (savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                          }`}>
-                            {(savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score ? "Passed" : "Needs Retake"}
-                          </span>
+                        {/* Sub-label & criteria badges */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] text-gray-500 font-medium mr-1">{stage.sub}</span>
+                          {stage.criteria.map((crit) => (
+                            <span key={crit.name} className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${stage.critColor}`}>
+                              {crit.name} ({crit.weight}%): {stage.critVal(crit)}%
+                            </span>
+                          ))}
+                          {stage.extraBadge && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                              {stage.extraBadge}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-2xl font-black text-gray-900">{savedCertificate.stage3CallScore}%</span>
-                          <span className="text-xs text-gray-400 font-semibold">/ 100%</span>
-                        </div>
-                        <p className="text-[11px] text-gray-600 font-medium leading-relaxed">
-                          Technical Support QA • Quiz: {savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%
-                        </p>
                       </div>
+                    ))}
 
-                      {/* Active Criteria Breakdown */}
-                      <div className="pt-2 border-t border-slate-200/80 flex flex-wrap gap-1.5">
-                        {(savedCertificate.stage3Criteria || getActiveCallSimulationCriteria()).map((crit) => (
-                          <span key={crit.name} className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                            {crit.name} ({crit.weight}%): {crit.value ?? savedCertificate.stage3CallScore}%
-                          </span>
-                        ))}
-                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
-                          Quiz: {savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%
-                        </span>
-                      </div>
+                    {/* X-axis scale */}
+                    <div className="flex justify-between text-[9px] text-gray-400 font-semibold pt-1 border-t border-slate-200">
+                      <span>0%</span>
+                      <span>25%</span>
+                      <span>50%</span>
+                      <span>75%</span>
+                      <span>100%</span>
                     </div>
                   </div>
                 </div>
