@@ -124,7 +124,12 @@ const PracticeHistory = () => {
           });
 
           const combined = Array.from(map.values());
-          combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+          combined.sort((a, b) => {
+            const scoreA = a.score != null ? Number(a.score) : getScoreNum(a.result);
+            const scoreB = b.score != null ? Number(b.score) : getScoreNum(b.result);
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return new Date(b.date) - new Date(a.date);
+          });
 
           setActivities(combined);
           return;
@@ -134,7 +139,13 @@ const PracticeHistory = () => {
       } finally {
         setLoading(false);
       }
-      setActivities(local || []);
+      const sortedLocal = (local || []).slice().sort((a, b) => {
+        const scoreA = a.score != null ? Number(a.score) : getScoreNum(a.result);
+        const scoreB = b.score != null ? Number(b.score) : getScoreNum(b.result);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.date) - new Date(a.date);
+      });
+      setActivities(sortedLocal);
     }
     loadHistory();
   }, [currentUser.id]);
