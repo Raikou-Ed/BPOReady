@@ -10,6 +10,8 @@ const PracticeHistory = () => {
   const [activities, setActivities] = useState([]);
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Scorecard Modal State
   const [selectedActivity, setSelectedActivity] = useState(null);
@@ -189,6 +191,13 @@ const PracticeHistory = () => {
     return true;
   });
 
+  // Pagination — only applied on "All Activities" tab
+  const isAllTab = filterType === "all";
+  const totalPages = isAllTab ? Math.ceil(filtered.length / PAGE_SIZE) : 1;
+  const displayedRows = isAllTab
+    ? filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+    : filtered;
+
   // Helper to extract score number
   const getScoreNum = (resultStr) => {
     if (resultStr == null) return 0;
@@ -243,12 +252,11 @@ const PracticeHistory = () => {
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setFilterType(tab.key)}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${
-                  filterType === tab.key
+                onClick={() => { setFilterType(tab.key); setCurrentPage(1); }}
+                className={`px-4 py-2 text-xs font-semibold rounded-xl transition cursor-pointer ${filterType === tab.key
                     ? "bg-blue-600 text-white shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -270,7 +278,7 @@ const PracticeHistory = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length > 0 ? (
-                  filtered.map((item, idx) => (
+                  displayedRows.map((item, idx) => (
                     <tr
                       key={item.id || idx}
                       onClick={() => setSelectedActivity(item)}
@@ -326,6 +334,53 @@ const PracticeHistory = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls — All Activities only */}
+          {isAllTab && totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-gray-500">
+                Page {currentPage} of {totalPages} &nbsp;·&nbsp; Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length} sessions
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                >«</button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                >Prev</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                  .reduce((acc, p, i, arr) => {
+                    if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === '...'
+                      ? <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-xs">…</span>
+                      : <button
+                          key={p}
+                          onClick={() => setCurrentPage(p)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold border transition cursor-pointer ${currentPage === p ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                        >{p}</button>
+                  )}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                >Next</button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                >»</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
