@@ -1329,104 +1329,144 @@ export default function ApplyCertification() {
                     </span>
                   </div>
 
-                  {/* ── Bar Chart ── */}
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 space-y-5">
-                    {[
-                      {
-                        label: "Stage 1: Reading",
-                        score: savedCertificate.stage1ReadingScore || 0,
-                        passed: (savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score,
-                        color: "bg-blue-500",
-                        trackColor: "bg-blue-100",
-                        textColor: "text-blue-700",
-                        sub: savedCertificate.stage1ReadingScore === 0
-                          ? "Passage not read aloud"
-                          : `Speech Articulation & Pacing (${stage1Score?.wordsPerMinute || 0} WPM)`,
-                        criteria: savedCertificate.stage1Criteria || getActiveEvaluationCriteria(),
-                        critColor: "bg-blue-50 text-blue-700 border-blue-200",
-                        critVal: (crit) => crit.value ?? savedCertificate.stage1ReadingScore,
-                      },
-                      {
-                        label: "Stage 2: HR Interview",
-                        score: savedCertificate.stage2InterviewScore || 0,
-                        passed: (savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score,
-                        color: "bg-purple-500",
-                        trackColor: "bg-purple-100",
-                        textColor: "text-purple-700",
-                        sub: "3 Competency Questions (STAR, Cadence & Composure)",
-                        criteria: savedCertificate.stage2Criteria || getActiveMockInterviewCriteria(),
-                        critColor: "bg-purple-50 text-purple-700 border-purple-200",
-                        critVal: (crit) => crit.value ?? savedCertificate.stage2InterviewScore,
-                      },
-                      {
-                        label: "Stage 3: Inbound Call",
-                        score: savedCertificate.stage3CallScore || 0,
-                        passed: (savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score,
-                        color: "bg-emerald-500",
-                        trackColor: "bg-emerald-100",
-                        textColor: "text-emerald-700",
-                        sub: `Technical Support QA • Quiz: ${savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%`,
-                        criteria: savedCertificate.stage3Criteria || getActiveCallSimulationCriteria(),
-                        critColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-                        critVal: (crit) => crit.value ?? savedCertificate.stage3CallScore,
-                        extraBadge: `Quiz: ${savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0}%`,
-                      },
-                    ].map((stage) => (
-                      <div key={stage.label} className="space-y-1.5">
-                        {/* Row header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600">{stage.label}</span>
+                  {/* ── Vertical Column Bar Chart ── */}
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[
+                        {
+                          label: "Stage 1: Reading",
+                          score: savedCertificate.stage1ReadingScore || 0,
+                          passed: (savedCertificate.stage1ReadingScore || 0) >= prereqs.min_stage_score,
+                          barColor: "bg-blue-500",
+                          labelColor: "text-blue-700",
+                          borderColor: "border-blue-200",
+                          bgLight: "bg-blue-50",
+                          criteria: (savedCertificate.stage1Criteria || getActiveEvaluationCriteria()).map(c => ({
+                            name: c.name,
+                            value: c.value ?? savedCertificate.stage1ReadingScore,
+                            weight: c.weight,
+                          })),
+                        },
+                        {
+                          label: "Stage 2: HR Interview",
+                          score: savedCertificate.stage2InterviewScore || 0,
+                          passed: (savedCertificate.stage2InterviewScore || 0) >= prereqs.min_stage_score,
+                          barColor: "bg-purple-500",
+                          labelColor: "text-purple-700",
+                          borderColor: "border-purple-200",
+                          bgLight: "bg-purple-50",
+                          criteria: (savedCertificate.stage2Criteria || getActiveMockInterviewCriteria()).map(c => ({
+                            name: c.name,
+                            value: c.value ?? savedCertificate.stage2InterviewScore,
+                            weight: c.weight,
+                          })),
+                        },
+                        {
+                          label: "Stage 3: Inbound Call",
+                          score: savedCertificate.stage3CallScore || 0,
+                          passed: (savedCertificate.stage3CallScore || 0) >= prereqs.min_stage_score,
+                          barColor: "bg-emerald-500",
+                          labelColor: "text-emerald-700",
+                          borderColor: "border-emerald-200",
+                          bgLight: "bg-emerald-50",
+                          criteria: [
+                            ...(savedCertificate.stage3Criteria || getActiveCallSimulationCriteria()).map(c => ({
+                              name: c.name,
+                              value: c.value ?? savedCertificate.stage3CallScore,
+                              weight: c.weight,
+                            })),
+                            { name: "Quiz", value: savedCertificate.stage3QuizScore ?? stage3Score?.quiz_score ?? 0, weight: null, isQuiz: true },
+                          ],
+                        },
+                      ].map((stage) => (
+                        <div key={stage.label} className="flex flex-col gap-3">
+                          {/* Stage header */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{stage.label}</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stage.passed ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
                               {stage.passed ? "Passed" : "Needs Retake"}
                             </span>
                           </div>
-                          <span className={`text-sm font-black ${stage.textColor}`}>{stage.score}%</span>
-                        </div>
 
-                        {/* Bar track */}
-                        <div className={`w-full h-5 rounded-full ${stage.trackColor} overflow-hidden relative`}>
-                          {/* Passing threshold marker */}
-                          <div
-                            className="absolute top-0 bottom-0 w-0.5 bg-gray-400/60 z-10"
-                            style={{ left: `${prereqs.min_stage_score}%` }}
-                            title={`Min passing: ${prereqs.min_stage_score}%`}
-                          />
-                          {/* Fill bar */}
-                          <div
-                            className={`h-full rounded-full ${stage.color} transition-all duration-700 ease-out flex items-center justify-end pr-2`}
-                            style={{ width: `${Math.min(stage.score, 100)}%` }}
-                          >
-                            {stage.score >= 20 && (
-                              <span className="text-[10px] font-black text-white">{stage.score}%</span>
-                            )}
+                          {/* Y-axis + bars */}
+                          <div className="flex gap-2 items-end" style={{ height: "180px" }}>
+                            {/* Y-axis labels */}
+                            <div className="flex flex-col justify-between h-full text-right pr-1 shrink-0">
+                              {[100, 75, 50, 25, 0].map(tick => (
+                                <span key={tick} className="text-[8px] text-gray-400 font-semibold leading-none">{tick}</span>
+                              ))}
+                            </div>
+
+                            {/* Grid + bars */}
+                            <div className="relative flex-1 h-full">
+                              {/* Horizontal grid lines */}
+                              {[0, 25, 50, 75, 100].map((tick) => (
+                                <div
+                                  key={tick}
+                                  className="absolute w-full border-t border-gray-200"
+                                  style={{ bottom: `${tick}%` }}
+                                />
+                              ))}
+                              {/* Passing threshold line */}
+                              <div
+                                className="absolute w-full border-t-2 border-dashed border-orange-400 z-10"
+                                style={{ bottom: `${prereqs.min_stage_score}%` }}
+                                title={`Min passing: ${prereqs.min_stage_score}%`}
+                              />
+
+                              {/* Bars */}
+                              <div className="absolute inset-0 flex items-end gap-1.5 px-1 pb-0">
+                                {stage.criteria.map((crit) => {
+                                  const val = Math.min(Number(crit.value) || 0, 100);
+                                  const isQuiz = crit.isQuiz;
+                                  return (
+                                    <div key={crit.name} className="flex-1 flex flex-col items-center justify-end h-full">
+                                      {/* Value label on top of bar */}
+                                      <span className={`text-[9px] font-black mb-0.5 ${isQuiz ? "text-amber-600" : stage.labelColor}`}>
+                                        {val}%
+                                      </span>
+                                      {/* The bar itself */}
+                                      <div
+                                        className={`w-full rounded-t-lg transition-all duration-700 ease-out ${isQuiz ? "bg-amber-400" : stage.barColor}`}
+                                        style={{ height: `${val}%`, minHeight: val > 0 ? "4px" : "2px" }}
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* X-axis labels (criterion names) */}
+                          <div className={`flex gap-1.5 pl-6`}>
+                            {stage.criteria.map((crit) => (
+                              <div key={crit.name} className="flex-1 text-center">
+                                <span className={`text-[9px] font-bold ${crit.isQuiz ? "text-amber-600" : stage.labelColor}`}>
+                                  {crit.name}
+                                </span>
+                                {crit.weight != null && (
+                                  <div className="text-[8px] text-gray-400">{crit.weight}%</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Stage total */}
+                          <div className={`text-center text-xs font-black ${stage.labelColor}`}>
+                            Stage Total: {stage.score}%
                           </div>
                         </div>
+                      ))}
+                    </div>
 
-                        {/* Sub-label & criteria badges */}
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[10px] text-gray-500 font-medium mr-1">{stage.sub}</span>
-                          {stage.criteria.map((crit) => (
-                            <span key={crit.name} className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${stage.critColor}`}>
-                              {crit.name} ({crit.weight}%): {stage.critVal(crit)}%
-                            </span>
-                          ))}
-                          {stage.extraBadge && (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
-                              {stage.extraBadge}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* X-axis scale */}
-                    <div className="flex justify-between text-[9px] text-gray-400 font-semibold pt-1 border-t border-slate-200">
-                      <span>0%</span>
-                      <span>25%</span>
-                      <span>50%</span>
-                      <span>75%</span>
-                      <span>100%</span>
+                    {/* Legend */}
+                    <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-200 flex-wrap">
+                      <span className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">Legend:</span>
+                      <span className="flex items-center gap-1 text-[9px] text-gray-500"><span className="inline-block w-6 h-2 rounded bg-blue-500" /> Stage 1</span>
+                      <span className="flex items-center gap-1 text-[9px] text-gray-500"><span className="inline-block w-6 h-2 rounded bg-purple-500" /> Stage 2</span>
+                      <span className="flex items-center gap-1 text-[9px] text-gray-500"><span className="inline-block w-6 h-2 rounded bg-emerald-500" /> Stage 3</span>
+                      <span className="flex items-center gap-1 text-[9px] text-gray-500"><span className="inline-block w-6 h-2 rounded bg-amber-400" /> Quiz</span>
+                      <span className="flex items-center gap-1 text-[9px] text-orange-500 font-bold"><span className="inline-block w-6 border-t-2 border-dashed border-orange-400" /> Min Passing ({prereqs.min_stage_score}%)</span>
                     </div>
                   </div>
                 </div>
