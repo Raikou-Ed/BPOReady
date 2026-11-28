@@ -11,7 +11,7 @@ const PracticeHistory = () => {
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 2;
 
   // Scorecard Modal State
   const [selectedActivity, setSelectedActivity] = useState(null);
